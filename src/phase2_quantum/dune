@@ -1,0 +1,5 @@
+(library
+ (name phase2_quantum)
+ (public_name rocq-domain-theory.phase2_quantum)
+ (libraries phase1_enriched)
+ (synopsis "Quantum CPO structures (stretch goal)"))

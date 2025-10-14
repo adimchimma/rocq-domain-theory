@@ -1,0 +1,257 @@
+(lang dune 3.20)
+(name rocq-domain-theory)
+(version 0.1.0)
+(sections (lib .) (libexec .) (doc ../../doc/rocq-domain-theory))
+(files
+ (lib
+  (META
+   dune-package
+   opam
+   phase0_foundations/phase0_foundations.a
+   phase0_foundations/phase0_foundations.cma
+   phase0_foundations/phase0_foundations.cmi
+   phase0_foundations/phase0_foundations.cmt
+   phase0_foundations/phase0_foundations.cmx
+   phase0_foundations/phase0_foundations.cmxa
+   phase0_foundations/phase0_foundations.ml
+   phase0_hierarchybuilder/phase0_hierarchybuilder.a
+   phase0_hierarchybuilder/phase0_hierarchybuilder.cma
+   phase0_hierarchybuilder/phase0_hierarchybuilder.cmi
+   phase0_hierarchybuilder/phase0_hierarchybuilder.cmt
+   phase0_hierarchybuilder/phase0_hierarchybuilder.cmx
+   phase0_hierarchybuilder/phase0_hierarchybuilder.cmxa
+   phase0_hierarchybuilder/phase0_hierarchybuilder.ml
+   phase0_inverse_limit/phase0_inverse_limit.a
+   phase0_inverse_limit/phase0_inverse_limit.cma
+   phase0_inverse_limit/phase0_inverse_limit.cmi
+   phase0_inverse_limit/phase0_inverse_limit.cmt
+   phase0_inverse_limit/phase0_inverse_limit.cmx
+   phase0_inverse_limit/phase0_inverse_limit.cmxa
+   phase0_inverse_limit/phase0_inverse_limit.ml
+   phase1_enriched/phase1_enriched.a
+   phase1_enriched/phase1_enriched.cma
+   phase1_enriched/phase1_enriched.cmi
+   phase1_enriched/phase1_enriched.cmt
+   phase1_enriched/phase1_enriched.cmx
+   phase1_enriched/phase1_enriched.cmxa
+   phase1_enriched/phase1_enriched.ml
+   phase1_validation/phase1_validation.a
+   phase1_validation/phase1_validation.cma
+   phase1_validation/phase1_validation.cmi
+   phase1_validation/phase1_validation.cmt
+   phase1_validation/phase1_validation.cmx
+   phase1_validation/phase1_validation.cmxa
+   phase1_validation/phase1_validation.ml
+   phase2_quantum/phase2_quantum.a
+   phase2_quantum/phase2_quantum.cma
+   phase2_quantum/phase2_quantum.cmi
+   phase2_quantum/phase2_quantum.cmt
+   phase2_quantum/phase2_quantum.cmx
+   phase2_quantum/phase2_quantum.cmxa
+   phase2_quantum/phase2_quantum.ml
+   phase3_prototype/phase3_prototype.a
+   phase3_prototype/phase3_prototype.cma
+   phase3_prototype/phase3_prototype.cmi
+   phase3_prototype/phase3_prototype.cmt
+   phase3_prototype/phase3_prototype.cmx
+   phase3_prototype/phase3_prototype.cmxa
+   phase3_prototype/phase3_prototype.ml))
+ (libexec
+  (phase0_foundations/phase0_foundations.cmxs
+   phase0_hierarchybuilder/phase0_hierarchybuilder.cmxs
+   phase0_inverse_limit/phase0_inverse_limit.cmxs
+   phase1_enriched/phase1_enriched.cmxs
+   phase1_validation/phase1_validation.cmxs
+   phase2_quantum/phase2_quantum.cmxs
+   phase3_prototype/phase3_prototype.cmxs))
+ (doc (README.md)))
+(library
+ (name rocq-domain-theory.phase0_foundations)
+ (kind normal)
+ (synopsis "Basic order theory and CPO definitions")
+ (archives
+  (byte phase0_foundations/phase0_foundations.cma)
+  (native phase0_foundations/phase0_foundations.cmxa))
+ (plugins
+  (byte phase0_foundations/phase0_foundations.cma)
+  (native phase0_foundations/phase0_foundations.cmxs))
+ (native_archives phase0_foundations/phase0_foundations.a)
+ (main_module_name Phase0_foundations)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase0_foundations)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase0_foundations)
+      (impl (path phase0_foundations/phase0_foundations.ml-gen))))
+    (name Phase0_foundations))
+   (wrapped true))))
+(library
+ (name rocq-domain-theory.phase0_hierarchybuilder)
+ (kind normal)
+ (synopsis "Hierarchy-Builder integration for algebraic structures")
+ (archives
+  (byte phase0_hierarchybuilder/phase0_hierarchybuilder.cma)
+  (native phase0_hierarchybuilder/phase0_hierarchybuilder.cmxa))
+ (plugins
+  (byte phase0_hierarchybuilder/phase0_hierarchybuilder.cma)
+  (native phase0_hierarchybuilder/phase0_hierarchybuilder.cmxs))
+ (native_archives phase0_hierarchybuilder/phase0_hierarchybuilder.a)
+ (requires rocq-domain-theory.phase0_foundations)
+ (main_module_name Phase0_hierarchybuilder)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase0_hierarchybuilder)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase0_hierarchybuilder)
+      (impl (path phase0_hierarchybuilder/phase0_hierarchybuilder.ml-gen))))
+    (name Phase0_hierarchybuilder))
+   (wrapped true))))
+(library
+ (name rocq-domain-theory.phase0_inverse_limit)
+ (kind normal)
+ (synopsis "Inverse limit construction and recursive domain equations")
+ (archives
+  (byte phase0_inverse_limit/phase0_inverse_limit.cma)
+  (native phase0_inverse_limit/phase0_inverse_limit.cmxa))
+ (plugins
+  (byte phase0_inverse_limit/phase0_inverse_limit.cma)
+  (native phase0_inverse_limit/phase0_inverse_limit.cmxs))
+ (native_archives phase0_inverse_limit/phase0_inverse_limit.a)
+ (requires
+  rocq-domain-theory.phase0_foundations
+  rocq-domain-theory.phase0_hierarchybuilder)
+ (main_module_name Phase0_inverse_limit)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase0_inverse_limit)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase0_inverse_limit)
+      (impl (path phase0_inverse_limit/phase0_inverse_limit.ml-gen))))
+    (name Phase0_inverse_limit))
+   (wrapped true))))
+(library
+ (name rocq-domain-theory.phase1_enriched)
+ (kind normal)
+ (synopsis "Enriched category theory for programming language semantics")
+ (archives
+  (byte phase1_enriched/phase1_enriched.cma)
+  (native phase1_enriched/phase1_enriched.cmxa))
+ (plugins
+  (byte phase1_enriched/phase1_enriched.cma)
+  (native phase1_enriched/phase1_enriched.cmxs))
+ (native_archives phase1_enriched/phase1_enriched.a)
+ (requires
+  rocq-domain-theory.phase0_foundations
+  rocq-domain-theory.phase0_hierarchybuilder
+  rocq-domain-theory.phase0_inverse_limit)
+ (main_module_name Phase1_enriched)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase1_enriched)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase1_enriched)
+      (impl (path phase1_enriched/phase1_enriched.ml-gen))))
+    (name Phase1_enriched))
+   (wrapped true))))
+(library
+ (name rocq-domain-theory.phase1_validation)
+ (kind normal)
+ (synopsis "PCF validation: syntax, semantics, soundness, adequacy")
+ (archives
+  (byte phase1_validation/phase1_validation.cma)
+  (native phase1_validation/phase1_validation.cmxa))
+ (plugins
+  (byte phase1_validation/phase1_validation.cma)
+  (native phase1_validation/phase1_validation.cmxs))
+ (native_archives phase1_validation/phase1_validation.a)
+ (requires
+  rocq-domain-theory.phase1_enriched
+  rocq-domain-theory.phase0_inverse_limit)
+ (main_module_name Phase1_validation)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase1_validation)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase1_validation)
+      (impl (path phase1_validation/phase1_validation.ml-gen))))
+    (name Phase1_validation))
+   (wrapped true))))
+(library
+ (name rocq-domain-theory.phase2_quantum)
+ (kind normal)
+ (synopsis "Quantum CPO structures (stretch goal)")
+ (archives
+  (byte phase2_quantum/phase2_quantum.cma)
+  (native phase2_quantum/phase2_quantum.cmxa))
+ (plugins
+  (byte phase2_quantum/phase2_quantum.cma)
+  (native phase2_quantum/phase2_quantum.cmxs))
+ (native_archives phase2_quantum/phase2_quantum.a)
+ (requires rocq-domain-theory.phase1_enriched)
+ (main_module_name Phase2_quantum)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase2_quantum)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase2_quantum)
+      (impl (path phase2_quantum/phase2_quantum.ml-gen))))
+    (name Phase2_quantum))
+   (wrapped true))))
+(library
+ (name rocq-domain-theory.phase3_prototype)
+ (kind normal)
+ (synopsis "Quantum language prototype (stretch goal)")
+ (archives
+  (byte phase3_prototype/phase3_prototype.cma)
+  (native phase3_prototype/phase3_prototype.cmxa))
+ (plugins
+  (byte phase3_prototype/phase3_prototype.cma)
+  (native phase3_prototype/phase3_prototype.cmxs))
+ (native_archives phase3_prototype/phase3_prototype.a)
+ (requires
+  rocq-domain-theory.phase2_quantum
+  rocq-domain-theory.phase1_validation)
+ (main_module_name Phase3_prototype)
+ (modes byte native)
+ (modules
+  (wrapped
+   (group
+    (alias
+     (obj_name phase3_prototype)
+     (visibility public)
+     (kind alias)
+     (source
+      (path Phase3_prototype)
+      (impl (path phase3_prototype/phase3_prototype.ml-gen))))
+    (name Phase3_prototype))
+   (wrapped true))))

@@ -1,0 +1,5 @@
+(library
+ (name phase0_hierarchybuilder)
+ (public_name rocq-domain-theory.phase0_hierarchybuilder)
+ (libraries phase0_foundations)
+ (synopsis "Hierarchy-Builder integration for algebraic structures"))

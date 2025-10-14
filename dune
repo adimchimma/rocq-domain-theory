@@ -1,0 +1,5 @@
+(env
+ (dev
+  (flags (:standard -w -58))))
+
+(dirs src test examples)

@@ -1,0 +1,66 @@
+lib: [
+  "_build/install/default/lib/rocq-domain-theory/META"
+  "_build/install/default/lib/rocq-domain-theory/dune-package"
+  "_build/install/default/lib/rocq-domain-theory/opam"
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.a" {"phase0_foundations/phase0_foundations.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.cma" {"phase0_foundations/phase0_foundations.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.cmi" {"phase0_foundations/phase0_foundations.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.cmt" {"phase0_foundations/phase0_foundations.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.cmx" {"phase0_foundations/phase0_foundations.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.cmxa" {"phase0_foundations/phase0_foundations.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.ml" {"phase0_foundations/phase0_foundations.ml"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.a" {"phase0_hierarchybuilder/phase0_hierarchybuilder.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.cma" {"phase0_hierarchybuilder/phase0_hierarchybuilder.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.cmi" {"phase0_hierarchybuilder/phase0_hierarchybuilder.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.cmt" {"phase0_hierarchybuilder/phase0_hierarchybuilder.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.cmx" {"phase0_hierarchybuilder/phase0_hierarchybuilder.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.cmxa" {"phase0_hierarchybuilder/phase0_hierarchybuilder.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.ml" {"phase0_hierarchybuilder/phase0_hierarchybuilder.ml"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.a" {"phase0_inverse_limit/phase0_inverse_limit.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.cma" {"phase0_inverse_limit/phase0_inverse_limit.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.cmi" {"phase0_inverse_limit/phase0_inverse_limit.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.cmt" {"phase0_inverse_limit/phase0_inverse_limit.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.cmx" {"phase0_inverse_limit/phase0_inverse_limit.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.cmxa" {"phase0_inverse_limit/phase0_inverse_limit.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.ml" {"phase0_inverse_limit/phase0_inverse_limit.ml"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.a" {"phase1_enriched/phase1_enriched.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.cma" {"phase1_enriched/phase1_enriched.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.cmi" {"phase1_enriched/phase1_enriched.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.cmt" {"phase1_enriched/phase1_enriched.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.cmx" {"phase1_enriched/phase1_enriched.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.cmxa" {"phase1_enriched/phase1_enriched.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.ml" {"phase1_enriched/phase1_enriched.ml"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.a" {"phase1_validation/phase1_validation.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.cma" {"phase1_validation/phase1_validation.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.cmi" {"phase1_validation/phase1_validation.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.cmt" {"phase1_validation/phase1_validation.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.cmx" {"phase1_validation/phase1_validation.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.cmxa" {"phase1_validation/phase1_validation.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.ml" {"phase1_validation/phase1_validation.ml"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.a" {"phase2_quantum/phase2_quantum.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.cma" {"phase2_quantum/phase2_quantum.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.cmi" {"phase2_quantum/phase2_quantum.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.cmt" {"phase2_quantum/phase2_quantum.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.cmx" {"phase2_quantum/phase2_quantum.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.cmxa" {"phase2_quantum/phase2_quantum.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.ml" {"phase2_quantum/phase2_quantum.ml"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.a" {"phase3_prototype/phase3_prototype.a"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.cma" {"phase3_prototype/phase3_prototype.cma"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.cmi" {"phase3_prototype/phase3_prototype.cmi"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.cmt" {"phase3_prototype/phase3_prototype.cmt"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.cmx" {"phase3_prototype/phase3_prototype.cmx"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.cmxa" {"phase3_prototype/phase3_prototype.cmxa"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.ml" {"phase3_prototype/phase3_prototype.ml"}
+]
+libexec: [
+  "_build/install/default/lib/rocq-domain-theory/phase0_foundations/phase0_foundations.cmxs" {"phase0_foundations/phase0_foundations.cmxs"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_hierarchybuilder/phase0_hierarchybuilder.cmxs" {"phase0_hierarchybuilder/phase0_hierarchybuilder.cmxs"}
+  "_build/install/default/lib/rocq-domain-theory/phase0_inverse_limit/phase0_inverse_limit.cmxs" {"phase0_inverse_limit/phase0_inverse_limit.cmxs"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_enriched/phase1_enriched.cmxs" {"phase1_enriched/phase1_enriched.cmxs"}
+  "_build/install/default/lib/rocq-domain-theory/phase1_validation/phase1_validation.cmxs" {"phase1_validation/phase1_validation.cmxs"}
+  "_build/install/default/lib/rocq-domain-theory/phase2_quantum/phase2_quantum.cmxs" {"phase2_quantum/phase2_quantum.cmxs"}
+  "_build/install/default/lib/rocq-domain-theory/phase3_prototype/phase3_prototype.cmxs" {"phase3_prototype/phase3_prototype.cmxs"}
+]
+doc: [
+  "_build/install/default/doc/rocq-domain-theory/README.md"
+]

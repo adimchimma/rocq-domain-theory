@@ -1,0 +1,4 @@
+(library
+ (name phase0_foundations)
+ (public_name rocq-domain-theory.phase0_foundations)
+ (synopsis "Basic order theory and CPO definitions"))
