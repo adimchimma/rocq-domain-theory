@@ -1,4 +1,6 @@
-(library
+(coq.theory
  (name phase0_foundations)
- (public_name rocq-domain-theory.phase0_foundations)
- (synopsis "Basic order theory and CPO definitions"))
+ (package rocq-domain-theory.phase0_foundations)
+ (synopsis "Basic order theory and CPO definitions")
+ (modules Stdlib Order CPO)
+)

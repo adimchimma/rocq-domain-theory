@@ -1,0 +1,7 @@
+{
+    "unicode-latex.extensions": [
+        "plaintext",
+        "markdown",
+        "Rocq"
+    ],
+}
