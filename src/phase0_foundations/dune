@@ -1,6 +1,19 @@
+;(coq.theory
+; (name phase0_foundations)
+; (package rocq-domain-theory)
+; (stdlib yes)
+; (theories 
+;    Coq
+;    (:user-contrib Stdlib))
+; (synopsis "Basic order theory and CPO definitions")
+; (modules Order CPO)
+;)
+
 (coq.theory
  (name phase0_foundations)
- (package rocq-domain-theory.phase0_foundations)
+ (package rocq-domain-theory)
+ (stdlib yes)
  (synopsis "Basic order theory and CPO definitions")
- (modules Stdlib Order CPO)
+ (modules Order CPO)
+ (flags -Q %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/Stdlib Stdlib)
 )

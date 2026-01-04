@@ -1,5 +1,6 @@
-(library
+(coq.theory
  (name phase0_hierarchybuilder)
- (public_name rocq-domain-theory.phase0_hierarchybuilder)
- (libraries phase0_foundations)
- (synopsis "Hierarchy-Builder integration for algebraic structures"))
+ (package rocq-domain-theory)
+ (synopsis "Hierarchy-Builder integration for algebraic structures")
+ (modules Hierarchies Instances)
+)

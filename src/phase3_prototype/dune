@@ -1,5 +1,6 @@
-(library
+(coq.theory
  (name phase3_prototype)
- (public_name rocq-domain-theory.phase3_prototype)
- (libraries phase2_quantum phase1_validation)
- (synopsis "Quantum language prototype (stretch goal)"))
+ (package rocq-domain-theory)
+ (synopsis "Quantum language prototype (stretch goal)")
+ (modules QMiniCore_Syntax QMiniCore_Semantics)
+)

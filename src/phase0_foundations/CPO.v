@@ -1,6 +1,7 @@
 (* Cpo.v *)
-From Stdlib Require Import Arith.
-From Order Require Import Order.
+Require Import Arith.
+From phase0_foundations Require Import Order.
+Import Order.
 
 Module Cpo.
 

@@ -7,7 +7,7 @@
     (Benton, Kennedy, Varming 2009), modernized for Rocq 8.20+.
 *)
 
-From Stdlib Require Import Arith.
+Require Import Arith.
 (* Require Import Order. *)
 From phase0_foundations Require Import Order.
 

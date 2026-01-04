@@ -7,8 +7,14 @@
     (Benton, Kennedy, Varming 2009), modernized for Rocq 8.20+.
 *)
 
-From Stdlib Require Import Arith.
-From Stdlib Require Import Setoid Morphisms RelationClasses.
+Require Import Arith.
+Require Import Setoid Morphisms RelationClasses.
+
+(* Require Import Arith.
+Require Import Setoid.
+Require Import Morphisms.
+Require Import RelationClasses. *)
+
 
 Module Order.
 

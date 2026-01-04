@@ -47,7 +47,7 @@ create_dune_phase0_hb() {
 (library
  (name phase0_hierarchybuilder)
  (public_name rocq-domain-theory.phase0_hierarchybuilder)
- (libraries phase0_foundations)
+ (libraries rocq-domain-theory.phase0_foundations)
  (synopsis "Hierarchy-Builder integration for algebraic structures"))
 EOF
 }
@@ -57,7 +57,7 @@ create_dune_phase0_il() {
 (library
  (name phase0_inverse_limit)
  (public_name rocq-domain-theory.phase0_inverse_limit)
- (libraries phase0_foundations phase0_hierarchybuilder)
+ (libraries rocq-domain-theory.phase0_foundations rocq-domain-theory.phase0_hierarchybuilder)
  (synopsis "Inverse limit construction and recursive domain equations"))
 EOF
 }
@@ -67,7 +67,7 @@ create_dune_phase1_e() {
 (library
  (name phase1_enriched)
  (public_name rocq-domain-theory.phase1_enriched)
- (libraries phase0_foundations phase0_hierarchybuilder phase0_inverse_limit)
+ (libraries rocq-domain-theory.phase0_foundations rocq-domain-theory.phase0_hierarchybuilder rocq-domain-theory.phase0_inverse_limit)
  (synopsis "Enriched category theory for programming language semantics"))
 EOF
 }
@@ -106,8 +106,8 @@ create_dune_test() {
     cat > test/dune << 'EOF'
 (test
  (name test_suite)
- (libraries phase0_foundations phase0_hierarchybuilder phase0_inverse_limit
-            phase1_enriched phase1_validation))
+ (libraries rocq-domain-theory.phase0_foundations rocq-domain-theory.phase0_hierarchybuilder rocq-domain-theory.phase0_inverse_limit
+            rocq-domain-theory.phase1_enriched rocq-domain-theory.phase1_validation))
 EOF
 }
 
@@ -115,8 +115,8 @@ create_dune_examples() {
     cat > examples/dune << 'EOF'
 (executable
  (name examples)
- (libraries phase0_foundations phase0_inverse_limit phase1_enriched 
-            phase1_validation))
+ (libraries rocq-domain-theory.phase0_foundations rocq-domain-theory.phase0_inverse_limit rocq-domain-theory.phase1_enriched 
+            rocq-domain-theory.phase1_validation))
 EOF
 }
 

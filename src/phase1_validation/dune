@@ -1,5 +1,6 @@
-(library
+(coq.theory
  (name phase1_validation)
- (public_name rocq-domain-theory.phase1_validation)
- (libraries phase1_enriched phase0_inverse_limit)
- (synopsis "PCF validation: syntax, semantics, soundness, adequacy"))
+ (package rocq-domain-theory)
+ (synopsis "PCF validation: syntax, semantics, soundness, adequacy")
+ (modules PCF_Syntax PCF_Operational PCF_Denotational PCF_Soundness PCF_Adequacy)
+)
