@@ -3,8 +3,7 @@
     Minimal qCPO API to support tests in `test/test_quantum.v`.
 *)
 
-From Coq Require Import Init.Prelude.
-From Coq Require Import Lists.List.
+From Stdlib Require Import List.
 From phase0_foundations Require Import Order.
 
 Module qCPO.
@@ -14,7 +13,7 @@ Module qCPO.
       carrier : Type;
       chain : Type := nat -> carrier;
       lub : chain -> carrier;
-      lub_upper : forall (c : chain) (n : nat), c n = c n -> True; (* placeholder property *)
+      lub_upper : forall (c : chain) (n : nat), True; (* placeholder property *)
     }.
 
     Definition qCPO_has_lub := True.

@@ -3,4 +3,5 @@
  (package rocq-domain-theory)
  (synopsis "Quantum CPO structures (stretch goal)")
  (modules qCPO qCPOProperties QuantumEnrichment QuantumMorphisms QuantumStructure)
+ (flags -Q %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/Stdlib Stdlib -Q %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/HB HB -Q %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi elpi -Q %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi_elpi elpi_elpi)
 )

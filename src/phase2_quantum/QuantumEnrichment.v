@@ -4,6 +4,6 @@
 *)
 
 Module QuantumEnrichment.
-  Definition enrich := fun x => x.
+  Definition enrich {A} (x : A) : A := x.
 End QuantumEnrichment.
 
