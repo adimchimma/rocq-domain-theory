@@ -4,7 +4,6 @@
 *)
 
 From Stdlib Require Import List.
-From phase0_foundations Require Import Order.
 
 Module qCPO.
   Section Defs.
@@ -15,6 +14,8 @@ Module qCPO.
       lub : chain -> carrier;
       lub_upper : forall (c : chain) (n : nat), True; (* placeholder property *)
     }.
+
+    Definition cpo := t.
 
     Definition qCPO_has_lub := True.
   End Defs.
