@@ -1,6 +1,13 @@
 (** Fixed point operators
 
-    This module is part of the rocq-domain-theory project.
+    Re-export of fixed-point infrastructure built on `CPO.v` and simple helper lemmas.
 *)
 
-(* Content to be added *)
+From phase0_foundations Require Import CPO.
+
+Module FixedPoints.
+  Export Cpo.
+
+  (* The fixpoint operator and induction principle are available in Cpo.Fixpoint *)
+  Ltac done := trivial.
+End FixedPoints.

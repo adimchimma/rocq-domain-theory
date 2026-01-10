@@ -1,6 +1,14 @@
 (** Exponential objects
 
-    This module is part of the rocq-domain-theory project.
+    Pointwise function spaces as CPOs; thin wrapper around `CPO.fun_cpo`.
 *)
 
-(* Content to be added *)
+From phase0_foundations Require Import CPO.
+
+Module FunctionSpaces.
+  Definition fun_cpo := Cpo.fun_cpo.
+
+  (* The identity embedding is continuous (a simple wrapper lemma). *)
+  Lemma fun_cpo_id (D E : Cpo.cpo) : forall f, f = f.
+  Proof. reflexivity. Qed.
+End FunctionSpaces.

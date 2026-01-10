@@ -1,6 +1,11 @@
 (** Discrete cpos
 
-    This module is part of the rocq-domain-theory project.
+    Simple wrappers re-exporting the discrete CPO construction from
+    `TESTCPO.v`.
 *)
 
-(* Content to be added *)
+From phase0_foundations Require Import TESTCPO.
+
+Module Discrete.
+  Definition discrete_cpo := discrete_cpo.
+End Discrete.

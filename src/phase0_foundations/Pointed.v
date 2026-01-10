@@ -1,6 +1,11 @@
 (** Pointed cpos
 
-    This module is part of the rocq-domain-theory project.
+    Wrapper for `Pointed` class and `⊥` notation defined in `TESTCPO.v`.
 *)
 
-(* Content to be added *)
+From phase0_foundations Require Import TESTCPO.
+
+Module Pointed.
+  Definition Pointed := Pointed.
+  Notation "⊥" := bottom.
+End Pointed.

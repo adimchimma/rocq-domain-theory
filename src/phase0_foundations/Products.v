@@ -1,6 +1,12 @@
 (** Product constructions
 
-    This module is part of the rocq-domain-theory project.
+    Thin wrapper around `CPO.prod_cpo` implemented in `CPO.v`.
 *)
 
-(* Content to be added *)
+From phase0_foundations Require Import CPO.
+
+Module Products.
+  Definition prod_cpo := Cpo.prod_cpo.
+
+  (* Projection convenience lemmas can be added later. *)
+End Products.
