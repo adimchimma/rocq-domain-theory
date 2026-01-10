@@ -7,35 +7,29 @@
     (Benton, Kennedy, Varming 2009), modernized for Rocq 8.20+.
 *)
 
-(* Require Import Arith. *)
-(* Require Import Morphisms RelationClasses. *)
+Require Import Arith.
+Require Import Setoid Morphisms RelationClasses.
+
+(* Require Import Arith.
 Require Import Setoid.
-Require Import Relations.Relation_Definitions.
+Require Import Morphisms.
+Require Import RelationClasses. *)
 
-From HB Require Import structures.
-(* From HB Require notation. *)
-
-Generalizable All Variables.
-Set Universe Polymorphism.
-Set Primitive Projections.
 
 Module Order.
-  Section Defs.
-    (* Universe T.
-    Variable (U : Universe). *)
 
-  (** A preorder consists of a type with a reflexive, transitive relation. *)
-  Class PreOrder (A : Type) (R : relation A) := {}.
+Set Universe Polymorphism.
+Monomorphic Universe u.
 
-  Record ord := mk_ord {
-    tord :> Type;
-  }.
+(** A preorder consists of a type with a reflexive, transitive relation. *)
+Record preorder : Type := {
+  carrier : Type ;
+  le : carrier -> carrier -> Prop ;
+  le_refl : forall x : carrier, le x x ;
+  le_trans : forall x y z : carrier, le x y -> le y z -> le x z ;
+}.
 
-  Record PartialOrder (A : Type) `{PreOrder A} := {
-    antisym : forall x y, le x y -> le y x -> x = y
-  }.
-
-(* * Coercion allows us to use a preorder as its carrier type.
+(** Coercion allows us to use a preorder as its carrier type. *)
 Coercion carrier : preorder >-> Sortclass.
 
 (** Infix notation for the order relation. *)
@@ -154,7 +148,6 @@ Definition chain (ord : preorder) : Type :=
 Definition chain_at (ord : preorder) (c : chain ord) (n : nat) : ord :=
   c n.
 
-Notation "c [ n ]" := (chain_at _ c n) (at level 9). *)
+Notation "c [ n ]" := (chain_at _ c n) (at level 9).
 
-End Defs.
 End Order.
