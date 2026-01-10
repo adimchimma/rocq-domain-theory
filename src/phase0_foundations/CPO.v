@@ -11,9 +11,9 @@ Monomorphic Universe u.
 (** A CPO: an underlying preorder plus a computable lub for chains nat -> D. *)
 Record cpo := {
   cpo_pre :> preorder ;
-  lub_of_chain : (nat -> cpo_pre) -> cpo_pre ;
-  lub_upper : forall (c : nat -> cpo_pre) n, le c n (lub_of_chain c) ;
-  lub_least : forall (c : nat -> cpo_pre) x, (forall n, le (c n) x) -> le (lub_of_chain c) x
+  lub_of_chain : (nat -> carrier cpo_pre) -> carrier cpo_pre ;
+  lub_upper : forall (c : nat -> carrier cpo_pre) n, le cpo_pre (c n) (lub_of_chain c) ;
+  lub_least : forall (c : nat -> carrier cpo_pre) x, (forall n, le cpo_pre (c n) x) -> le cpo_pre (lub_of_chain c) x
 }.
 
 Coercion cpo_to_pre (D : cpo) : preorder := cpo_pre D.
@@ -22,17 +22,23 @@ Coercion cpo_to_pre (D : cpo) : preorder := cpo_pre D.
 Definition mono (D E : cpo) := mono_fun D E.
 
 (** Continuous functions: preserve lubs of chains (up to preorder). *)
+(* Helper to apply lub_of_chain to chains over cpo objects (coercions handle carriers) *)
+Definition lub_of_chain_D (D : cpo) (c : nat -> D) : D := lub_of_chain (fun n => (c n : carrier (cpo_pre D))).
+
 Definition continuous (D E : cpo) (f : D -> E) : Prop :=
-  forall (c : nat -> D), le (f (lub_of_chain c)) (lub_of_chain (fun n => f (c n))).
+  forall (c : nat -> D), le (cpo_pre E) (f (lub_of_chain_D D c)) (lub_of_chain_D E (fun n => f (c n))).
 
 Record cont_fun (D E : cpo) := {
   cf_func :> D -> E ;
   cf_cont : continuous D E cf_func
 }.
 
+Coercion cf_func : cont_fun >-> Funclass.
+
 (** Pointwise function space: D => E as a cpo *)
-Program Definition fun_cpo (D E : cpo) : cpo :=
-  {| cpo_pre := {|
+Definition fun_cpo (D E : cpo) : cpo.
+Proof.
+  refine ({| cpo_pre := {|
        carrier := (cont_fun D E);
        le := fun f g => forall x, le (f x) (g x);
        le_refl := _;
@@ -45,46 +51,28 @@ Program Definition fun_cpo (D E : cpo) : cpo :=
        |};
      lub_upper := _;
      lub_least := _
-  |}.
-Next Obligation. intros f x; apply le_refl. Qed.
-Next Obligation. intros f g h Hfg Hgh x; apply (le_trans _ _ _ (Hfg x) (Hgh x)). Qed.
-Next Obligation.
-  unfold continuous. intros D0 E0 d.
-  simpl.
-  (* pointwise continuity: show for each k that (c k) (lub d) <= lub (fun n => lub (fun m => (c m) (d n))). *)
-  apply lub_least. intros k.
-  (* (c k) is continuous: (c k) (lub d) <= lub (fun m => (c k) (d m)) *)
-  specialize (cf_cont (c k) d) as Hcont.
-  apply (le_trans _ _ _ Hcont).
-  (* show lub (fun m => (c k) (d m)) <= outer lub by lub_least over m and outer index m *)
-  apply lub_least. intros m.
-  apply le_trans with (lub_of_chain (fun t => (c t) (d m))).
-  - apply lub_upper.
-  - apply lub_least. intros t. apply lub_upper.
-Qed.
-Next Obligation. intros c n x; simpl. apply lub_upper. Qed.
-Next Obligation. intros c x H y.
-  simpl. (* pointwise: apply lub_least in the codomain for each y *)
-  apply (lub_least (fun n => (c n) y) (x y)).
-  intros n. apply (H n y).
-Qed.
+  |}).
+  - intros f x; apply le_refl.
+  - intros f g h Hfg Hgh x; apply (le_trans _ _ _ (Hfg x) (Hgh x)).
+  - (* continuity of constructed function *)
+    intros D0 E0 d.
+    simpl.
+    apply lub_least.
+    intros k.
+    specialize (cf_cont (c k) d) as Hck.
+    apply (le_trans _ _ _ Hck).
+    apply lub_least. intros m.
+    apply le_trans with (lub_of_chain (fun t => (c t) (d m))).
+    + apply lub_upper.
+    + apply lub_least. intros t. apply lub_upper.
+  - intros c n x; simpl; apply lub_upper.
+  - intros c x H y;
+      simpl; apply (lub_least (fun n => (c n) y) (x y)); intros n; apply (H n y).
+Defined.
 
-(** Product cpo: pointwise order and lubs *)
-Program Definition prod_cpo (A B : cpo) : cpo :=
-  {| cpo_pre := {|
-       carrier := (carrier A * carrier B);
-       le := fun p q => le (fst p) (fst q) /\ le (snd p) (snd q);
-       le_refl := _;
-       le_trans := _
-     |};
-     lub_of_chain := fun c => (lub_of_chain (fun n => fst (c n)), lub_of_chain (fun n => snd (c n)));
-     lub_upper := _;
-     lub_least := _
-  |}.
-Next Obligation. intros [a b]; split; apply le_refl. Qed.
-Next Obligation. intros [a1 b1] [a2 b2] [a3 b3] [H12a H12b] [H23a H23b]; split; apply (le_trans _ _ _ H12a H23a) || apply (le_trans _ _ _ H12b H23b). Qed.
-Next Obligation. intros c n; simpl; split; [apply lub_upper| apply lub_upper]. Qed.
-Next Obligation. intros c [a b] H; simpl; split; [apply (lub_least (fun n => fst (c n)) a); intros n; destruct (H n) as [Hf _]; apply Hf | apply (lub_least (fun n => snd (c n)) b); intros n; destruct (H n) as [_ Hs]; apply Hs]. Qed.
+
+(* prod_cpo moved to `Products.v` *)
+(* See `Products.v` for product CPO implementation. *)
 
 (** Pointed cpos and least fixed point operator *)
 Class Pointed (D : cpo) := { bottom : D ; bottom_least : forall d : D, le bottom d }.
