@@ -49,12 +49,25 @@ Program Definition fun_cpo (D E : cpo) : cpo :=
 Next Obligation. intros f x; apply le_refl. Qed.
 Next Obligation. intros f g h Hfg Hgh x; apply (le_trans _ _ _ (Hfg x) (Hgh x)). Qed.
 Next Obligation.
-  unfold continuous. intros D0 E0 c.
-  simpl. (* proof obligations: continuity follows from pointwise lub preservation *)
-  admit.
+  unfold continuous. intros D0 E0 d.
+  simpl.
+  (* pointwise continuity: show for each k that (c k) (lub d) <= lub (fun n => lub (fun m => (c m) (d n))). *)
+  apply lub_least. intros k.
+  (* (c k) is continuous: (c k) (lub d) <= lub (fun m => (c k) (d m)) *)
+  specialize (cf_cont (c k) d) as Hcont.
+  apply (le_trans _ _ _ Hcont).
+  (* show lub (fun m => (c k) (d m)) <= outer lub by lub_least over m and outer index m *)
+  apply lub_least. intros m.
+  apply le_trans with (lub_of_chain (fun t => (c t) (d m))).
+  - apply lub_upper.
+  - apply lub_least. intros t. apply lub_upper.
 Qed.
-Next Obligation. admit. Qed.
-Next Obligation. admit. Qed.
+Next Obligation. intros c n x; simpl. apply lub_upper. Qed.
+Next Obligation. intros c x H y.
+  simpl. (* pointwise: apply lub_least in the codomain for each y *)
+  apply (lub_least (fun n => (c n) y) (x y)).
+  intros n. apply (H n y).
+Qed.
 
 (** Product cpo: pointwise order and lubs *)
 Program Definition prod_cpo (A B : cpo) : cpo :=
@@ -70,8 +83,8 @@ Program Definition prod_cpo (A B : cpo) : cpo :=
   |}.
 Next Obligation. intros [a b]; split; apply le_refl. Qed.
 Next Obligation. intros [a1 b1] [a2 b2] [a3 b3] [H12a H12b] [H23a H23b]; split; apply (le_trans _ _ _ H12a H23a) || apply (le_trans _ _ _ H12b H23b). Qed.
-Next Obligation. admit. Qed.
-Next Obligation. admit. Qed.
+Next Obligation. intros c n; simpl; split; [apply lub_upper| apply lub_upper]. Qed.
+Next Obligation. intros c [a b] H; simpl; split; [apply (lub_least (fun n => fst (c n)) a); intros n; destruct (H n) as [Hf _]; apply Hf | apply (lub_least (fun n => snd (c n)) b); intros n; destruct (H n) as [_ Hs]; apply Hs]. Qed.
 
 (** Pointed cpos and least fixed point operator *)
 Class Pointed (D : cpo) := { bottom : D ; bottom_least : forall d : D, le bottom d }.
