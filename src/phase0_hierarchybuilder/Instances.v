@@ -5,7 +5,12 @@
 
 From HB Require Import structures.
 Require Import Hierarchies.
-From Coq Require Import Nat.
 
 (* Minimal example: declare nat as a Magma via hasOp instance *)
-HB.instance Definition _ := hasOp.Build nat Nat.add.
+Fixpoint nat_add (n m : nat) : nat :=
+    match n with
+    | 0 => m
+    | S n' => S (nat_add n' m)
+    end.
+
+HB.instance Definition _ := hasOp.Build nat nat_add.

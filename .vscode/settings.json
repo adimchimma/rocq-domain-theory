@@ -4,4 +4,76 @@
         "markdown",
         "Rocq"
     ],
+
+    // Primary VsRocq settings
+    "vsrocq.path": "/home/mysti/.opam/default/bin/vsrocqtop",
+    "vsrocq.args": [
+        "-Q", "${workspaceFolder}/src/phase0_foundations", "phase0_foundations",
+        "-Q", "${workspaceFolder}/src/phase0_hierarchybuilder", "phase0_hierarchybuilder",
+        "-Q", "${workspaceFolder}/src/phase0_inverse_limit", "phase0_inverse_limit",
+        "-Q", "${workspaceFolder}/src/phase1_enriched", "phase1_enriched",
+        "-Q", "${workspaceFolder}/src/phase1_validation", "phase1_validation",
+        "-Q", "${workspaceFolder}/src/phase2_quantum", "phase2_quantum",
+        "-Q", "${workspaceFolder}/src/phase3_prototype", "phase3_prototype",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/Stdlib", "Stdlib",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/HB", "HB",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi", "elpi",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi_elpi", "elpi_elpi"
+    ],
+
+    // Legacy VsCoq/VsRocq keys (harmless if unused)
+    "vscoq.proofs.coqtopArgs": [
+        "-Q", "${workspaceFolder}/src/phase0_foundations", "phase0_foundations",
+        "-Q", "${workspaceFolder}/src/phase0_hierarchybuilder", "phase0_hierarchybuilder",
+        "-Q", "${workspaceFolder}/src/phase0_inverse_limit", "phase0_inverse_limit",
+        "-Q", "${workspaceFolder}/src/phase1_enriched", "phase1_enriched",
+        "-Q", "${workspaceFolder}/src/phase1_validation", "phase1_validation",
+        "-Q", "${workspaceFolder}/src/phase2_quantum", "phase2_quantum",
+        "-Q", "${workspaceFolder}/src/phase3_prototype", "phase3_prototype"
+    ],
+    "vscoq.proofs.coqtopBin": "coqtop",
+    "vscoq.top.coqtopArgs": [
+        "-Q", "${workspaceFolder}/src/phase0_foundations", "phase0_foundations",
+        "-Q", "${workspaceFolder}/src/phase0_hierarchybuilder", "phase0_hierarchybuilder",
+        "-Q", "${workspaceFolder}/src/phase0_inverse_limit", "phase0_inverse_limit",
+        "-Q", "${workspaceFolder}/src/phase1_enriched", "phase1_enriched",
+        "-Q", "${workspaceFolder}/src/phase1_validation", "phase1_validation",
+        "-Q", "${workspaceFolder}/src/phase2_quantum", "phase2_quantum",
+        "-Q", "${workspaceFolder}/src/phase3_prototype", "phase3_prototype",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/Stdlib", "Stdlib",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/HB", "HB",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi", "elpi",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi_elpi", "elpi_elpi"
+    ],
+    "vscoq.top.coqtopPath": "coqtop",
+
+    "vsrocq.top.coqtopArgs": [
+        "-Q", "${workspaceFolder}/src/phase0_foundations", "phase0_foundations",
+        "-Q", "${workspaceFolder}/src/phase0_hierarchybuilder", "phase0_hierarchybuilder",
+        "-Q", "${workspaceFolder}/src/phase0_inverse_limit", "phase0_inverse_limit",
+        "-Q", "${workspaceFolder}/src/phase1_enriched", "phase1_enriched",
+        "-Q", "${workspaceFolder}/src/phase1_validation", "phase1_validation",
+        "-Q", "${workspaceFolder}/src/phase2_quantum", "phase2_quantum",
+        "-Q", "${workspaceFolder}/src/phase3_prototype", "phase3_prototype",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/Stdlib", "Stdlib",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/HB", "HB",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi", "elpi",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi_elpi", "elpi_elpi"
+    ],
+    "vsrocq.top.coqtopPath": "coqtop",
+
+    "rocq.top.coqtopArgs": [
+        "-Q", "${workspaceFolder}/src/phase0_foundations", "phase0_foundations",
+        "-Q", "${workspaceFolder}/src/phase0_hierarchybuilder", "phase0_hierarchybuilder",
+        "-Q", "${workspaceFolder}/src/phase0_inverse_limit", "phase0_inverse_limit",
+        "-Q", "${workspaceFolder}/src/phase1_enriched", "phase1_enriched",
+        "-Q", "${workspaceFolder}/src/phase1_validation", "phase1_validation",
+        "-Q", "${workspaceFolder}/src/phase2_quantum", "phase2_quantum",
+        "-Q", "${workspaceFolder}/src/phase3_prototype", "phase3_prototype",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/Stdlib", "Stdlib",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/HB", "HB",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi", "elpi",
+        "-R", "/home/mysti/.opam/default/lib/coq/user-contrib/elpi_elpi", "elpi_elpi"
+    ],
+    "rocq.top.coqtopPath": "coqtop"
 }

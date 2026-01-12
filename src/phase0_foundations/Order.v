@@ -7,13 +7,7 @@
     (Benton, Kennedy, Varming 2009), modernized for Rocq 8.20+.
 *)
 
-Require Import Arith.
 Require Import Setoid Morphisms RelationClasses.
-
-(* Require Import Arith.
-Require Import Setoid.
-Require Import Morphisms.
-Require Import RelationClasses. *)
 
 
 Module Order.
@@ -122,6 +116,49 @@ Qed.
    more explicitly using category theory, but for now we work with
    preorders and monotone functions directly. *)
 
+(** ω-Chains: infinite monotone sequences
+
+    A chain in a preorder is an infinite sequence with a monotonicity property.
+    This is the foundational concept for ω-cpos and continuity.
+ *)
+Record chain (ord : preorder) : Type := {
+  ch : nat -> carrier ord ;
+  ch_mono : forall m n : nat, m <= n -> le ord (ch m) (ch n) ;
+}.
+
+(** Accessor: extract the n-th element of a chain *)
+Definition chain_at (ord : preorder) (c : chain ord) (n : nat) : carrier ord :=
+  ch ord c n.
+
+Notation "c ⟨ n ⟩" := (chain_at _ c n) (at level 9).
+
+(** Every chain element is less-or-equal to its successor *)
+Lemma chain_succ_le (ord : preorder) (c : chain ord) (n : nat) :
+  le ord (ch _ c n) (ch _ c (S n)).
+Proof.
+  apply ch_mono.
+  repeat constructor.
+Qed.
+
+(** Mapping a chain along a monotone function yields a chain *)
+Definition map_chain_ch (ord1 ord2 : preorder) (f : mono_fun ord1 ord2)
+    (c : chain ord1) : nat -> carrier ord2 :=
+  fun n => f (ch ord1 c n).
+
+Definition map_chain_mono (ord1 ord2 : preorder) (f : mono_fun ord1 ord2)
+    (c : chain ord1) : forall m n : nat, m <= n -> 
+    le ord2 (map_chain_ch ord1 ord2 f c m) (map_chain_ch ord1 ord2 f c n) :=
+  fun m n Hmn =>
+    mf_mono ord1 ord2 f (ch ord1 c m) (ch ord1 c n) (ch_mono ord1 c m n Hmn).
+
+Definition map_chain (ord1 ord2 : preorder) (f : mono_fun ord1 ord2)
+    (c : chain ord1) : chain ord2 :=
+  Build_chain ord2 (map_chain_ch ord1 ord2 f c) (map_chain_mono ord1 ord2 f c).
+
+(** Basic example: constant chain (chain of repetitions of a single element) *)
+Definition const_chain (ord : preorder) (x : carrier ord) : chain ord :=
+  Build_chain ord (fun _ => x) (fun m n _ => le_refl ord x).
+
 (** Example: The discrete preorder on any type *)
 (* Definition discrete_preorder (X : Type@{u}) : preorder := {| *)
 Definition discrete_preorder (X : Type) : preorder := {|
@@ -132,22 +169,8 @@ Definition discrete_preorder (X : Type) : preorder := {|
 |}.
 
 
-(** Example: Natural numbers with the usual order *)
-Definition nat_preorder : preorder := {|
-  carrier := nat ;
-  le := fun x y => x <= y ;
-  le_refl := Nat.le_refl ;
-  le_trans := Nat.le_trans ;
-|}.
-
-(** A chain in a preorder is a monotone function from nat_preorder *)
-Definition chain (ord : preorder) : Type :=
-  mono_fun nat_preorder ord.
-
-(** Extract the n-th element of a chain *)
-Definition chain_at (ord : preorder) (c : chain ord) (n : nat) : ord :=
-  c n.
-
-Notation "c [ n ]" := (chain_at _ c n) (at level 9).
+(* Example: Natural numbers with the usual order *)
+(* TODO: implement nat_preorder after resolving library imports *)
+(* Definition nat_preorder : preorder := ... *)
 
 End Order.

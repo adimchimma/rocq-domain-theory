@@ -1,16 +1,23 @@
-(** Discrete cpos
+(** Discrete cpos (temporary unit instance)
 
-    Simple wrappers re-exporting the discrete CPO construction from
-    `TESTCPO.v`.
+    Minimal, trivially ordered unit cpo used for simple tests.
 *)
 
 From phase0_foundations Require Import CPO Order.
+Import Order.
 
 Module Discrete.
-  Definition discrete_cpo (X : Type) : Cpo.cpo := {|
-    Cpo.cpo_pre := (discrete_preorder X) ;
-    Cpo.lub_of_chain := fun c => c 0 ;
-    Cpo.lub_upper := fun c n => match n with 0 => eq_refl | S _ => eq_refl end ;
-    Cpo.lub_least := fun c x H => H 0 ;
+  Definition unit_preorder : preorder := {|
+    carrier := unit ;
+    le := fun _ _ => True ;
+    le_refl := fun _ => I ;
+    le_trans := fun _ _ _ _ _ => I ;
+  |}.
+
+  Definition unit_cpo : Cpo.cpo := {|
+    Cpo.cpo_pre := unit_preorder ;
+    Cpo.lub_of_chain := fun _ => tt ;
+    Cpo.lub_upper := fun _ _ => I ;
+    Cpo.lub_least := fun _ _ _ => I ;
   |}.
 End Discrete.
