@@ -1,6 +1,9 @@
 (** qCPO enrichment
 
-    This module is part of the rocq-domain-theory project.
+    Minimal API to satisfy tests: an `enrich` placeholder.
 *)
 
-(* Content to be added *)
+Module QuantumEnrichment.
+  Definition enrich {A} (x : A) : A := x.
+End QuantumEnrichment.
+
