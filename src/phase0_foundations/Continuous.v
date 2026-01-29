@@ -21,12 +21,17 @@ Record cont_fun (D E : Cpo.cpo) := {
 
 (* No global coercion declared to avoid name collisions; use `cf_mfun` explicitly *)
 
+Lemma map_chain_id (ord : preorder) (c : chain ord) :
+  map_chain ord ord (mono_id ord) c = c.
+Proof.
+  destruct c; reflexivity. 
+Qed.
+
 Lemma id_continuous (D : Cpo.cpo) : 
   continuous D D (Build_mono_fun (Cpo.cpo_pre D) (Cpo.cpo_pre D) (fun x => x) (fun _ _ H => H)).
 Proof. 
   intros c. 
-  (* TODO: Prove that map_chain with identity is the same chain *)
-  admit.
-Admitted.
+  rewrite map_chain_id. reflexivity.
+Qed.
 
 End Continuous.

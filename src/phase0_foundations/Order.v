@@ -8,6 +8,7 @@
 *)
 
 Require Import Setoid Morphisms RelationClasses.
+Require Import PeanoNat.
 
 
 Module Order.
@@ -117,7 +118,6 @@ Qed.
    preorders and monotone functions directly. *)
 
 (** ω-Chains: infinite monotone sequences
-
     A chain in a preorder is an infinite sequence with a monotonicity property.
     This is the foundational concept for ω-cpos and continuity.
  *)
@@ -170,7 +170,11 @@ Definition discrete_preorder (X : Type) : preorder := {|
 
 
 (* Example: Natural numbers with the usual order *)
-(* TODO: implement nat_preorder after resolving library imports *)
-(* Definition nat_preorder : preorder := ... *)
+Definition nat_preorder : preorder := {|
+  carrier := nat ;
+  le := Nat.le ;
+  le_refl := Nat.le_refl ;
+  le_trans := Nat.le_trans ;
+|}.
 
 End Order.

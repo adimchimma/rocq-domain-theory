@@ -4,7 +4,7 @@
 *)
 
 From HB Require Import structures.
-Require Import Hierarchies.
+From phase0_hierarchybuilder Require Import Hierarchies.
 
 (* Minimal example: declare nat as a Magma via hasOp instance *)
 Fixpoint nat_add (n m : nat) : nat :=

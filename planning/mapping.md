@@ -3,12 +3,12 @@
 **Created:** 2026-01-09
 **Author:** GitHub Copilot
 
-## Summary ✅
+## Summary
 This document maps the thesis deliverables (from your proposal) to the repository modules and files, notes missing/partial pieces, and proposes the next tasks and priorities. I will open a draft branch `mapping/proposal-tasks` with this file for your review.
 
 ---
 
-## Deliverables and mapping 🔗
+## Deliverables and mapping
 - Formalize basic order/CPO theory (deliverable: foundations)
   - Files: `src/phase0_foundations/Order.v`, `src/phase0_foundations/nOrder.v`, `src/phase0_foundations/tmixins.v`, `src/phase0_foundations/Continuous.v`, `src/phase0_foundations/CPO.v`, `src/phase0_foundations/Products.v` (and related modules)
   - Status: Mostly present. Some minor import/structure fixes applied (e.g., `nOrder.v`).
@@ -47,7 +47,7 @@ This document maps the thesis deliverables (from your proposal) to the repositor
 
 ---
 
-## Missing / Partial Items ⚠️
+## Missing / Partial Items
 - Some HB notation imports were inconsistent (e.g., `nOrder.v` had a missing `notation` import — fixed by commenting it out). Verify all places using HB notations work as intended.
 - Tests are sparse for phase2 (quantum) and phase3 (prototype). Add focused unit tests.
 - No CI workflow currently (add GitHub Actions to run `dune build` / `dune runtest` on push with matrix for OCaml/Coq versions).
@@ -55,7 +55,7 @@ This document maps the thesis deliverables (from your proposal) to the repositor
 
 ---
 
-## Proposed next tasks (priority order) 🔥
+## Proposed next tasks (priority order)
 1. Add targeted tests for `phase1_validation` and `phase2_quantum` modules (high priority).
 2. Finish HB mixins/instances for CPOs and products in `phase0_hierarchybuilder`.
 3. Expand prototype examples and tie to `test_suite.v` (high priority).
@@ -70,11 +70,7 @@ This document maps the thesis deliverables (from your proposal) to the repositor
 
 ---
 
-## Acceptance criteria for main deliverables ✅
+## Acceptance criteria for main deliverables
 - All core proofs typecheck and are covered by tests.
 - CI runs on every PR and build is reproducible with documented steps.
 - Thesis sections updated to reference the implementation and include example outputs.
-
----
-
-If this mapping looks good, I'll push this file on a draft branch `mapping/proposal-tasks` for your review and then open the first task branch for tests in `phase2_quantum`.

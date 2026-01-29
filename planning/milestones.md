@@ -4,7 +4,7 @@
 These milestones are copied from the .v3 proposal and adapted to the current repo layout.
 
 ## Month 1
-- [ ] CPO “hierarchy” compiles under Rocq (proposal says 8.20; current dev is 9.0.0)
+- [ ] CPO “hierarchy” compiles under Rocq (current dev is 9.0.0)
 - [ ] Phase 0 foundations have ω-**chains** (not arbitrary ω-sequences)
 
 ## Month 2

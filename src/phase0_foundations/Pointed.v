@@ -1,6 +1,6 @@
 (** Pointed cpos
 
-    Wrapper for `Pointed` class and `⊥` notation defined in `TESTCPO.v`.
+    Wrapper for `Pointed` class and `⊥`.
 *)
 
 From phase0_foundations Require Import CPO Order.
