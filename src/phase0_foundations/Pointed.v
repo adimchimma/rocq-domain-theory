@@ -1,6 +1,12 @@
 (** Pointed cpos
 
-    This module is part of the rocq-domain-theory project.
+    Wrapper for `Pointed` class and `⊥`.
 *)
 
-(* Content to be added *)
+From phase0_foundations Require Import CPO Order.
+Import Order.
+
+Module Pointed.
+  Definition Pointed := Cpo.Pointed.
+  Notation "⊥" := (@Cpo.bottom _ _).
+End Pointed.

@@ -23,10 +23,12 @@
   *** Prerequisites
 
     Needed:
-    - TODO
+    - Coq/Rocq installation (Coq >= 8.14 recommended)
+    - Hierarchy-Builder plugin available (`coq-hierarchy-builder`)
 
     Not Needed:
-    - TODO
+    - Category theory libraries or heavy dependencies; the tutorial is self-contained for
+      the parts used in this project.
 
     Installation:
     - See the [official installation instructions](https://github.com/math-comp/hierarchy-builder?tab=readme-ov-file#installation--availability)

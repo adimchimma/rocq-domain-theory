@@ -3,8 +3,6 @@
     Minimal qCPO API to support tests in `test/test_quantum.v`.
 *)
 
-From Stdlib Require Import List.
-
 Module qCPO.
   Section Defs.
     (* Minimal representation: a qCPO is a Type with a lub operator for chains. *)

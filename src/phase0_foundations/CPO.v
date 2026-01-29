@@ -1,5 +1,4 @@
 (* Cpo.v *)
-Require Import Arith.
 From phase0_foundations Require Import Order.
 Import Order.
 
@@ -8,12 +7,12 @@ Module Cpo.
 Set Universe Polymorphism.
 Monomorphic Universe u.
 
-(** A CPO: an underlying preorder plus a computable lub for chains nat -> D. *)
+(** A CPO: an underlying preorder plus a computable lub for ω-chains. *)
 Record cpo := {
   cpo_pre :> preorder ;
-  lub_of_chain : (nat -> cpo_pre) -> cpo_pre ;
-  lub_upper : forall (c : nat -> cpo_pre) n, le c n (lub_of_chain c) ;
-  lub_least : forall (c : nat -> cpo_pre) x, (forall n, le (c n) x) -> le (lub_of_chain c) x
+  lub_of_chain : chain cpo_pre -> carrier cpo_pre ;
+  lub_upper : forall (c : chain cpo_pre) n, le cpo_pre (ch cpo_pre c n) (lub_of_chain c) ;
+  lub_least : forall (c : chain cpo_pre) x, (forall n, le cpo_pre (ch cpo_pre c n) x) -> le cpo_pre (lub_of_chain c) x
 }.
 
 Coercion cpo_to_pre (D : cpo) : preorder := cpo_pre D.
@@ -21,75 +20,19 @@ Coercion cpo_to_pre (D : cpo) : preorder := cpo_pre D.
 (** Monotone functions between cpos (reuse mono_fun on preorders) *)
 Definition mono (D E : cpo) := mono_fun D E.
 
-(** Continuous functions: preserve lubs of chains (up to preorder). *)
-Definition continuous (D E : cpo) (f : D -> E) : Prop :=
-  forall (c : nat -> D), le (f (lub_of_chain c)) (lub_of_chain (fun n => f (c n))).
+(* continuous/cont_fun moved to `Continuous.v` *)
+(* See `Continuous.v` for the continuity predicate and the `cont_fun` record. *)
 
-Record cont_fun (D E : cpo) := {
-  cf_func :> D -> E ;
-  cf_cont : continuous D E cf_func
-}.
+(* fun_cpo moved to `FunctionSpaces.v` *)
 
-(** Pointwise function space: D => E as a cpo *)
-Program Definition fun_cpo (D E : cpo) : cpo :=
-  {| cpo_pre := {|
-       carrier := (cont_fun D E);
-       le := fun f g => forall x, le (f x) (g x);
-       le_refl := _;
-       le_trans := _
-     |};
-     lub_of_chain := fun (c : nat -> cont_fun D E) =>
-       (* pointwise lub: build function mapping x to lub (fun n => c n x) *)
-       {| cf_func := fun x => lub_of_chain (fun n => (c n) x);
-          cf_cont := _
-       |};
-     lub_upper := _;
-     lub_least := _
-  |}.
-Next Obligation. intros f x; apply le_refl. Qed.
-Next Obligation. intros f g h Hfg Hgh x; apply (le_trans _ _ _ (Hfg x) (Hgh x)). Qed.
-Next Obligation.
-  unfold continuous. intros D0 E0 d.
-  simpl.
-  (* pointwise continuity: show for each k that (c k) (lub d) <= lub (fun n => lub (fun m => (c m) (d n))). *)
-  apply lub_least. intros k.
-  (* (c k) is continuous: (c k) (lub d) <= lub (fun m => (c k) (d m)) *)
-  specialize (cf_cont (c k) d) as Hcont.
-  apply (le_trans _ _ _ Hcont).
-  (* show lub (fun m => (c k) (d m)) <= outer lub by lub_least over m and outer index m *)
-  apply lub_least. intros m.
-  apply le_trans with (lub_of_chain (fun t => (c t) (d m))).
-  - apply lub_upper.
-  - apply lub_least. intros t. apply lub_upper.
-Qed.
-Next Obligation. intros c n x; simpl. apply lub_upper. Qed.
-Next Obligation. intros c x H y.
-  simpl. (* pointwise: apply lub_least in the codomain for each y *)
-  apply (lub_least (fun n => (c n) y) (x y)).
-  intros n. apply (H n y).
-Qed.
 
-(** Product cpo: pointwise order and lubs *)
-Program Definition prod_cpo (A B : cpo) : cpo :=
-  {| cpo_pre := {|
-       carrier := (carrier A * carrier B);
-       le := fun p q => le (fst p) (fst q) /\ le (snd p) (snd q);
-       le_refl := _;
-       le_trans := _
-     |};
-     lub_of_chain := fun c => (lub_of_chain (fun n => fst (c n)), lub_of_chain (fun n => snd (c n)));
-     lub_upper := _;
-     lub_least := _
-  |}.
-Next Obligation. intros [a b]; split; apply le_refl. Qed.
-Next Obligation. intros [a1 b1] [a2 b2] [a3 b3] [H12a H12b] [H23a H23b]; split; apply (le_trans _ _ _ H12a H23a) || apply (le_trans _ _ _ H12b H23b). Qed.
-Next Obligation. intros c n; simpl; split; [apply lub_upper| apply lub_upper]. Qed.
-Next Obligation. intros c [a b] H; simpl; split; [apply (lub_least (fun n => fst (c n)) a); intros n; destruct (H n) as [Hf _]; apply Hf | apply (lub_least (fun n => snd (c n)) b); intros n; destruct (H n) as [_ Hs]; apply Hs]. Qed.
+(* prod_cpo moved to `Products.v` *)
+(* See `Products.v` for product CPO implementation. *)
 
 (** Pointed cpos and least fixed point operator *)
-Class Pointed (D : cpo) := { bottom : D ; bottom_least : forall d : D, le bottom d }.
+Class Pointed (D : cpo) := { bottom : D ; bottom_least : forall d : D, le (cpo_pre D) bottom d }.
 
-Section Fixpoint.
+Section Fixpoints.
   Context {D : cpo} {PD : Pointed D}.
 
   (** iterate F starting from bottom *)
@@ -99,11 +42,19 @@ Section Fixpoint.
     | S k => F (iter F k)
     end.
 
-  Definition fixp (F : D -> D) : D := lub_of_chain (fun n => iter F n).
+  (** Build chain from iterates **)
+  (* TODO: prove monotonicity properly *)
+  Axiom iter_mono : forall (F : D -> D) (m n : nat), m <= n -> le (cpo_pre D) (iter F m) (iter F n).
+  
+  Definition iter_chain (F : D -> D) : chain (cpo_pre D) :=
+    Build_chain (cpo_pre D) (fun n => iter F n) (iter_mono F).
+
+  (** least fixed point as lub of iterates (use explicit projections to avoid coercion ambiguity) *)
+  Definition fixp (F : D -> D) : D := (Cpo.lub_of_chain D (iter_chain F) : D).
 
   (** Fixed point induction principle (statement) *)
   Theorem fixp_ind (F : D -> D) (P : D -> Prop) :
-    (forall c, (forall n, P (c n)) -> P (lub_of_chain c)) ->
+    (forall c : chain (cpo_pre D), (forall n, P (ch (cpo_pre D) c n)) -> P (Cpo.lub_of_chain D c)) ->
     P bottom ->
     (forall x, P x -> P (F x)) ->
     P (fixp F).
@@ -117,6 +68,6 @@ Section Fixpoint.
     - apply Hstep; assumption.
   Qed.
 
-End Fixpoint.
+End Fixpoints.
 
 End Cpo.

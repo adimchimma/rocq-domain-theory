@@ -1,0 +1,11 @@
+-Q _build/default/src/phase0_foundations phase0_foundations
+-Q _build/default/src/phase0_hierarchybuilder phase0_hierarchybuilder
+-Q _build/default/src/phase0_inverse_limit phase0_inverse_limit
+-Q _build/default/src/phase1_enriched phase1_enriched
+-Q _build/default/src/phase1_validation phase1_validation
+-Q _build/default/src/phase2_quantum phase2_quantum
+-Q _build/default/src/phase3_prototype phase3_prototype
+-R /home/mysti/.opam/default/lib/coq/user-contrib/Stdlib Stdlib
+-R /home/mysti/.opam/default/lib/coq/user-contrib/HB HB
+-R /home/mysti/.opam/default/lib/coq/user-contrib/elpi elpi
+-R /home/mysti/.opam/default/lib/coq/user-contrib/elpi_elpi elpi_elpi

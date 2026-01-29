@@ -7,35 +7,24 @@
     (Benton, Kennedy, Varming 2009), modernized for Rocq 8.20+.
 *)
 
-(* Require Import Arith. *)
-(* Require Import Morphisms RelationClasses. *)
-Require Import Setoid.
-Require Import Relations.Relation_Definitions.
+Require Import Setoid Morphisms RelationClasses.
+Require Import PeanoNat.
 
-From HB Require Import structures.
-(* From HB Require notation. *)
-
-Generalizable All Variables.
-Set Universe Polymorphism.
-Set Primitive Projections.
 
 Module Order.
-  Section Defs.
-    (* Universe T.
-    Variable (U : Universe). *)
 
-  (** A preorder consists of a type with a reflexive, transitive relation. *)
-  Class PreOrder (A : Type) (R : relation A) := {}.
+Set Universe Polymorphism.
+Monomorphic Universe u.
 
-  Record ord := mk_ord {
-    tord :> Type;
-  }.
+(** A preorder consists of a type with a reflexive, transitive relation. *)
+Record preorder : Type := {
+  carrier : Type ;
+  le : carrier -> carrier -> Prop ;
+  le_refl : forall x : carrier, le x x ;
+  le_trans : forall x y z : carrier, le x y -> le y z -> le x z ;
+}.
 
-  Record PartialOrder (A : Type) `{PreOrder A} := {
-    antisym : forall x y, le x y -> le y x -> x = y
-  }.
-
-(* * Coercion allows us to use a preorder as its carrier type.
+(** Coercion allows us to use a preorder as its carrier type. *)
 Coercion carrier : preorder >-> Sortclass.
 
 (** Infix notation for the order relation. *)
@@ -128,6 +117,48 @@ Qed.
    more explicitly using category theory, but for now we work with
    preorders and monotone functions directly. *)
 
+(** ω-Chains: infinite monotone sequences
+    A chain in a preorder is an infinite sequence with a monotonicity property.
+    This is the foundational concept for ω-cpos and continuity.
+ *)
+Record chain (ord : preorder) : Type := {
+  ch : nat -> carrier ord ;
+  ch_mono : forall m n : nat, m <= n -> le ord (ch m) (ch n) ;
+}.
+
+(** Accessor: extract the n-th element of a chain *)
+Definition chain_at (ord : preorder) (c : chain ord) (n : nat) : carrier ord :=
+  ch ord c n.
+
+Notation "c ⟨ n ⟩" := (chain_at _ c n) (at level 9).
+
+(** Every chain element is less-or-equal to its successor *)
+Lemma chain_succ_le (ord : preorder) (c : chain ord) (n : nat) :
+  le ord (ch _ c n) (ch _ c (S n)).
+Proof.
+  apply ch_mono.
+  repeat constructor.
+Qed.
+
+(** Mapping a chain along a monotone function yields a chain *)
+Definition map_chain_ch (ord1 ord2 : preorder) (f : mono_fun ord1 ord2)
+    (c : chain ord1) : nat -> carrier ord2 :=
+  fun n => f (ch ord1 c n).
+
+Definition map_chain_mono (ord1 ord2 : preorder) (f : mono_fun ord1 ord2)
+    (c : chain ord1) : forall m n : nat, m <= n -> 
+    le ord2 (map_chain_ch ord1 ord2 f c m) (map_chain_ch ord1 ord2 f c n) :=
+  fun m n Hmn =>
+    mf_mono ord1 ord2 f (ch ord1 c m) (ch ord1 c n) (ch_mono ord1 c m n Hmn).
+
+Definition map_chain (ord1 ord2 : preorder) (f : mono_fun ord1 ord2)
+    (c : chain ord1) : chain ord2 :=
+  Build_chain ord2 (map_chain_ch ord1 ord2 f c) (map_chain_mono ord1 ord2 f c).
+
+(** Basic example: constant chain (chain of repetitions of a single element) *)
+Definition const_chain (ord : preorder) (x : carrier ord) : chain ord :=
+  Build_chain ord (fun _ => x) (fun m n _ => le_refl ord x).
+
 (** Example: The discrete preorder on any type *)
 (* Definition discrete_preorder (X : Type@{u}) : preorder := {| *)
 Definition discrete_preorder (X : Type) : preorder := {|
@@ -138,23 +169,12 @@ Definition discrete_preorder (X : Type) : preorder := {|
 |}.
 
 
-(** Example: Natural numbers with the usual order *)
+(* Example: Natural numbers with the usual order *)
 Definition nat_preorder : preorder := {|
   carrier := nat ;
-  le := fun x y => x <= y ;
+  le := Nat.le ;
   le_refl := Nat.le_refl ;
   le_trans := Nat.le_trans ;
 |}.
 
-(** A chain in a preorder is a monotone function from nat_preorder *)
-Definition chain (ord : preorder) : Type :=
-  mono_fun nat_preorder ord.
-
-(** Extract the n-th element of a chain *)
-Definition chain_at (ord : preorder) (c : chain ord) (n : nat) : ord :=
-  c n.
-
-Notation "c [ n ]" := (chain_at _ c n) (at level 9). *)
-
-End Defs.
 End Order.
