@@ -1,3 +1,10 @@
+# -Q src/phase0_foundations phase0_foundations
+# -Q src/phase0_hierarchybuilder phase0_hierarchybuilder
+# -Q src/phase0_inverse_limit phase0_inverse_limit
+# -Q src/phase1_enriched phase1_enriched
+# -Q src/phase1_validation phase1_validation
+# -Q src/phase2_quantum phase2_quantum
+# -Q src/phase3_prototype phase3_prototype
 -Q _build/default/src/phase0_foundations phase0_foundations
 -Q _build/default/src/phase0_hierarchybuilder phase0_hierarchybuilder
 -Q _build/default/src/phase0_inverse_limit phase0_inverse_limit

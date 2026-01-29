@@ -3,6 +3,7 @@
  (package rocq-domain-theory)
  (synopsis "Hierarchy-Builder integration for algebraic structures")
  (modules Hierarchies Instances)
+ (theories phase0_foundations)
  (flags -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/Stdlib Stdlib -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/HB HB -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi elpi -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi_elpi elpi_elpi)
  (coqdep_flags -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/Stdlib Stdlib -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/HB HB -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi elpi -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi_elpi elpi_elpi)
 )
