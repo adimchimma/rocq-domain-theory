@@ -1,0 +1,4 @@
+(coq.theory
+ (name DomainTheory.Structures)
+ (synopsis "Phase 0: order structures, CPOs, and enriched category interfaces")
+ (modules Order CPO Pointed Morphisms Enriched))

@@ -1,9 +1,0 @@
-(coq.theory
- (name phase2_quantum)
- (package rocq-domain-theory)
- (stdlib yes)
- (synopsis "Quantum CPO structures (stretch goal)")
- (modules qCPO qCPOProperties QuantumEnrichment QuantumMorphisms QuantumStructure)
- (flags -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/Stdlib Stdlib -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/HB HB -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi elpi -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi_elpi elpi_elpi)
- (coqdep_flags -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/Stdlib Stdlib -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/HB HB -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi elpi -R %{env:OPAM_SWITCH_PREFIX=/home/mysti/.opam/default}/lib/coq/user-contrib/elpi_elpi elpi_elpi)
-)

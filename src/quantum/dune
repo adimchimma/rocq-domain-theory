@@ -1,0 +1,5 @@
+(coq.theory
+ (name DomainTheory.Quantum)
+ (synopsis "Phase 2: quantum CPO definitions and morphisms")
+ (theories DomainTheory.Structures DomainTheory.Theory DomainTheory.Instances)
+ (modules QuantumStructure qCPO QuantumMorphisms qCPOProperties QuantumEnrichment))

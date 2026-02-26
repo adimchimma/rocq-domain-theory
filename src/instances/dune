@@ -1,0 +1,5 @@
+(coq.theory
+ (name DomainTheory.Instances)
+ (synopsis "Phase 0/2: concrete CPO instances")
+ (theories DomainTheory.Structures DomainTheory.Theory)
+ (modules Nat Discrete Lift Product Sum Function Quantum))

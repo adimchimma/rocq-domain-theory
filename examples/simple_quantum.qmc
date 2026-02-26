@@ -1,0 +1,13 @@
+-- simple_quantum.qmc
+-- QMiniCore example: quantum teleportation protocol sketch.
+-- This file is not a Rocq source file; it is a QMiniCore prototype script.
+-- It will be interpreted by the QMiniCore prototype interpreter once Phase 3 is complete.
+
+-- Qubit type alias
+let qubit = Q
+
+-- Bell-state preparation (placeholder)
+-- let bell = ...
+
+-- Teleportation channel (placeholder)
+-- let teleport : qubit * qubit -o qubit = ...

@@ -1,6 +1,0 @@
-(coq.theory
- (name phase1_enriched)
- (package rocq-domain-theory)
- (synopsis "Enriched category theory for programming language semantics")
- (modules CPOEnriched EnrichedCategory EnrichedInverseLimit EnrichedNatTrans LocallyContinuous RecursiveEquations)
-)

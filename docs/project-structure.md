@@ -45,7 +45,7 @@ Establish a modern, provably correct library for order-theoretic domain theory, 
 
 #### **Order.v** — Preorders & ω-Chains
 - `preorder`: Reflexive, transitive relations
-- `chain`: **Monotone ω-sequences** (`nat → D` with `m ≤ n → f(m) ⊑ f(n)`)
+- `chain`: **Monotone ω-chains** (`nat → D` with `m ≤ n → f(m) ⊑ f(n)`)
 - `mono_fun`: Monotone functions
 - **Helper operations**: `chain_at`, `map_chain`, `const_chain`, `chain_succ_le`
 
@@ -111,6 +111,18 @@ Establish a modern, provably correct library for order-theoretic domain theory, 
   - Continuous.v: continuity over chains
   - Products.v & FunctionSpaces.v: updated signatures
 
+✅ **Phase 0 Placeholders Implemented**: 
+  - Predomains.v: ✅ Complete
+  - Lift.v: ✅ Implemented (lubs axiomatized)
+  - Sums.v: ✅ Implemented (lubs axiomatized)
+
+✅ **Inverse Limit Construction**: Core Phase 0 deliverable mostly complete
+  - Compatible sequence carrier: ✅ Record-based with explicit compatibility constraint
+  - Continuity in ep_pairs: ✅ Added embed_cont & project_cont fields
+  - Lub operations: ✅ 3/3 proved constructively (lub_of_chain, lub_upper, lub_least)
+  - Projection: ✅ Constructively defined
+  - Embedding & universal property: ⏳ Structure documented, implementation pending
+
 ✅ **Build Clean**: `dune build && dune runtest` passes (Exit Code 0)
 
 ---
@@ -134,16 +146,52 @@ Formalize recursive domain equations via inverse limits. Enables solving domains
 
 ### Key Modules
 
-#### **InverseLimit.v** — Categorical framework
-- Embedding-projection pairs
-- Inverse limit construction
-- Convergence & completeness proofs
+#### **EmbeddingProjection.v** — Categorical framework
+- `ep_pair`: Embedding-projection pairs between CPOs
+  - `embed`: Monotone function from `D` to `E`
+  - `project`: Monotone function from `E` to `D`
+  - `embed_cont` & `project_cont`: Continuity requirements (NEW)
+  - `left_inverse`: `project ∘ embed = id`
+  - `right_approx`: `embed ∘ project ⊑ id`
+- `ep_sequence`: Infinite sequences of ep-pairs
+
+**Status**: ✅ Complete with continuity assumptions integrated
+
+#### **InverseLimit.v** — Inverse limit construction
+- `inv_lim_carrier`: Compatible sequences record:
+  - `inv_lim_seq`: Element at each position in sequence
+  - `inv_lim_compat`: Embed-project compatibility constraint
+- `inv_lim_le`: Pointwise order
+- `inv_lim_pre`: Preorder structure
+- **Lub operations** (all constructive):
+  - `inv_lim_lub_of_chain`: ✅ Constructively defined (transparent)
+  - `inv_lim_lub_upper`: ✅ Fully proved (pointwise decomposition)
+  - `inv_lim_lub_least`: ✅ Fully proved (pointwise decomposition)
+  - `inv_lim`: CPO structure combining lubs
+- **Projection & embedding** (partial):
+  - `inv_lim_proj`: ✅ Constructively defined (pointwise extraction)
+  - `inv_lim_embed`: ⚠️ Proof structure in place, components pending
+    - Function skeleton defined with three proof goals
+    - Goal 1: inv_lim_seq component (embed/project chain construction)
+    - Goal 2: inv_lim_compat component (compatibility preservation)
+    - Goal 3: Monotonicity proof with case analysis outlined (m' < n, m' = n, m' > n)
+  - `inv_lim_universal`: ⏳ Still admitted
+
+**Completion Status**: Mostly constructive with structured approach to embedding
+- ✅ lub_of_chain (transparent definition with continuity-based compatibility proof)
+- ✅ lub_upper (pointwise proof using Cpo.lub_upper)
+- ✅ lub_least (pointwise proof using Cpo.lub_least)
+- ✅ inv_lim_proj (pointwise extraction)
+- ⚠️ inv_lim_embed (proof structure with 3 goals to fill; monotonicity case analysis documented)
+- ⏳ inv_lim_universal (universal property proof)
+
+**Status**: ⚠️ Mostly constructive; embedding has proof skeleton, universal property still admitted
 
 #### **RecursiveDomains.v** — Application to domains
-- Solve `D ≅ F(D)` for a continuous functor `F`
-- Derive reflexive domains
+- Solve `D ≅ F(D)` for a continuous bifunctor `F`
+- Derive reflexive domains using inverse limit
 
-**Status**: ⚠️ Currently minimal/stub; proposal requires this as a **core Phase 0 deliverable**
+**Status**: ⚠️ Depends on InverseLimit completion
 
 ---
 
@@ -382,7 +430,7 @@ Discrete.v, Pointed.v
 ## Success Criteria (from Proposal)
 
 ### TI: Minimum Viable Thesis
-- [ ] Phase 0 foundations compile with ω-chains ✅ (mostly done)
+- [x] Phase 0 foundations compile with ω-chains (current) ⚠️ (some lubs axiomatized)
 - [ ] Basic enriched category definitions ⚠️ (TBD)
 - [ ] PCF adequacy proof ⚠️ (TBD)
 - [ ] Written thesis chapters ⚠️ (TBD)
@@ -439,8 +487,8 @@ Discrete.v, Pointed.v
 ## Next Steps (Priority Order)
 
 1. **Phase 0 completion**:
-   - Implement `Predomains.v`, `Lift.v`, `Sums.v` stubs
-   - Flesh out `InverseLimit.v` & `RecursiveDomains.v`
+  - Predomains/Lift/Sums implemented (some lubs axiomatized)
+  - Flesh out `InverseLimit.v` & `RecursiveDomains.v` (remove axioms for `inv_lim`, `inv_lim_proj`)
 
 2. **Phase 1 groundwork**:
    - Define enriched category structure in `EnrichedCategory.v`

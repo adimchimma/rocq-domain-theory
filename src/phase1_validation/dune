@@ -1,6 +1,0 @@
-(coq.theory
- (name phase1_validation)
- (package rocq-domain-theory)
- (synopsis "PCF validation: syntax, semantics, soundness, adequacy")
- (modules PCF_Syntax PCF_Operational PCF_Denotational PCF_Soundness PCF_Adequacy)
-)
