@@ -1,12 +1,8 @@
-# Project Structure & Architecture
+# rocq-domain-theory — Project Structure
 
-## Overview
-
-This thesis project formalizes **modernized domain theory** in Rocq 9.0.0, with applications to denotational semantics and quantum programming languages. The codebase is organized into **three major phases**, each building on the previous:
-
-- **Phase 0 (Weeks 1–8)**: Modernized domain theory foundations
-- **Phase 1 (Weeks 9–18)**: Enriched category formalization  
-- **Phase 2–3**: Quantum extensions & prototype (optional)
+A modernization of the Benton-Kennedy (2009) domain theory library for
+Rocq 9.0, extended with enriched category theory and quantum CPO foundations.
+Uses the Hierarchy Builder (HB) packed-class framework throughout.
 
 ---
 
@@ -14,514 +10,378 @@ This thesis project formalizes **modernized domain theory** in Rocq 9.0.0, with 
 
 ```
 rocq-domain-theory/
+├── docs/
+│   ├── design-decisions.md     ← architectural choices and rationale
+│   ├── migration-notes.md      ← notes on porting from Coq 8.2
+│   └── tutorial/               ← user-facing tutorial notebooks
+│
 ├── src/
-│   ├── phase0_foundations/        # Core order & CPO theory
-│   ├── phase0_hierarchybuilder/   # Automatic hierarchy & instance generation
-│   ├── phase0_inverse_limit/      # Recursive domain equations
-│   ├── phase1_enriched/           # Enriched category structures
-│   ├── phase1_validation/         # PCF adequacy proof (Phase 1)
-│   ├── phase2_quantum/            # Quantum extensions (optional)
-│   └── phase3_prototype/          # Prototype interpreter (optional)
+│   ├── structures/             ← HB mixin/structure declarations (no proofs)
+│   ├── theory/                 ← lemmas, constructions, proofs
+│   ├── instances/              ← concrete HB instance registrations
+│   ├── lang/                   ← PCF and quantum language semantics
+│   └── quantum/                ← quantum CPO structures (Phase 2)
 │
-├── docs/                          # Thesis & technical documentation
-│   ├── thesis/                    # Thesis chapters
-│   ├── tutorial/                  # Usage examples
-│   └── design-decisions.md        # Architectural notes
-│
-├── test/                          # Test suite
-├── planning/                      # Project planning docs
-├── examples/                      # Example programs
-└── dune, dune-project             # Build configuration
+├── test/                       ← sanity-check files
+├── examples/                   ← worked examples
+└── scripts/
+    └── build.sh
+```
+
+**Build order enforced by dune:**
+```
+DomainTheory.structures
+  └── DomainTheory.theory
+        └── DomainTheory.instances
+              └── DomainTheory.lang / DomainTheory.quantum
 ```
 
 ---
 
-## Phase 0: Modernized Domain Theory Foundations
+## Phase Map
 
-### Purpose
-Establish a modern, provably correct library for order-theoretic domain theory, replacing ad-hoc definitions with proper mathematical structures.
-
-### Key Modules
-
-#### **Order.v** — Preorders & ω-Chains
-- `preorder`: Reflexive, transitive relations
-- `chain`: **Monotone ω-chains** (`nat → D` with `m ≤ n → f(m) ⊑ f(n)`)
-- `mono_fun`: Monotone functions
-- **Helper operations**: `chain_at`, `map_chain`, `const_chain`, `chain_succ_le`
-
-**Status**: ✅ Complete with chain infrastructure integrated
-
-#### **CPO.v** — Complete Partial Orders
-- `cpo`: Record with:
-  - Underlying `preorder`
-  - `lub_of_chain`: Compute least upper bound of ω-chains
-  - `lub_upper` & `lub_least`: Completeness axioms
-- `Pointed`: Cpos with a least element (for fixpoint computation)
-- `Fixpoints`: Iterate `F n` from bottom → chain → least fixed point via `fixp F`
-
-**Status**: ✅ Refactored to use `chain` instead of arbitrary `nat → D`
-
-#### **Continuous.v** — Continuity
-- `continuous`: Function preserves lubs of chains
-  - Requires: monotone function `f : mono_fun D E`
-  - Ensures: `f(⊔c) = ⊔(map f c)` for all chains `c`
-- `cont_fun`: Continuous function wrapper
-
-**Status**: ✅ Updated to quantify continuity over chains
-
-#### **Products.v** — Cartesian Products
-- `prod_cpo`: Product `A × B` is a CPO with:
-  - Pointwise order: `(a₁, b₁) ⊑ (a₂, b₂)` iff `a₁ ⊑ a₂` and `b₁ ⊑ b₂`
-  - Pointwise lubs: `⊔c = (⊔(π₁ c), ⊔(π₂ c))`
-
-**Status**: ✅ Compiled with chain-aware lub definitions
-
-#### **FunctionSpaces.v** — Exponentials
-- `fun_cpo`: Function space `[D ⇒ E]` as a CPO of continuous functions
-  - Pointwise order on `cont_fun`
-  - Pointwise lubs (axiomatized for now)
-
-**Status**: ⚠️ Struct complete, lub implementation axiomatized
-
-#### **Discrete.v** — Trivial CPOs
-- `unit_cpo`: Unit type with discrete order
-
-**Status**: ✅ Compiles
-
-#### **FixedPoints.v** — Reexports
-- Module re-export of fixpoint theory from CPO.v
-
-**Status**: ✅ Compiles
-
-#### **Predomains.v, Lift.v, Sums.v, RecursiveDomains.v**
-- **Status**: ⚠️ Placeholder/stub files; need implementation per proposal
-
-#### **Pointed.v**
-- **Status**: ⚠️ Duplicate of Pointed class in CPO.v; consolidation pending
+| Phase | Scope | Status |
+|-------|-------|--------|
+| 0 | Modernize Benton-Kennedy library (CPOs, constructions, PCF adequacy) | In progress |
+| 1 | Enriched categories, locally continuous functors, D ≅ [D→D]⊥ | Structures done |
+| 2 | Quantum CPO structures (stretch goal) | Not started |
+| 3 | QMini-Core language prototype (stretch goal) | Not started |
 
 ---
 
-### Phase 0 Achievements
+## `src/structures/` — Structure Declarations
 
-✅ **Modernized Library**: Replaced ad-hoc definitions with proper mathematical structures (Rocq 9.0.0, dune 3.20.2)
+All files in this directory contain **only** HB mixin and structure
+declarations. No proofs, no lemmas. The dune library name is
+`DomainTheory.structures`.
 
-✅ **ω-Chain Infrastructure**: Monotone sequences `chain` replace arbitrary `nat → D` throughout:
-  - Order.v: chain definition + operations  
-  - CPO.v: `lub_of_chain : chain cpo_pre → carrier`
-  - Continuous.v: continuity over chains
-  - Products.v & FunctionSpaces.v: updated signatures
-
-✅ **Phase 0 Placeholders Implemented**: 
-  - Predomains.v: ✅ Complete
-  - Lift.v: ✅ Implemented (lubs axiomatized)
-  - Sums.v: ✅ Implemented (lubs axiomatized)
-
-✅ **Inverse Limit Construction**: Core Phase 0 deliverable mostly complete
-  - Compatible sequence carrier: ✅ Record-based with explicit compatibility constraint
-  - Continuity in ep_pairs: ✅ Added embed_cont & project_cont fields
-  - Lub operations: ✅ 3/3 proved constructively (lub_of_chain, lub_upper, lub_least)
-  - Projection: ✅ Constructively defined
-  - Embedding & universal property: ⏳ Structure documented, implementation pending
-
-✅ **Build Clean**: `dune build && dune runtest` passes (Exit Code 0)
+> **Note on `Pointed.v`:** There is no `Pointed.v`. `HasBot`, `IsPointed`,
+> and `PointedCPO` live in `CPO.v`; `strict_fun` lives in `Morphisms.v`.
+> See `docs/design-decisions.md § DD-001`.
 
 ---
 
-## Phase 0.5: Hierarchy Builder (Optional)
+### `Order.v` ✓ (Phase 0) — 183 lines
 
-### Purpose
-Automatically generate instances of algebraic hierarchies (rings, fields, vector spaces) using Rocq's hierarchy builder.
+**Dune module:** `Order`
+**Imports:** Rocq stdlib, HB only
 
-### Location
-`src/phase0_hierarchybuilder/`
+| Name | Kind | Description |
+|------|------|-------------|
+| `HasLe` | HB mixin | carrier type with a `≤` relation |
+| `IsPreorder` | HB mixin | reflexivity + transitivity of `≤` |
+| `Preorder` | HB structure | bundled preorder |
+| `IsPartialOrder` | HB mixin | antisymmetry; requires `IsPreorder` |
+| `PartialOrder` | HB structure | bundled partial order |
+| `chain` | Definition | ω-chain: monotone `ℕ → T` |
+| `mono_fun` | Record | monotone function + proof |
+| `monotone` | Definition | predicate: `f` preserves `≤` |
 
-**Status**: ⚠️ Defined but minimal usage in Phase 0; intended for Phase 1+
-
----
-
-## Phase 0.5b: Inverse Limits (Core Phase 0 Deliverable)
-
-### Purpose
-Formalize recursive domain equations via inverse limits. Enables solving domains recursively: `D ≅ [[D ⇒ D]]` (reflexive domains).
-
-### Key Modules
-
-#### **EmbeddingProjection.v** — Categorical framework
-- `ep_pair`: Embedding-projection pairs between CPOs
-  - `embed`: Monotone function from `D` to `E`
-  - `project`: Monotone function from `E` to `D`
-  - `embed_cont` & `project_cont`: Continuity requirements (NEW)
-  - `left_inverse`: `project ∘ embed = id`
-  - `right_approx`: `embed ∘ project ⊑ id`
-- `ep_sequence`: Infinite sequences of ep-pairs
-
-**Status**: ✅ Complete with continuity assumptions integrated
-
-#### **InverseLimit.v** — Inverse limit construction
-- `inv_lim_carrier`: Compatible sequences record:
-  - `inv_lim_seq`: Element at each position in sequence
-  - `inv_lim_compat`: Embed-project compatibility constraint
-- `inv_lim_le`: Pointwise order
-- `inv_lim_pre`: Preorder structure
-- **Lub operations** (all constructive):
-  - `inv_lim_lub_of_chain`: ✅ Constructively defined (transparent)
-  - `inv_lim_lub_upper`: ✅ Fully proved (pointwise decomposition)
-  - `inv_lim_lub_least`: ✅ Fully proved (pointwise decomposition)
-  - `inv_lim`: CPO structure combining lubs
-- **Projection & embedding** (partial):
-  - `inv_lim_proj`: ✅ Constructively defined (pointwise extraction)
-  - `inv_lim_embed`: ⚠️ Proof structure in place, components pending
-    - Function skeleton defined with three proof goals
-    - Goal 1: inv_lim_seq component (embed/project chain construction)
-    - Goal 2: inv_lim_compat component (compatibility preservation)
-    - Goal 3: Monotonicity proof with case analysis outlined (m' < n, m' = n, m' > n)
-  - `inv_lim_universal`: ⏳ Still admitted
-
-**Completion Status**: Mostly constructive with structured approach to embedding
-- ✅ lub_of_chain (transparent definition with continuity-based compatibility proof)
-- ✅ lub_upper (pointwise proof using Cpo.lub_upper)
-- ✅ lub_least (pointwise proof using Cpo.lub_least)
-- ✅ inv_lim_proj (pointwise extraction)
-- ⚠️ inv_lim_embed (proof structure with 3 goals to fill; monotonicity case analysis documented)
-- ⏳ inv_lim_universal (universal property proof)
-
-**Status**: ⚠️ Mostly constructive; embedding has proof skeleton, universal property still admitted
-
-#### **RecursiveDomains.v** — Application to domains
-- Solve `D ≅ F(D)` for a continuous bifunctor `F`
-- Derive reflexive domains using inverse limit
-
-**Status**: ⚠️ Depends on InverseLimit completion
+Reference: A&J Definition 2.1.1 (preorder), 2.1.2 (partial order).
 
 ---
 
-## Phase 1: Enriched Categories
+### `CPO.v` ✓ (Phase 0) — 163 lines
 
-### Purpose
-Lift domain theory to the **enriched setting**: categories enriched over **ω-cpo ordered morphisms**. This enables:
-- Hom-objects are CPOs (not just sets)
-- Natural transformations are continuous
-- Recursive equations solved in enriched framework
+**Dune module:** `CPO`
+**Imports:** `Order`
 
-### Key Modules
+| Name | Kind | Description |
+|------|------|-------------|
+| `HasSup` | HB mixin | `sup : chain T → T` function |
+| `IsCPO` | HB mixin | `sup_upper` and `sup_least` axioms; requires `PartialOrder` |
+| `CPO` | HB structure | bundled ω-CPO |
+| `continuous` | Definition | predicate: `f` preserves chain sups |
+| `HasBot` | HB mixin | distinguished bottom element `⊥` |
+| `IsPointed` | HB mixin | `⊥` is least; requires `CPO` + `HasBot` |
+| `PointedCPO` | HB structure | bundled pointed ω-CPO |
 
-#### **EnrichedCategory.v** — Basic structures
-- Enriched category over CPO base
-- Enriched functors
-- Enriched natural transformations
-
-**Status**: ⚠️ Defined; need full proofs
-
-#### **LocallyContinuous.v** — Morphism constraints
-- Locally-continuous functors: natural transformations are continuous
-
-**Status**: ⚠️ Stub
-
-#### **EnrichedNatTrans.v** — Enriched NTs
-- Natural transformations in enriched setting
-- Vertical & horizontal composition
-
-**Status**: ⚠️ Stub
-
-#### **CPOEnriched.v** — CPO is enriched
-- Prove CPO category is enriched over itself
-- Hom-objects are CPOs
-- Composition is continuous
-
-**Status**: ⚠️ Stub
-
-#### **EnrichedInverseLimit.v** — Enriched inverse limits
-- Generalize inverse limits to enriched setting
-- Solve enriched recursive equations
-
-**Status**: ⚠️ Stub
-
-#### **RecursiveEquations.v** — Domain equations
-- Derive the main domain equation `D` from thesis proposal
-- Solution via enriched inverse limit
-
-**Status**: ⚠️ Stub
+Reference: A&J Definition 2.1.13 (CPO built on partial order).
+Benton-Kennedy §2.1 (`cpo` record).
 
 ---
 
-## Phase 1: Validation (PCF Adequacy)
+### `Morphisms.v` ✓ (Phase 0) — 162 lines
 
-### Purpose
-Prove soundness & adequacy of denotational semantics for **PCF** (Programming Computable Functions), a core lambda calculus. This validates the entire domain theory framework.
+**Dune module:** `Morphisms`
+**Imports:** `Order`, `CPO`
 
-### Key Modules
+| Name | Kind | Description |
+|------|------|-------------|
+| `cont_fun` | Record | Scott-continuous function + proofs |
+| `cont_id` | Definition | identity continuous function |
+| `cont_comp` | Definition | composition of continuous functions |
+| `cont_id_l/r` | Lemma | `id ∘ f = f`, `f ∘ id = f` |
+| `cont_comp_assoc` | Lemma | associativity of `cont_comp` |
+| `strict` | Definition | predicate: `f ⊥ = ⊥` |
+| `strict_fun` | Record | strict continuous function + proof |
+| `strict_id` | Lemma | identity is strict |
+| `strict_comp` | Lemma | composition of strict functions is strict |
 
-#### **PCF_Syntax.v** — Language definition
-- Types: `nat`, `bool`, function types
-- Terms: variables, constants, lambda, application, conditionals, recursion
+Note: `cont_fun D E` is not yet an HB-registered `CPO.type`. That
+registration is deferred to `instances/Function.v` once the pointwise
+order is developed in `theory/FunctionSpaces.v`.
 
-**Status**: ⚠️ Stub
-
-#### **PCF_Operational.v** — Step semantics
-- Big-step or small-step evaluation
-- Termination & divergence
-
-**Status**: ⚠️ Stub
-
-#### **PCF_Denotational.v** — Semantic domain
-- Denotation `⟦τ⟧` for types (elements of CPO)
-- Denotation `⟦M⟧` for terms (continuous functions)
-- Lookup function for variables
-
-**Status**: ⚠️ Stub
-
-#### **PCF_Soundness.v** — Denotational soundness
-- `M ⟹ v` (operational) → `⟦M⟧ ⊒ ⟦v⟧` (denotational)
-
-**Status**: ⚠️ Stub
-
-#### **PCF_Adequacy.v** — Full adequacy
-- If `⟦M⟧ ≠ ⊥`, then `M` terminates (operationally)
-- Converse: if `M` terminates to `v`, then `⟦M⟧ = ⟦v⟧`
-- Validates the semantic foundation
-
-**Status**: ⚠️ Stub (critical for thesis success criteria TI.3)
+Reference: A&J §3.2.2. Benton-Kennedy §2.1 (`fconti` record).
 
 ---
 
-## Phase 2: Quantum Extensions (Optional)
+### `Enriched.v` ✓ (Phase 1) — 344 lines
 
-### Purpose
-Extend domain theory to handle quantum computation. Define quantum CPOs & continuity.
+**Dune module:** `Enriched`
+**Imports:** `Order`, `CPO`, `Morphisms`
 
-### Modules
-- `qCPO.v`: Quantum CPO definition
-- `QuantumStructure.v`: Quantum operators
-- `QuantumMorphisms.v`: Quantum-continuous functions
-- `QuantumEnrichment.v`: Enriched quantum structures
+| Name | Kind | Description |
+|------|------|-------------|
+| `HasHom` | HB mixin | `hom : Obj → Obj → CPO.type` |
+| `HasId` | HB mixin | `id_mor : hom A A` |
+| `HasComp` | HB mixin | `comp : hom B C → hom A B → hom A C` |
+| `⊚` | Notation | diagrammatic composition (`f ⊚ g` = "g then f") |
+| `IsCPOEnriched` | HB mixin | separate Scott-continuity of `comp` in each arg; categorical laws |
+| `CPOEnrichedCat` | HB structure | bundled CPO-enriched category |
+| `comp_l_cont_fun` | Definition | post-composition packaged as `cont_fun` |
+| `comp_r_cont_fun` | Definition | pre-composition packaged as `cont_fun` |
+| `HasEndo` | HB mixin | `F_obj : Obj → Obj`, `F_mor` action on morphisms |
+| `IsLocallyContinuous` | HB mixin | A&J Def 5.2.3: `F_mor` Scott-continuous on each hom-CPO; functoriality |
+| `LocallyContinuousFunctor` | HB structure | bundled locally continuous endofunctor |
+| `F_mor_cont_fun` | Definition | `F_mor` packaged as `cont_fun` |
+| `HasMixedEndo` | HB mixin | **data only**: `MF_obj : Obj → Obj → Obj`, `MF_mor` (contra × covariant) |
 
-**Status**: ⚠️ Experimental; not required for thesis
+Design notes:
+- Separate continuity used instead of joint continuity to avoid a
+  dependency cycle with `Products.v` (see `design-decisions.md § DD-002`).
+- `HasMixedEndo` records only data; axioms (`IsMixedLocallyContinuous`)
+  are deferred to `theory/DomainEquations.v` (see `§ DD-005`).
 
----
-
-## Phase 3: Prototype Interpreter (Optional)
-
-### Purpose
-Executable interpreter for the core language (PCF + quantum extensions).
-
-**Status**: ⚠️ Minimal; defer unless thesis allows
-
----
-
-## Test Suite
-
-### Location
-`test/`
-
-### Key Tests
-- `test_suite.v`: Main test file
-- `foundations_*.v` (4 files): Unit tests for CPO, products, fixpoints, function spaces
-
-**Status**: ✅ Basic tests pass; expand as Phase 1 work progresses
+References: A&J §5.2.2, Def 5.2.3, Def 5.2.5. Benton-Kennedy §4
+(`BiFunctor` record). Kornell-Lindenhovius-Mislove (2024) §3.3.
 
 ---
 
-## Documentation
+## `src/theory/` — Proofs and Constructions
 
-### Location
-`docs/`
-
-#### Thesis Chapters
-- `thesis/introduction.md` — Problem statement
-- `thesis/background.md` — Domain theory & enriched categories
-- `thesis/methods.md` — Formalization approach
-- `thesis/results.md` — Main theorems
-- `thesis/discussion.md` — Implications & open problems
-- `thesis/conclusion.md` — Summary
-- `thesis/references.bib` — Bibliography
-
-**Status**: ⚠️ Mostly stubs; need content from Phase 0–1 work
-
-#### Supporting Docs
-- `design-decisions.md` — Architectural rationale
-- `migration-notes.md` — Rocq 8 → 9 upgrade notes
-- `abstract.md` — Thesis abstract
-
-#### Tutorials
-- `tutorial/`: Usage examples (TBD)
+All files import from `DomainTheory.structures`. The dune library name
+is `DomainTheory.theory`.
 
 ---
 
-## Planning & Tracking
+### `OrderTheory.v` ✗ (Phase 0) — *not yet written*
 
-### Location
-`planning/`
+**Imports:** `Order`
 
-#### Key Files
-- **`todo.md`**: Proposal-aligned checklist with TI/TII/TIII criteria
-- **`milestones.md`**: Month-by-month delivery schedule
-- **`timeline.md`**: Calendar & deadlines
-- **`ristk_mitigation.md`**: Risk assessment & mitigations
-
-**Status**: ✅ Updated with Phase 0 chain progress
+Planned: antisymmetry consequences, the equivalence relation
+`x == y ↔ x ≤ y ∧ y ≤ x`, chain monotonicity lemmas, setoid instances.
 
 ---
 
-## Build System
+### `ChainTheory.v` ✗ (Phase 0) — *not yet written*
 
-### Configuration
-- **Build tool**: Dune 3.20.2
-- **Coq version**: Rocq 9.0.0 (proposal allows 8.20+)
-- **Opam**: 2.1.5
+**Imports:** `Order`, `OrderTheory`
 
-### Key Build Files
-- `dune-project`: Project metadata (Coq 0.10 language version)
-- `src/dune`: Root library configuration
-- `src/phase*/dune`: Per-phase stanzas with `-R` flags and `coqdep_flags`
-- `test/dune`: Test runner configuration
-- `_CoqProject`: Editor support (VsRocq) loadpaths
+Planned: tail of a chain is a chain, constant chains, eventually-constant
+chains, chain comparison lemmas.
 
-### Build Commands
-```bash
-# Full build
-dune build
+---
 
-# Run tests
-dune runtest
+### `CPOTheory.v` ✗ (Phase 0) — *not yet written*
 
-# Clean & rebuild
-dune clean && dune build
+**Imports:** `CPO`, `Morphisms`, `OrderTheory`, `ChainTheory`
 
-# Interactive Rocq (if installed)
-rocqide src/phase0_foundations/Order.v
+Planned: sup/lub lemmas, Scott continuity properties, admissible
+predicates, Scott induction principle.
+
+Reference: A&J §2.1, §2.2. Benton-Kennedy §2.1.
+
+---
+
+### `FixedPoints.v` ✗ (Phase 0) — *not yet written*
+
+**Imports:** `CPO`, `Morphisms`, `CPOTheory`
+
+Planned: Kleene fixed-point theorem (`fix f = ⊔_n fⁿ(⊥)`),
+`FIXP : (D ⇒c D) →c D`, fixed-point induction principle.
+
+Reference: A&J §2.1.3. Benton-Kennedy §2.1 (`fixp`, `FIXP`, `fixp_ind`).
+
+---
+
+### `Products.v` ✗ (Phase 0) — *not yet written*
+
+**Imports:** `CPO`, `Morphisms`, `CPOTheory`
+
+Planned: product CPO `D × E`, projections `π₁`/`π₂`, pairing `⟨f,g⟩`,
+pointwise sup. `D × E` is a `CPO`; pointed when both factors are pointed.
+
+Reference: A&J §3.2.1. Benton-Kennedy §2.1.
+
+---
+
+### `Sums.v` ✗ (Phase 0) — *not yet written*
+
+**Imports:** `CPO`, `Morphisms`, `CPOTheory`
+
+Planned: separated sum CPO `D ⊕ E`, injections, case analysis.
+Note: not strict in general (Benton-Kennedy note on `BiSum`).
+
+---
+
+### `FunctionSpaces.v` ✗ (Phase 0) — *not yet written*
+
+**Imports:** `CPO`, `Morphisms`, `CPOTheory`, `Products`
+
+Planned: function-space CPO `D ⇒ E` with pointwise order, `curry`,
+`uncurry`, `ev`. Proof that `CPO` is Cartesian closed.
+
+Unlocks: `instances/Function.v` can register `CPO.type` as a
+`CPOEnrichedCat` instance once this file exists.
+
+Reference: A&J §3.2.2. Benton-Kennedy §2.1.
+
+---
+
+### `Lift.v` ✗ (Phase 0) — *not yet written*
+
+**Imports:** `CPO`, `Morphisms`, `CPOTheory`
+
+Planned: lifting construction `D⊥`, the lift monad (`η`, `kleisli`),
+`D⊥` as a `PointedCPO`.
+
+Reference: Benton-Kennedy §2.2 (coinductive `Stream`-based constructive
+lift). A&J §2.1.4.
+
+---
+
+### `EnrichedTheory.v` ✗ (Phase 1) — *not yet written*
+
+**Imports:** `Enriched`, `CPOTheory`, `FunctionSpaces`
+
+Planned: enriched natural transformations, proof of A&J Proposition 5.2.4
+(locally continuous functor restricts to continuous functor on embeddings),
+Yoneda in the enriched setting.
+
+---
+
+### `NatTrans.v` ✗ (Phase 1) — *not yet written*
+
+**Imports:** `Enriched`, `EnrichedTheory`
+
+Planned: enriched natural transformations as a CPO (pointwise order),
+horizontal and vertical composition.
+
+---
+
+### `DomainEquations.v` ✗ (Phase 0/1) — *not yet written*
+
+**Imports:** `Enriched`, `Products`, `FunctionSpaces`, `Lift`,
+`EnrichedTheory`
+
+Planned:
+- `IsMixedLocallyContinuous` mixin (axioms for `HasMixedEndo`)
+- Embedding-projection pairs
+- Bilimit / inverse-limit construction (Scott / Freyd-Pitts method)
+- Proof: bilimit is canonical solution to `X ≅ F(X)`
+- Corollary: `D ≅ [D → D]⊥`
+
+Reference: A&J §5.2–5.3. Benton-Kennedy §4. Pitts (1996).
+
+---
+
+## `src/instances/` — Concrete Instance Registrations
+
+All files import from both `DomainTheory.structures` and
+`DomainTheory.theory`. The dune library name is `DomainTheory.instances`.
+
+| File | Phase | Registers |
+|------|-------|-----------|
+| `Nat.v` | 0 | `nat` with `≤` as `CPO.type` |
+| `Discrete.v` | 0 | `Discrete X` (equality order) as `CPO.type` |
+| `Lift.v` | 0 | `D⊥` as `PointedCPO.type` |
+| `Product.v` | 0 | `D × E` as `CPO.type`; `PointedCPO.type` when both pointed |
+| `Sum.v` | 0 | `D ⊕ E` as `CPO.type` |
+| `Function.v` | 0/1 | `D ⇒ E` as `CPO.type`; `CPO.type` as `CPOEnrichedCat` |
+| `Quantum.v` | 2 | qCPO instances (stretch goal) |
+
+The `Function.v` registration of `CPO.type` as `CPOEnrichedCat`:
+```coq
+hom D E  := fun_cpo D E     (* function-space CPO *)
+id_mor   := cont_id
+comp     := cont_comp
 ```
 
-**Status**: ✅ Clean build (Exit Code 0)
+---
+
+## `src/lang/` — Language Semantics
+
+Dune library: `DomainTheory.lang`. Depends on `DomainTheory.instances`.
+
+| File | Phase | Description |
+|------|-------|-------------|
+| `PCF_Syntax.v` | 1 | PCF types, terms (strongly-typed de Bruijn) |
+| `PCF_Operational.v` | 1 | Big-step evaluation relation |
+| `PCF_Denotational.v` | 1 | Denotational semantics |
+| `PCF_Soundness.v` | 1 | `e ⇓ v → ⟦e⟧ = η(⟦v⟧)` |
+| `PCF_Adequacy.v` | 1 | Computational adequacy via logical relations |
+| `QMiniCore_Syntax.v` | 2/3 | Quantum lambda calculus syntax |
+| `QMiniCore_Semantics.v` | 2/3 | Quantum denotational semantics |
+
+Reference: Benton-Kennedy §3 (strongly-typed de Bruijn, `SemTy`,
+`SemExp`, `relVal`/`relExp` logical relation).
 
 ---
 
-## Dependencies
+## `src/quantum/` — Quantum CPO Structures (Phase 2, stretch)
 
-### External Libraries
-- **Rocq standard library**: `Setoid`, `Morphisms`, `RelationClasses`
-- **Rocq-specific**: Hierarchy Builder (optional, for instance generation)
+Dune library: `DomainTheory.quantum`. Depends on `DomainTheory.instances`.
 
-### Internal Dependencies
+| File | Description |
+|------|-------------|
+| `QuantumStructure.v` | Quantum sets, quantum posets |
+| `qCPO.v` | qCPO definition |
+| `QuantumMorphisms.v` | Scott-continuous quantum morphisms |
+| `qCPOProperties.v` | qCPO is enriched over CPO (KLM §3.3) |
+| `QuantumEnrichment.v` | Quantum enrichment structure |
+
+Reference: Kornell-Lindenhovius-Mislove (2021, 2024).
+
+---
+
+## Key Dependency Graph
 
 ```
 Order.v
-  ↓
-CPO.v ← Continuous.v
-  ↓       ↓
-Products.v, FunctionSpaces.v
-  ↓
-FixedPoints.v
-  ↓
-Discrete.v, Pointed.v
-  ↓
-(Phase 0.5b) InverseLimit.v, RecursiveDomains.v
-  ↓
-(Phase 1) EnrichedCategory.v, EnrichedInverseLimit.v
-  ↓
-(Phase 1) PCF_Syntax.v → PCF_Operational.v
-  ↓          ↓
-  ←─ PCF_Denotational.v ← PCF_Soundness.v
-                  ↓
-              PCF_Adequacy.v
+  └── CPO.v
+        ├── Morphisms.v
+        │     └── Enriched.v
+        │
+        └── [theory/]
+              ├── OrderTheory.v
+              ├── ChainTheory.v      ← OrderTheory
+              ├── CPOTheory.v        ← ChainTheory, Morphisms
+              ├── FixedPoints.v      ← CPOTheory
+              ├── Products.v         ← CPOTheory
+              ├── Sums.v             ← CPOTheory
+              ├── FunctionSpaces.v   ← Products
+              ├── Lift.v             ← CPOTheory
+              ├── EnrichedTheory.v   ← Enriched, FunctionSpaces
+              ├── NatTrans.v         ← EnrichedTheory
+              └── DomainEquations.v  ← Enriched, Products,
+                                        FunctionSpaces, Lift,
+                                        EnrichedTheory
 ```
 
 ---
 
-## Success Criteria (from Proposal)
+## Line Count (completed files)
 
-### TI: Minimum Viable Thesis
-- [x] Phase 0 foundations compile with ω-chains (current) ⚠️ (some lubs axiomatized)
-- [ ] Basic enriched category definitions ⚠️ (TBD)
-- [ ] PCF adequacy proof ⚠️ (TBD)
-- [ ] Written thesis chapters ⚠️ (TBD)
+| File | Lines | Status |
+|------|-------|--------|
+| `src/structures/Order.v` | 183 | ✓ Done |
+| `src/structures/CPO.v` | 163 | ✓ Done |
+| `src/structures/Morphisms.v` | 162 | ✓ Done |
+| `src/structures/Enriched.v` | 344 | ✓ Done |
+| **Structures subtotal** | **852** | |
+| `src/theory/` (all files) | — | ✗ Not started |
+| `src/instances/` (all files) | — | ✗ Not started |
+| `src/lang/` (all files) | — | ✗ Not started |
 
-### TII: Complete Core Thesis
-- [ ] All Phase 0 modules finished (Predomains, Lift, Sums, etc.)
-- [ ] Phase 1 enriched categories & theorems
-- [ ] PCF adequacy fully proven
-- [ ] Thesis drafted & coherent
-
-### TIII: Extended Contributions
-- [ ] Hierarchybuilder integration
-- [ ] Quantum extensions (Phase 2)
-- [ ] Recursive domain equations in enriched setting
-
----
-
-## Development Workflow
-
-### Local Setup
-1. Install Rocq 9.0.0 via opam
-2. Clone repository
-3. `cd rocq-domain-theory && dune build`
-4. For VS Code: Install VsRocq, run "Rocq: Reset"
-
-### Making Changes
-1. Edit `.v` file (e.g., `src/phase0_foundations/Order.v`)
-2. Run `dune build` to check
-3. Run `dune runtest` to validate
-4. Update planning docs (`planning/todo.md`) if scope changes
-
-### Common Tasks
-- **Add new theorem**: Edit appropriate `.v` file, add proof, test with `dune build`
-- **Add new module**: Create `src/phaseX/ModuleName.v`, add to `dune` stanza, import in dependent modules
-- **Fix broken build**: Check error output, look at dependency chain, update imports/signatures
-- **Update documentation**: Edit `.md` files in `docs/`, rebuild with Markdown processor if needed
-
----
-
-## Key Architectural Decisions
-
-1. **ω-Chains over arbitrary sequences**: Monotone chains (`m ≤ n → f(m) ⊑ f(n)`) are more natural for domain theory and avoid pitfalls of arbitrary sequences.
-
-2. **Rocq 9.0.0**: Modernized proof assistant with better universe polymorphism and SProp support (proposal approved 8.20+).
-
-3. **Dune over _CoqProject**: Dune handles compilation; `_CoqProject` is editor-only (VsRocq loadpaths).
-
-4. **Axioms vs. Admits**: Critical proofs are proven; library-building operations (like function space lubs) are axiomatized to enable Phase 1 work to proceed.
-
-5. **Module organization**: Clear phase boundaries allow parallel work and incremental validation.
-
----
-
-## Next Steps (Priority Order)
-
-1. **Phase 0 completion**:
-  - Predomains/Lift/Sums implemented (some lubs axiomatized)
-  - Flesh out `InverseLimit.v` & `RecursiveDomains.v` (remove axioms for `inv_lim`, `inv_lim_proj`)
-
-2. **Phase 1 groundwork**:
-   - Define enriched category structure in `EnrichedCategory.v`
-   - Prove CPO is enriched in `CPOEnriched.v`
-
-3. **PCF adequacy**:
-   - Implement syntax, operational, denotational semantics
-   - Prove soundness & adequacy
-
-4. **Thesis writing**:
-   - Draft chapters using Phase 0–1 results
-
-5. **Optional (if time)**: Quantum extensions, prototype interpreter
-
----
-
-## Summary Table
-
-| Phase | Module | Status | Notes |
-|-------|--------|--------|-------|
-| 0 | Order.v | ✅ | Chain infrastructure complete |
-| 0 | CPO.v | ✅ | Using chains |
-| 0 | Continuous.v | ✅ | Chain-aware continuity |
-| 0 | Products.v | ✅ | Compiled |
-| 0 | FunctionSpaces.v | ⚠️ | Axiomatized lubs |
-| 0 | Predomains.v, Lift.v, Sums.v | ❌ | Need implementation |
-| 0.5b | InverseLimit.v | ⚠️ | Minimal; needs work |
-| 1 | EnrichedCategory.v | ⚠️ | Stub |
-| 1 | CPOEnriched.v | ⚠️ | Stub |
-| 1 | PCF_Syntax.v–Adequacy.v | ⚠️ | Critical; all stubs |
-| Docs | Thesis chapters | ⚠️ | Need content |
-| 2–3 | Quantum, Prototype | ⚠️ | Optional |
-
----
-
-*Last updated: January 2026 (after Phase 0 chain integration)*
+Thesis target for Phase 0+1 total: ~2,000–2,500 lines of specification.

@@ -2,4 +2,5 @@
  (name DomainTheory.Test)
  (synopsis "Test suite for the rocq-domain-theory library")
  (theories DomainTheory.Structures DomainTheory.Theory DomainTheory.Instances
-           DomainTheory.Quantum DomainTheory.Lang))
+           DomainTheory.Quantum DomainTheory.Lang)
+ (modules test_order test_cpo test_instances test_fixedpoints test_lang test_quantum))
