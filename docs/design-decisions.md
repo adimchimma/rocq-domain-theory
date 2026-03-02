@@ -46,7 +46,7 @@ in `CPO.v`. `strict_fun` has a hard dependency on `cont_fun` — it belongs
 in `Morphisms.v`. A downstream file that wants both writes:
 
 ```coq
-From DomainTheory.structures Require Import CPO Morphisms.
+From DomainTheory.Structures Require Import CPO Morphisms.
 ```
 
 which is fully explicit and requires no intermediary.

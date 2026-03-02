@@ -14,7 +14,7 @@ proofs that were written against the old API.
 | Theme | Old approach | New approach |
 |-------|-------------|--------------|
 | Structuring | `Module` system + `Record` | HB mixins + structures |
-| Namespace | `From phase0_foundations Require Import` | `From DomainTheory.structures Require Import` |
+| Namespace | `From phase0_foundations Require Import` | `From DomainTheory.Structures Require Import` |
 | `preorder` | Monolithic `Record preorder` | `HasLe` + `IsPreorder` → `Preorder` |
 | `cpo` | Monolithic `Record cpo` with `cpo_pre` field | `HasSup` + `IsCPO` → `CPO` (requires `PartialOrder`) |
 | `Pointed` | Separate re-export shim file | Folded into `CPO.v` |
@@ -150,7 +150,7 @@ imported `Coq.Logic.ProofIrrelevance` and used it in `cont_comp_assoc`.
 | `cont_comp_assoc` via `proof_irrelevance` | Via structural equality | |
 | `g ∘ f` notation for `cont_comp` | Notation dropped from `Morphisms.v` | `⊚` used instead in `Enriched.v` for categorical composition; `∘` reserved for Rocq's stdlib |
 | `strict_comp_strict` (lemma) + `strict_comp` (definition) | `strict_comp` (lemma) + renamed definition | Two names for one concept was confusing |
-| `From DomainTheory.Structures` (capital S) | `From DomainTheory.structures` (lowercase) | Case fix; dune library names are lowercase |
+| `From DomainTheory.structures` (lowercase) | `From DomainTheory.Structures` (capital S) | Case fix for current library naming |
 
 **On removing `proof_irrelevance`:**
 
@@ -396,9 +396,9 @@ Quick lookup table for anyone porting old proofs.
 
 | Old | New |
 |-----|-----|
-| `From phase0_foundations Require Import Order` | `From DomainTheory.structures Require Import Order` |
-| `From phase0_foundations Require Import CPO` | `From DomainTheory.structures Require Import CPO` |
-| `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.structures Require Import CPO Morphisms` |
+| `From phase0_foundations Require Import Order` | `From DomainTheory.Structures Require Import Order` |
+| `From phase0_foundations Require Import CPO` | `From DomainTheory.Structures Require Import CPO` |
+| `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.Structures Require Import CPO Morphisms` |
 | `Import Order Cpo` | Not needed; HB coercions handle namespacing |
 | `Import Order.` (dot-import) | Not used in new library |
 

@@ -30,7 +30,7 @@ rocq-domain-theory/
 
 **Build order enforced by dune:**
 ```
-DomainTheory.structures
+DomainTheory.Structures
   └── DomainTheory.theory
         └── DomainTheory.instances
               └── DomainTheory.lang / DomainTheory.quantum
@@ -53,7 +53,7 @@ DomainTheory.structures
 
 All files in this directory contain **only** HB mixin and structure
 declarations. No proofs, no lemmas. The dune library name is
-`DomainTheory.structures`.
+`DomainTheory.Structures`.
 
 > **Note on `Pointed.v`:** There is no `Pointed.v`. `HasBot`, `IsPointed`,
 > and `PointedCPO` live in `CPO.v`; `strict_fun` lives in `Morphisms.v`.
@@ -160,8 +160,8 @@ References: A&J §5.2.2, Def 5.2.3, Def 5.2.5. Benton-Kennedy §4
 
 ## `src/theory/` — Proofs and Constructions
 
-All files import from `DomainTheory.structures`. The dune library name
-is `DomainTheory.theory`.
+All files import from `DomainTheory.Structures`. The dune library name
+is `DomainTheory.Theory`.
 
 ---
 
@@ -288,8 +288,8 @@ Reference: A&J §5.2–5.3. Benton-Kennedy §4. Pitts (1996).
 
 ## `src/instances/` — Concrete Instance Registrations
 
-All files import from both `DomainTheory.structures` and
-`DomainTheory.theory`. The dune library name is `DomainTheory.instances`.
+All files import from both `DomainTheory.Structures` and
+`DomainTheory.Theory`. The dune library name is `DomainTheory.Instances`.
 
 | File | Phase | Registers |
 |------|-------|-----------|
