@@ -3,4 +3,4 @@
  (synopsis "Phase 0/1: derived theory of CPOs, fixed points, and domain equations")
  (theories DomainTheory.Structures)
  (modules OrderTheory ChainTheory CPOTheory FixedPoints Lift Products Sums
-          FunctionSpaces EnrichedTheory NatTrans DomainEquations))
+          FunctionSpaces EnrichedTheory NatTrans DomainEquations ScottTopology))
