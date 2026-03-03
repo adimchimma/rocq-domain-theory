@@ -21,7 +21,7 @@
 From HB Require Import structures.
 
 (* ------------------------------------------------------------------ *)
-(*  The order relation                                               *)
+(*  §1  The order relation                                           *)
 (* ------------------------------------------------------------------ *)
 (*  
     [HasLe] attaches a binary relation [le] to a type [T].
@@ -40,7 +40,7 @@ Notation "x ⊑[ T ] y" := (@leT T _ x y)
 
 
 (* ------------------------------------------------------------------ *)
-(*   Preorders                                                        *)
+(*   §2  Preorders                                                    *)
 (* ------------------------------------------------------------------ *)
 (* [IsPreorder] adds reflexivity and transitivity to [HasLe]. *)
 HB.mixin Record IsPreorder T of HasLe T := {
@@ -72,7 +72,7 @@ Notation "x ≈[ T ] y" := (@pequiv T x y)
 
 
 (* ------------------------------------------------------------------ *)
-(*  Partial orders                                                    *)
+(*  §3  Partial orders                                                *)
 (* ------------------------------------------------------------------ *)
 (* [IsPartialOrder] adds antisymmetry: equivalent elements are equal. *)
 HB.mixin Record IsPartialOrder T of Preorder T := {
@@ -84,7 +84,7 @@ Notation "PartialOrder.type" := PartialOrder.type (only parsing).
 
 
 (* ------------------------------------------------------------------ *)
-(*   ω-Chains                                                         *)
+(*   §4  ω-Chains                                                     *)
 (* ------------------------------------------------------------------ *)
 (* 
 DOCS.order-theory: 
@@ -132,7 +132,7 @@ Definition tail_chain {P : Preorder.type} (c : chain P) : chain P :=
 
 
 (* ------------------------------------------------------------------ *)
-(*   Monotone functions                                               *)
+(*   §5  Monotone functions                                           *)
 (* ------------------------------------------------------------------ *)
 (* A function [f : P -> Q] between preorders is [monotone] if it preserves [⊑]. *)
 Definition monotone (P Q : Preorder.type) (f : P -> Q) : Prop :=

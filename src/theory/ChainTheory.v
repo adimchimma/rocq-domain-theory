@@ -31,7 +31,7 @@ From Stdlib Require Import Classical PeanoNat Lia.
 
 
 (* ================================================================== *)
-(*   Chain shift                                                      *)
+(*   §1  Chain shift                                                  *)
 (* ================================================================== *)
 (*
     [chain_shift k c] is the chain [n ↦ c.[n + k]], i.e. the chain [c]
@@ -113,7 +113,7 @@ End ChainShiftLemmas.
 
 
 (* ================================================================== *)
-(*   Eventually-constant chains                                       *)
+(*   §2  Eventually-constant chains                                   *)
 (* ================================================================== *)
 (*
     A chain [c] is _eventually constant at [x]_ if all elements from
@@ -226,7 +226,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   Classical stabilisation for monotone boolean predicates          *)
+(*   §3  Classical stabilisation for monotone boolean predicates      *)
 (* ================================================================== *)
 (*
     Key tool for [Sums.v]: in a sum CPO, chain elements cannot change
@@ -356,7 +356,7 @@ End ClassicalStabilisation.
 
 
 (* ================================================================== *)
-(*   Coherent chain families (diagonal construction)                  *)
+(*   §4  Coherent chain families (diagonal construction)              *)
 (* ================================================================== *)
 (*
     The _diagonal chain_ construction is used in [FunctionSpaces.v] to
@@ -456,7 +456,7 @@ End CoherentFamilyLemmas.
 
 
 (* ================================================================== *)
-(*   Reindexing and miscellaneous chain combinators                   *)
+(*   §5  Reindexing and miscellaneous chain combinators               *)
 (* ================================================================== *)
 
 Section ChainCombinators.

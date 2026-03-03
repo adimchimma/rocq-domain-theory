@@ -53,7 +53,7 @@ From DomainTheory.Theory Require Import OrderTheory ChainTheory CPOTheory.
 
 
 (* ================================================================== *)
-(*   Iteration operator                                               *)
+(*   §1  Iteration operator                                           *)
 (* ================================================================== *)
 (*
     [iter f n] is the [n]-th iterate of [f] applied to [⊥]:
@@ -138,7 +138,7 @@ End Iter.
 
 
 (* ================================================================== *)
-(*  The Kleene chain and fixed point                                  *)
+(*  §2  The Kleene chain and fixed point                              *)
 (* ================================================================== *)
 (*
     The _Kleene chain_ of [f] is the ω-chain [n ↦ iter f n]:
@@ -166,7 +166,7 @@ End KleeneChain.
 
 
 (* ================================================================== *)
-(*   [fixp f] is a fixed point of [f]                                 *)
+(*   §3  [fixp f] is a fixed point of [f]                             *)
 (* ================================================================== *)
 (*
     [f (fixp f) = fixp f].
@@ -251,7 +251,7 @@ End FixpIsFixedPoint.
 
 
 (* ================================================================== *)
-(*   [fixp f] is the LEAST fixed point                                *)
+(*   §4  [fixp f] is the LEAST fixed point                            *)
 (* ================================================================== *)
 (*
     [fixp f] is not just any fixed point — it is the least one.
@@ -332,7 +332,7 @@ End FixpLeast.
 
 
 (* ================================================================== *)
-(*   Fixed-point induction (Scott's induction principle)              *)
+(*   §5  Fixed-point induction (Scott's induction principle)          *)
 (* ================================================================== *)
 (*
     The _fixed-point induction principle_ states: to prove a property [P]
@@ -430,7 +430,7 @@ End FixpInd.
 
 
 (* ================================================================== *)
-(*   Monotonicity of [fixp] in [f]                                    *)
+(*   §6  Monotonicity of [fixp] in [f]                                *)
 (* ================================================================== *)
 (*
     [fixp] is monotone with respect to the pointwise order on continuous

@@ -46,7 +46,7 @@ From Stdlib Require Import PeanoNat.
 
 
 (* ================================================================== *)
-(*   Sup characterisation lemmas                                      *)
+(*   §1  Sup characterisation lemmas                                  *)
 (* ================================================================== *)
 
 Section SupLemmas.
@@ -204,7 +204,7 @@ End SupLemmas.
 
 
 (* ================================================================== *)
-(*   Sup and [map_chain]                                              *)
+(*   §2  Sup and [map_chain]                                          *)
 (* ================================================================== *)
 
 Section SupMapChain.
@@ -287,7 +287,7 @@ End SupMapChain.
 
 
 (* ================================================================== *)
-(*   Scott continuity                                                 *)
+(*   §3  Scott continuity                                             *)
 (* ================================================================== *)
 
 Section ContinuityLemmas.
@@ -408,7 +408,7 @@ End ContinuityLemmas.
 
 
 (* ================================================================== *)
-(*   Admissible predicates and chain Scott induction                  *)
+(*   §4  Admissible predicates and chain Scott induction              *)
 (* ================================================================== *)
 (*
     A predicate [P : D → Prop] on a CPO is _admissible_ if it is
@@ -522,7 +522,7 @@ End AdmissibilityLemmas.
 
 
 (* ================================================================== *)
-(*   PointedCPO consequences                                          *)
+(*   §5  PointedCPO consequences                                      *)
 (* ================================================================== *)
 (*
     Additional lemmas that require the bottom element [⊥]. 

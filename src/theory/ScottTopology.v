@@ -199,7 +199,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   Scott topology                                                   *)
+(*   §2  Scott topology                                               *)
 (* ================================================================== *)
 (*
     A subset [U : D → Prop] is _Scott-open_ when:
@@ -296,7 +296,7 @@ End ScottOpenLemmas.
 
 
 (* ================================================================== *)
-(*   Complement of a principal downset is Scott-open                  *)
+(*   §3  Complement of a principal downset is Scott-open              *)
 (* ================================================================== *)
 (*
     For any [x : D], the set [{z | ¬(z ⊑ x)}] (everything strictly
@@ -331,7 +331,7 @@ Proof.
 Qed.
 
 (* ================================================================== *)
-(*   Algebraic ↔ topological Scott-continuity                         *)
+(*   §4  Algebraic ↔ topological Scott-continuity                     *)
 (* ================================================================== *)
 (*
     A function [f : D → E] is _topologically Scott-continuous_ if

@@ -49,7 +49,7 @@ From DomainTheory.Structures Require Import Order CPO Morphisms.
 From DomainTheory.Theory Require Import OrderTheory CPOTheory.
 
 (* ================================================================== *)
-(*   Pointwise order on [D * E]                                       *)
+(*   §1  Pointwise order on [D * E]                                   *)
 (* ================================================================== *)
 (*
     The pointwise order on [D * E]:
@@ -102,7 +102,7 @@ HB.instance Definition prod_IsPartialOrder {D E : CPO.type} :=
 
 
 (* ================================================================== *)
-(*   Componentwise sup                                                *)
+(*   §2  Componentwise sup                                            *)
 (* ================================================================== *)
 (*
     The sup of a chain [c : chain (D * E)] is the pair of the sups of
@@ -168,7 +168,7 @@ HB.instance Definition prod_IsCPO {D E : CPO.type} :=
 
 
 (* ================================================================== *)
-(*   Monotone projections and pairing                                 *)
+(*   §3  Monotone projections and pairing                             *)
 (* ================================================================== *)
 
 Section ProdMono.
@@ -225,7 +225,7 @@ Definition mono_prod_map {D' E' : CPO.type}
 End ProdMono.
 
 (* ================================================================== *)
-(*   Continuity of projections, pairing, and product map              *)
+(*   §4  Continuity of projections, pairing, and product map          *)
 (* ================================================================== *)
 
 Section ProdCont.
@@ -338,7 +338,7 @@ Notation "⟨ f , g ⟩" := (cont_pair f g) (at level 0, f at level 99).
 
 
 (* ================================================================== *)
-(*   Universal property                                               *)
+(*   §5  Universal property                                           *)
 (* ================================================================== *)
 (*
     The product [D × E] satisfies the universal property of categorical
@@ -419,7 +419,7 @@ End ProdUniversal.
 
 
 (* ================================================================== *)
-(*   PointedCPO product                                               *)
+(*   §6  PointedCPO product                                           *)
 (* ================================================================== *)
 (*
     If [D] and [E] are pointed CPOs, so is [D × E], with [⊥ = (⊥, ⊥)].

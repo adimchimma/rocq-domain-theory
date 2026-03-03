@@ -30,7 +30,7 @@ From HB Require Import structures.
 From DomainTheory.Structures Require Import Order.
 
 (* ------------------------------------------------------------------ *)
-(*    Suprema of ω-chains                                             *)
+(*    §1  Suprema of ω-chains                                         *)
 (* ------------------------------------------------------------------ *)
 (*
     [HasSup] equips a type [T] with a function [sup] that assigns a
@@ -49,7 +49,7 @@ Notation "⊔ c" := (sup c) (at level 35, right associativity).
 
 
 (* ------------------------------------------------------------------ *)
-(*  The CPO axioms                                                    *)
+(*  §2  The CPO axioms                                                *)
 (* ------------------------------------------------------------------ *)
 (* 
     [IsCPO] asserts that [sup] is genuinely the _least_ upper bound of
@@ -79,7 +79,7 @@ Notation "CPO.type" := CPO.type (only parsing).
 
 
 (* ------------------------------------------------------------------ *)
-(*   Basic derived facts (immediate consequences of the axioms)       *)
+(*   §3  Basic derived facts (immediate consequences of the axioms)   *)
 (* ------------------------------------------------------------------ *)
 
 (* 
@@ -113,7 +113,7 @@ Qed.
 
 
 (* ------------------------------------------------------------------ *)
-(*   Pointed CPOs                                                     *)
+(*   §4  Pointed CPOs                                                 *)
 (* ------------------------------------------------------------------ *)
 (* 
     [HasBot] equips a type with a distinguished element [bot] (written [⊥]).
@@ -140,7 +140,7 @@ Notation "PointedCPO.type" := PointedCPO.type (only parsing).
 
 
 (* ------------------------------------------------------------------ *)
-(*  Continuous functions (predicate only)                             *)
+(*  §5  Continuous functions (predicate only)                         *)
 (* ------------------------------------------------------------------ *)
 (* 
     The _predicate_ [continuous] is declared here so that [Morphisms.v]

@@ -67,7 +67,7 @@ From HB Require Import structures.
 From DomainTheory.Structures Require Import Order CPO Morphisms.
 
 (* ------------------------------------------------------------------ *)
-(*   The data of a CPO-enriched category                              *)
+(*   §1  The data of a CPO-enriched category                          *)
 (* ------------------------------------------------------------------ *)
 (* 
     [HasHom] equips a type [Obj] of objects with a family of hom-CPOs.
@@ -87,7 +87,7 @@ HB.structure Definition Id_Mor := {Obj & HasId Obj}.
 
 
 (* ------------------------------------------------------------------ *)
-(*   CPO-enrichment axioms                                            *)
+(*   §2  CPO-enrichment axioms                                        *)
 (* ------------------------------------------------------------------ *)
 (* 
   [IsCPOEnriched] bundles the data and axioms of a CPO-enriched category:
@@ -188,7 +188,7 @@ Notation "CPOEnrichedCat.type" := CPOEnrichedCat.type (only parsing).
 
 
 (* ------------------------------------------------------------------ *)
-(*   Packaged composition as cont_fun                                 *)
+(*   §3  Packaged composition as cont_fun                             *)
 (* ------------------------------------------------------------------ *)
 (*
     Package post- and pre-composition as [cont_fun]s.  These are the
@@ -209,7 +209,7 @@ Definition comp_r_cont_fun {C : CPOEnrichedCat.type} {A B D : C}
 
 
 (* ------------------------------------------------------------------ *)
-(*   Locally continuous covariant endofunctors                        *)
+(*   §4  Locally continuous covariant endofunctors                    *)
 (* ------------------------------------------------------------------ *)
 (*
     An endofunctor on a [CPOEnrichedCat] consists of:
@@ -292,7 +292,7 @@ Definition F_mor_cont_fun {C : LocallyContinuousFunctor.type} {A B : C}
 
 
 (* ------------------------------------------------------------------ *)
-(*   Mixed-variance bifunctors (data; axioms in DomainEquations)      *)
+(*   §5  Mixed-variance bifunctors (data; axioms in DomainEquations)  *)
 (* ------------------------------------------------------------------ *)
 (* 
     For recursive domain equations [X ≅ F(X, X)] where [F] is

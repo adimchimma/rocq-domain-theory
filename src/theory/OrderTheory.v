@@ -30,7 +30,7 @@ From Stdlib.Program Require Import Basics.
 From Stdlib Require Import PeanoNat.
 
 (* ================================================================== *)
-(*   [pequiv] is an equivalence relation                              *)
+(*   §1  [pequiv] is an equivalence relation                          *)
 (* ================================================================== *)
 (*
     [pequiv] (notation [x ≈ y]) is defined in [Order.v] as the
@@ -84,7 +84,7 @@ End PequivEquivalence.
 
 
 (* ================================================================== *)
-(*   Setoid / Proper instances                                        *)
+(*   §2  Setoid / Proper instances                                    *)
 (* ================================================================== *)
 (*
     Registering these instances lets Rocq's [rewrite] tactic work
@@ -142,7 +142,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   Monotone function lemmas                                         *)
+(*   §3  Monotone function lemmas                                     *)
 (* ================================================================== *)
 Section MonoFunLemmas.
 (* Context {P Q R : Preorder.type}. *)
@@ -200,7 +200,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   Partial order consequences                                       *)
+(*   §4  Partial order consequences                                   *)
 (* ================================================================== *)
 (*
     In a partial order, antisymmetry gives [x ≈ y ↔ x = y].
@@ -292,7 +292,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   Chain index lemmas                                               *)
+(*   §5  Chain index lemmas                                           *)
 (* ================================================================== *)
 (*
     These lemmas expose the monotonicity of chains through standard
@@ -447,7 +447,7 @@ End ChainIndexLemmas.
 
 
 (* ================================================================== *)
-(*   [map_chain] lemmas                                               *)
+(*   §6  [map_chain] lemmas                                           *)
 (* ================================================================== *)
 
 Section MapChainLemmas.

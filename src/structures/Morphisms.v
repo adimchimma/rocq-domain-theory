@@ -28,7 +28,7 @@ From DomainTheory.Structures Require Import Order CPO.
 From Stdlib Require Import Logic.ProofIrrelevance.
 
 (* ------------------------------------------------------------------ *)
-(*   Continuous functions                                             *)
+(*   §1  Continuous functions                                         *)
 (* ------------------------------------------------------------------ *)
 (*
     A Scott-continuous function between CPOs is a monotone function that
@@ -59,7 +59,7 @@ Definition map_chain_cont {D E : CPO.type} (f : cont_fun D E) (c : chain D)
 
 
 (* ------------------------------------------------------------------ *)
-(*   Identity and composition                                         *)
+(*   §2  Identity and composition                                     *)
 (* ------------------------------------------------------------------ *)
 (*  
     The identity function is continuous.
@@ -145,7 +145,7 @@ Qed.
 
 
 (* ------------------------------------------------------------------ *)
-(*   Strict functions (Phase 0, PointedCPO)                           *)
+(*   §3  Strict functions (Phase 0, PointedCPO)                       *)
 (* ------------------------------------------------------------------ *)
 (*  
     A continuous function between pointed CPOs is _strict_ if it
