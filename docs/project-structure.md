@@ -30,10 +30,10 @@ rocq-domain-theory/
 
 **Build order enforced by dune:**
 ```
-DomainTheory.structures
-  └── DomainTheory.theory
-        └── DomainTheory.instances
-              └── DomainTheory.lang / DomainTheory.quantum
+DomainTheory.Structures
+  └── DomainTheory.Theory
+        └── DomainTheory.Instances
+              └── DomainTheory.Lang / DomainTheory.Quantum
 ```
 
 ---
@@ -42,7 +42,7 @@ DomainTheory.structures
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Structures done; theory layer complete** |
+| 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Structures + core theory complete** |
 | 1 | Enriched categories, locally continuous functors, D ≅ [D→D]⊥ | Structures done; theory not started |
 | 2 | Quantum CPO structures (stretch goal) | Not started |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
@@ -52,15 +52,15 @@ DomainTheory.structures
 ## `src/structures/` — Structure Declarations
 
 All files contain **only** HB mixin and structure declarations — no
-proofs, no lemmas. Dune library: `DomainTheory.structures`.
+proofs, no lemmas. Dune library: `DomainTheory.Structures`.
 
-> **Note on `Pointed.v`:** There is no `Pointed.v`. `HasBot`, `IsPointed`,
+> **Note on `Pointed.v`:** There is no `Pointed.v`. `HasBottom`, `IsPointed`,
 > and `PointedCPO` live in `CPO.v`; `strict_fun` lives in `Morphisms.v`.
 > See `docs/design-decisions.md § DD-001`.
 
 ---
 
-### `Order.v` ✓ (Phase 0) — 195 lines
+### `Order.v` ✓ (Phase 0) — 187 lines
 
 **Imports:** Rocq stdlib, HB only
 
@@ -82,7 +82,7 @@ Reference: A&J Definition 2.1.1 (preorder), 2.1.2 (partial order).
 
 ---
 
-### `CPO.v` ✓ (Phase 0) — 187 lines
+### `CPO.v` ✓ (Phase 0) — 182 lines
 
 **Imports:** `Order`
 
@@ -107,7 +107,7 @@ Reference: A&J Definition 2.1.13. Benton-Kennedy §2.1.
 
 ---
 
-### `Morphisms.v` ✓ (Phase 0) — 203 lines
+### `Morphisms.v` ✓ (Phase 0) — 192 lines
 
 **Imports:** `Order`, `CPO`
 
@@ -127,7 +127,7 @@ Reference: A&J §3.2.2. Benton-Kennedy §2.1 (`fconti` record).
 
 ---
 
-### `Enriched.v` ✓ (Phase 1) — 388 lines
+### `Enriched.v` ✓ (Phase 1) — 376 lines
 
 **Imports:** `Order`, `CPO`, `Morphisms`
 
@@ -155,12 +155,12 @@ Kornell-Lindenhovius-Mislove (2024) §3.3.
 
 ## `src/theory/` — Proofs and Constructions
 
-All files import from `DomainTheory.structures`. Dune library:
-`DomainTheory.theory`.
+All files import from `DomainTheory.Structures`. Dune library:
+`DomainTheory.Theory`.
 
 ---
 
-### `OrderTheory.v` ✓ (Phase 0) — 480 lines
+### `OrderTheory.v` ✓ (Phase 0) — 494 lines
 
 **Imports:** `Order`
 
@@ -176,7 +176,7 @@ All files import from `DomainTheory.structures`. Dune library:
 
 ---
 
-### `ChainTheory.v` ✓ (Phase 0) — 498 lines
+### `ChainTheory.v` ✓ (Phase 0) — 515 lines
 
 **Imports:** `Order`, `OrderTheory`
 
@@ -193,7 +193,7 @@ All files import from `DomainTheory.structures`. Dune library:
 
 ---
 
-### `CPOTheory.v` ✓ (Phase 0) — 556 lines
+### `CPOTheory.v` ✓ (Phase 0) — 581 lines
 
 **Imports:** `CPO`, `Morphisms`, `OrderTheory`, `ChainTheory`
 
@@ -214,7 +214,7 @@ All files import from `DomainTheory.structures`. Dune library:
 
 ---
 
-### `ScottTopology.v` ✓ (Phase 0) — 512 lines
+### `ScottTopology.v` ✓ (Phase 0) — 519 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`, `Classical`
 
@@ -232,7 +232,7 @@ All files import from `DomainTheory.structures`. Dune library:
 
 ---
 
-### `FixedPoints.v` ✓ (Phase 0) — 494 lines
+### `FixedPoints.v` ✓ (Phase 0) — 525 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`, `OrderTheory`, `ChainTheory`\
 **Context:** `D : PointedCPO.type`
@@ -256,7 +256,7 @@ Reference: A&J §2.1.3. Benton-Kennedy §2.1 (`fixp`, `FIXP`, `fixp_ind`).
 
 ---
 
-### `Products.v` ✓ (Phase 0) — 519 lines
+### `Products.v` ✓ (Phase 0) — 534 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`
 
@@ -277,7 +277,7 @@ Reference: A&J §3.2.1. Benton-Kennedy §2.1.
 
 ---
 
-### `Sums.v` ✓ (Phase 0) — 611 lines
+### `Sums.v` ✓ (Phase 0) — 624 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`
 
@@ -299,7 +299,7 @@ Reference: Benton-Kennedy §2.1.
 
 ---
 
-### `Lift.v` ✓ (Phase 0) — 600 lines
+### `Lift.v` ✓ (Phase 0) — 635 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`, `ChainTheory`, `ClassicalEpsilon`
 
@@ -326,7 +326,7 @@ Reference: A&J §2.1.4. Moggi (1991). Benton-Kennedy §2.2.
 
 ---
 
-### `LiftMonad.v` ✓ (Phase 0, supplementary) — 476 lines
+### `LiftMonad.v` ✓ (Phase 0, supplementary) — 489 lines
 
 **Imports:** none (self-contained)
 
@@ -372,13 +372,38 @@ horizontal and vertical composition.
 
 ---
 
-### `FunctionSpaces.v` ✗ (Phase 0) — *not yet written*
+### `FunctionSpaces.v` ✓ (Phase 0) — 718 lines
 
-**Imports:** `CPO`, `Morphisms`, `CPOTheory`, `Products`
+**Imports:** `Order`, `CPO`, `Morphisms`, `OrderTheory`, `ChainTheory`,
+`CPOTheory`, `Products`
 
-Planned: function-space CPO `D ⇒ E` with pointwise order, `curry`,
-`uncurry`, `ev`. Proof that `CPO` is Cartesian closed. Internalized
-`FIXP : (D ⇒c D) →c D` using the fixed-point theory from `FixedPoints.v`.
+| Name | Kind | Description |
+|------|------|-------------|
+| `fun_le` | Definition | pointwise order on `cont_fun D E` |
+| `fun_le_refl/trans/antisym` | Lemmas | `fun_le` is a partial order |
+| `fun_HasLe/IsPreorder/IsPartialOrder` | HB instances | `cont_fun D E` is a `PartialOrder` |
+| `eval_at_mono` | Definition | `x ↦ f(x)` is monotone in `f` for fixed `x` |
+| `pointwise_chain` | Definition | `n ↦ fs.[n](x)`: chain in `E` from a chain of functions |
+| `fun_sup_fun` | Definition | `λ x. ⊔_n fs.[n](x)`: pointwise sup |
+| `fun_sup_mono` | Lemma | pointwise sup is monotone |
+| `fun_sup_continuous` | Lemma | pointwise sup is continuous (key: double-sup commutativity) |
+| `fun_sup` | Definition | pointwise sup packaged as `cont_fun D E` |
+| `fun_sup_upper/least` | Lemmas | sup axioms for `fun_sup` |
+| `fun_HasSup`, `fun_IsCPO` | HB instances | `cont_fun D E` is a `CPO` |
+| `fun_bottom` | Definition | `λ x. ⊥`: constant bottom function |
+| `fun_HasBottom`, `fun_IsPointed` | HB instances | `cont_fun D E` is a `PointedCPO` when `E` is |
+| `cont_eval` | Definition | evaluation map `ev : (D ⇒ E) × D →c E` |
+| `cont_curry` | Definition | currying `(C × D →c E) → (C →c D ⇒ E)` |
+| `cont_uncurry` | Definition | uncurrying `(C →c D ⇒ E) → (C × D →c E)` |
+| `curry_uncurry`, `uncurry_curry` | Lemmas | curry/uncurry are inverse |
+| `curry_comp` | Lemma | functoriality: `curry(f) ∘ g = curry(f ∘ (g × id))` |
+| `eval_curry` | Lemma | `ev ∘ (curry(f) × id) = f` |
+| `curry_unique` | Lemma | universal property of the exponential |
+| `fun_sup_const`, `sup_apply`, `sup_chain_apply_le` | Lemmas | miscellaneous function-space sup lemmas |
+
+Note: `cont_fun D E` is a `CPO` for all `D E : CPO.type`; it is a
+`PointedCPO` when `E : PointedCPO.type`. Internalized `FIXP` is deferred
+to future work.
 
 Reference: A&J §3.2.2. Benton-Kennedy §2.1.
 
@@ -398,24 +423,26 @@ Reference: A&J §5.2–5.3. Benton-Kennedy §4. Pitts (1996).
 
 ## `src/instances/` — Concrete Instance Registrations
 
-All files import from both `DomainTheory.structures` and
-`DomainTheory.theory`. Dune library: `DomainTheory.instances`.
+All files import from both `DomainTheory.Structures` and
+`DomainTheory.Theory`. Dune library: `DomainTheory.Instances`.
 
-| File | Phase | Registers |
-|------|-------|-----------|
-| `Nat.v` | 0 | `nat` with `≤` as `CPO.type` |
-| `Discrete.v` | 0 | `Discrete X` (equality order) as `CPO.type` |
-| `Lift.v` | 0 | `D⊥` as `PointedCPO.type` |
-| `Product.v` | 0 | `D × E` as `CPO.type`; `PointedCPO.type` when both pointed |
-| `Sum.v` | 0 | `D + E` as `CPO.type` |
-| `Function.v` | 0/1 | `D ⇒ E` as `CPO.type`; `CPO.type` as `CPOEnrichedCat` |
-| `Quantum.v` | 2 | qCPO instances (stretch goal) |
+| File | Phase | Lines | Status |
+|------|-------|-------|--------|
+| `Nat.v` | 0 | 371 | ✓ Done |
+| `Discrete.v` | 0 | 185 | ✓ Done |
+| `Function.v` | 0/1 | 5 | Stub (instance in `theory/FunctionSpaces.v`) |
+| `Quantum.v` | 2 | 5 | Stub (stretch goal) |
+
+> **Note:** The Lift, Product, and Sum CPO instances are registered
+> directly in `theory/Lift.v`, `theory/Products.v`, and `theory/Sums.v`
+> respectively; separate instance files for these types were removed on
+> 2026-03-04.
 
 ---
 
 ## `src/lang/` — Language Semantics
 
-Dune library: `DomainTheory.lang`. Depends on `DomainTheory.instances`.
+Dune library: `DomainTheory.Lang`. Depends on `DomainTheory.Instances`.
 
 | File | Phase | Description |
 |------|-------|-------------|
@@ -431,7 +458,7 @@ Dune library: `DomainTheory.lang`. Depends on `DomainTheory.instances`.
 
 ## `src/quantum/` — Quantum CPO Structures (Phase 2, stretch)
 
-Dune library: `DomainTheory.quantum`. Depends on `DomainTheory.instances`.
+Dune library: `DomainTheory.Quantum`. Depends on `DomainTheory.Instances`.
 
 | File | Description |
 |------|-------------|
@@ -461,12 +488,12 @@ Order.v
               ├── Sums.v             ← CPOTheory
               ├── Lift.v             ← CPOTheory, ClassicalEpsilon
               ├── LiftMonad.v        ← (self-contained; no imports)
-              ├── FunctionSpaces.v   ← Products           [not written]
-              ├── EnrichedTheory.v   ← Enriched, FunctionSpaces  [not written]
-              ├── NatTrans.v         ← EnrichedTheory     [not written]
+              ├── FunctionSpaces.v   ← Products
+              ├── EnrichedTheory.v   ← Enriched, FunctionSpaces  [stub]
+              ├── NatTrans.v         ← EnrichedTheory     [stub]
               └── DomainEquations.v  ← Enriched, Products,
                                         FunctionSpaces, Lift,
-                                        EnrichedTheory     [not written]
+                                        EnrichedTheory     [stub]
 ```
 
 ---
@@ -475,27 +502,33 @@ Order.v
 
 | File | Lines | Status |
 |------|-------|--------|
-| `src/structures/Order.v` | 195 | ✓ Done |
-| `src/structures/CPO.v` | 187 | ✓ Done |
-| `src/structures/Morphisms.v` | 203 | ✓ Done |
-| `src/structures/Enriched.v` | 388 | ✓ Done |
-| **Structures subtotal** | **973** | |
-| `src/theory/OrderTheory.v` | 480 | ✓ Done |
-| `src/theory/ChainTheory.v` | 498 | ✓ Done |
-| `src/theory/CPOTheory.v` | 556 | ✓ Done |
-| `src/theory/ScottTopology.v` | 512 | ✓ Done |
-| `src/theory/FixedPoints.v` | 494 | ✓ Done |
-| `src/theory/Products.v` | 519 | ✓ Done |
-| `src/theory/Sums.v` | 611 | ✓ Done |
-| `src/theory/Lift.v` | 600 | ✓ Done |
-| `src/theory/LiftMonad.v` | 476 | ✓ Done (supplementary) |
-| `src/theory/FunctionSpaces.v` | — | ✗ Not written |
-| `src/theory/EnrichedTheory.v` | — | ✗ Not written |
-| `src/theory/NatTrans.v` | — | ✗ Not written |
-| `src/theory/DomainEquations.v` | — | ✗ Not written |
-| **Theory subtotal (written)** | **4,746** | |
-| `src/instances/` (all files) | — | ✗ Not written |
-| `src/lang/` (all files) | — | ✗ Not written |
-| **Grand total (written)** | **5,719** | |
+| `src/structures/Order.v` | 187 | ✓ Done |
+| `src/structures/CPO.v` | 182 | ✓ Done |
+| `src/structures/Morphisms.v` | 192 | ✓ Done |
+| `src/structures/Enriched.v` | 376 | ✓ Done |
+| **Structures subtotal** | **937** | |
+| `src/theory/OrderTheory.v` | 494 | ✓ Done |
+| `src/theory/ChainTheory.v` | 515 | ✓ Done |
+| `src/theory/CPOTheory.v` | 581 | ✓ Done |
+| `src/theory/ScottTopology.v` | 519 | ✓ Done |
+| `src/theory/FixedPoints.v` | 525 | ✓ Done |
+| `src/theory/Products.v` | 534 | ✓ Done |
+| `src/theory/Sums.v` | 624 | ✓ Done |
+| `src/theory/Lift.v` | 635 | ✓ Done |
+| `src/theory/LiftMonad.v` | 489 | ✓ Done (supplementary) |
+| `src/theory/FunctionSpaces.v` | 718 | ✓ Done |
+| `src/theory/EnrichedTheory.v` | 11 | Stub |
+| `src/theory/NatTrans.v` | 10 | Stub |
+| `src/theory/DomainEquations.v` | 17 | Stub |
+| **Theory subtotal (complete)** | **5,634** | |
+| `src/instances/Nat.v` | 371 | ✓ Done |
+| `src/instances/Discrete.v` | 185 | ✓ Done |
+| `src/instances/Function.v` | 5 | Stub |
+| `src/instances/Quantum.v` | 5 | Stub |
+| **Instances subtotal** | **556** | |
+| `src/lang/` (7 files) | 65 | All stubs |
+| `src/quantum/` (5 files) | 45 | All stubs |
+| `test/LiftTests.v` | 295 | ✓ Done |
+| **Grand total (written)** | **7,422** | |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.

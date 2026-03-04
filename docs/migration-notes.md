@@ -14,7 +14,7 @@ proofs written against the old API.
 | Theme | Old approach | New approach |
 |-------|-------------|--------------|
 | Structuring | `Module` system + `Record` | HB mixins + structures |
-| Namespace | `From phase0_foundations Require Import` | `From DomainTheory.structures Require Import` |
+| Namespace | `From phase0_foundations Require Import` | `From DomainTheory.Structures Require Import` |
 | `preorder` | Monolithic `Record preorder` | `HasLe` + `IsPreorder` → `Preorder` |
 | `cpo` | Monolithic `Record cpo` with `cpo_pre` field | `HasSup` + `IsCPO` → `CPO` (requires `PartialOrder`) |
 | `Pointed` | Separate re-export shim file | Folded into `CPO.v` |
@@ -23,7 +23,7 @@ proofs written against the old API.
 | `Predomains` | Module aliasing `cpo` as `predomain` | Dropped; `CPO` vs `PointedCPO` split handles this |
 | `RecursiveDomains` | Empty file | Replaced by `theory/DomainEquations.v` |
 | Field names | `le`, `carrier`, `cpo_pre`, `cf_mfun` | `leT`, HB sort coercions, `cf_mono` |
-| `proof_irrelevance` | Imported explicitly for `cont_comp_assoc` | Avoided; equality proved structurally |
+| `proof_irrelevance` | Imported explicitly for `cont_comp_assoc` | Migrated from `Coq.Logic` to `Stdlib.Logic`; still used |
 | CPO base | Built on `Preorder` only | Built on `PartialOrder` (follows A&J Definition 2.1.13) |
 | `Lift.v` | Axiomatic lubs over `option D` | Classical sup over `option D` using `ClassicalEpsilon` |
 
@@ -92,8 +92,8 @@ bug in `Lift.v` (see `Lift.v` entry below).
 | `Cpo.lub_of_chain D c` | `sup c` (notation `⊔ c`) | Cleaner; `sup` is the HB field |
 | `Cpo.lub_upper` / `Cpo.lub_least` | `sup_upper` / `sup_least` | Field names simplified |
 | `IsCPO` required only `HasSup & Preorder` | `IsCPO` requires `HasSup & PartialOrder` | **Key semantic change** — see below |
-| `Class Pointed(D : cpo) := { ⊥ : D; Pleast : ... }` (typeclass) | `HasBot` mixin + `IsPointed` mixin → `PointedCPO` | HB over typeclass; no instance search surprises |
-| `HasBottom` / `bottom` | `HasBot` / `bot` (or `bottom`) | Name shortened |
+| `Class Pointed(D : cpo) := { ⊥ : D; Pleast : ... }` (typeclass) | `HasBottom` mixin + `IsPointed` mixin → `PointedCPO` | HB over typeclass; no instance search surprises |
+| `HasBottom` / `bottom` | `HasBottom` / `bottom` | Name preserved; now an HB mixin instead of part of a typeclass |
 | `continuous` in `Continuous.v` | `continuous` predicate in `CPO.v` | Consolidation; avoids separate module import |
 | `sup_mono`, `sup_ext` as lemmas in `CPO.v` | Moved to `theory/CPOTheory.v` | Structures file should have no proofs |
 
@@ -142,15 +142,15 @@ fields `cf_mfun` and `cf_cont`.
 new-style `cont_fun`/`strict_fun` records. But also imported
 `Coq.Logic.ProofIrrelevance` and used it in `cont_comp_assoc`.
 
-**New structure:** Same records, cleaned up.
+**New structure:** Same records, migrated to Rocq 9.0 Stdlib.
 
 | Old | New | Notes |
 |-----|-----|-------|
-| `Require Import Coq.Logic.ProofIrrelevance` | Removed | See below |
-| `cont_comp_assoc` via `proof_irrelevance` | Via structural equality | |
-| `g ∘ f` notation for `cont_comp` | Notation dropped from `Morphisms.v` | `⊚` used in `Enriched.v` for categorical composition |
+| `Require Import Coq.Logic.ProofIrrelevance` | `From Stdlib Require Import Logic.ProofIrrelevance` | Namespace migrated from `Coq` to `Stdlib`; still used |
+| `cont_comp_assoc` via `proof_irrelevance` | Still via `proof_irrelevance` | `apply proof_irrelevance` at two call sites |
+| `g ∘ f` notation for `cont_comp` | `Notation "g ∘ f" := (cont_comp g f)` | Preserved in `Morphisms.v`; `⊚` additionally used in `Enriched.v` |
 | `strict_comp_strict` (lemma) + `strict_comp` (definition) | `strict_comp` (lemma) + renamed definition | Two names for one concept was confusing |
-| `From DomainTheory.Structures` (capital S) | `From DomainTheory.structures` (lowercase) | Case fix; dune library names are lowercase |
+| `From phase0_foundations Require Import` | `From DomainTheory.Structures Require Import` | Namespace change; capital S matches dune library name |
 
 ---
 
@@ -164,7 +164,7 @@ Module Pointed.
 End Pointed.
 ```
 
-**New:** File not created. `HasBot` + `IsPointed` + `PointedCPO` live
+**New:** File not created. `HasBottom` + `IsPointed` + `PointedCPO` live
 in `CPO.v`. `strict_fun` lives in `Morphisms.v`. See
 `docs/design-decisions.md § DD-001`.
 
@@ -295,7 +295,7 @@ Reference: A&J §2.1.4; Moggi (1991); Benton-Kennedy §2.2.
 **Old:** Effectively empty — just re-exported `Cpo` and declared a
 useless `Ltac done := trivial`.
 
-**New:** `theory/FixedPoints.v` (494 lines). Full Kleene fixed-point
+**New:** `theory/FixedPoints.v` (525 lines). Full Kleene fixed-point
 theorem:
 - `iter f n`: the n-th iterate `fⁿ(⊥)`
 - `kleene_chain f`: the chain `⊥ ⊑ f(⊥) ⊑ f²(⊥) ⊑ ...`
@@ -380,9 +380,9 @@ file only; the main library (`Lift.v`) has no admits. See
 
 | Old | New |
 |-----|-----|
-| `From phase0_foundations Require Import Order` | `From DomainTheory.structures Require Import Order` |
-| `From phase0_foundations Require Import CPO` | `From DomainTheory.structures Require Import CPO` |
-| `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.structures Require Import CPO Morphisms` |
+| `From phase0_foundations Require Import Order` | `From DomainTheory.Structures Require Import Order` |
+| `From phase0_foundations Require Import CPO` | `From DomainTheory.Structures Require Import CPO` |
+| `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.Structures Require Import CPO Morphisms` |
 | `Import Order Cpo` | Not needed; HB coercions handle namespacing |
 
 ---

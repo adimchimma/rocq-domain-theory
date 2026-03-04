@@ -9,7 +9,7 @@ why things are the way they are.
 
 ## DD-001: `Pointed.v` not created as a separate file
 
-**Decision:** `HasBot`, `IsPointed`, `PointedCPO` live in `CPO.v`.
+**Decision:** `HasBottom`, `IsPointed`, `PointedCPO` live in `CPO.v`.
 `strict_fun` lives in `Morphisms.v`. No `Pointed.v` is created.
 
 **Rationale:**
@@ -33,7 +33,7 @@ libraries for two reasons:
    bounces them to `CPO.v`. The shim adds a conceptual layer without
    adding any definitions, lemmas, or structure.
 
-2. **Silent change propagation.** If `HasBot` is moved or renamed in
+2. **Silent change propagation.** If `HasBottom` is moved or renamed in
    `CPO.v`, the shim silently changes what it re-exports.
 
 The better practice (following MathComp convention) is to organize files
@@ -47,7 +47,7 @@ From DomainTheory.structures Require Import CPO Morphisms.
 ```
 
 **Affected files:**
-- `src/structures/CPO.v` — contains `HasBot`, `IsPointed`, `PointedCPO`
+- `src/structures/CPO.v` — contains `HasBottom`, `IsPointed`, `PointedCPO`
 - `src/structures/Morphisms.v` — contains `strict`, `strict_fun`
 - `src/structures/Pointed.v` — **not created**
 
@@ -182,7 +182,7 @@ to `lift_sup`. The monad structure (`ret`, `kleisli`, all three monad
 laws) is proved without further classical principles.
 
 **Axiom audit for `Lift.v`:**
-- `ClassicalEpsilon` (via `Coq.Logic.ClassicalEpsilon`)
+- `ClassicalEpsilon` (via `Stdlib.Logic.ClassicalEpsilon`)
 - `Classical` is already a dependency of `ScottTopology.v`; `ClassicalEpsilon`
   strictly extends it and is the only additional axiom
 
