@@ -5,7 +5,7 @@ significant change made in modernizing the original pre-migration Coq
 library to Rocq 9.0 using the Hierarchy Builder (HB) packed-class
 framework. It is intended as a reference for understanding diffs, for
 the thesis chapter on formalization methodology, and for anyone porting
-proofs that were written against the old API.
+proofs written against the old API.
 
 ---
 
@@ -14,7 +14,7 @@ proofs that were written against the old API.
 | Theme | Old approach | New approach |
 |-------|-------------|--------------|
 | Structuring | `Module` system + `Record` | HB mixins + structures |
-| Namespace | `From phase0_foundations Require Import` | `From DomainTheory.Structures Require Import` |
+| Namespace | `From phase0_foundations Require Import` | `From DomainTheory.structures Require Import` |
 | `preorder` | Monolithic `Record preorder` | `HasLe` + `IsPreorder` → `Preorder` |
 | `cpo` | Monolithic `Record cpo` with `cpo_pre` field | `HasSup` + `IsCPO` → `CPO` (requires `PartialOrder`) |
 | `Pointed` | Separate re-export shim file | Folded into `CPO.v` |
@@ -25,6 +25,7 @@ proofs that were written against the old API.
 | Field names | `le`, `carrier`, `cpo_pre`, `cf_mfun` | `leT`, HB sort coercions, `cf_mono` |
 | `proof_irrelevance` | Imported explicitly for `cont_comp_assoc` | Avoided; equality proved structurally |
 | CPO base | Built on `Preorder` only | Built on `PartialOrder` (follows A&J Definition 2.1.13) |
+| `Lift.v` | Axiomatic lubs over `option D` | Classical sup over `option D` using `ClassicalEpsilon` |
 
 ---
 
@@ -56,7 +57,7 @@ HasLe → IsPreorder → Preorder
 | `Order.ch pre c n` (explicit preorder arg) | `c.[n]` (implicit, `ch` field of `chain`) | Simpler; `c.[n]` notation kept |
 | `map_chain pre Q f c` (explicit args) | `map_chain f c` (implicit) | Less noise in proofs |
 | `Build_mono_fun P Q f mono_pf` (explicit) | `Build_mono_fun f mono_pf` (implicit `{P Q}`) | |
-| `pequiv` defined as `x ⊑ y ∧ y ⊑ x` | Preserved as `x ≈ y` | Will be needed in `OrderTheory.v` for setoid reasoning |
+| `pequiv` defined as `x ⊑ y ∧ y ⊑ x` | Preserved as `x ≈ y` | Used in `OrderTheory.v` for setoid reasoning |
 | `const_chain`, `tail_chain` | Preserved | Unchanged |
 | `mono_comp_assoc` by `reflexivity` | Preserved | Definitional equality still holds |
 
@@ -77,6 +78,11 @@ Pointed CPOs used `Class Pointed` (typeclass, not a mixin).
 HasSup + PartialOrder → IsCPO → CPO
 HasBot + CPO → IsPointed → PointedCPO
 ```
+
+Note the dependency: `IsPointed` requires `CPO T & HasBottom T`, so
+`HasBottom` and `IsPointed` instances must be registered *after* the
+`IsCPO` instance. This ordering constraint was the source of an early
+bug in `Lift.v` (see `Lift.v` entry below).
 
 **Specific changes:**
 
@@ -108,8 +114,6 @@ this tension:
 apply le_antisym; ...
 ```
 Rather than carry this awkwardness, we require `PartialOrder` upfront.
-If a genuinely non-antisymmetric CPO is ever needed (e.g. for a
-quotient construction), it can be handled as a separate `PreCPO` mixin.
 
 ---
 
@@ -122,12 +126,10 @@ fields `cf_mfun` and `cf_cont`.
 **New structure:** `continuous` is defined as a predicate in `CPO.v`.
 `cont_fun` (with `cf_mono` / `cf_cont`) lives in `Morphisms.v`.
 
-**Specific changes:**
-
 | Old | New | Notes |
 |-----|-----|-------|
 | `Continuous.continuous D E f` (explicit D, E) | `continuous f` (implicit CPO args) | |
-| `cf_mfun` field | `cf_mono` | Renamed for clarity: it's a `mono_fun`, not a raw function |
+| `cf_mfun` field | `cf_mono` | Renamed: it's a `mono_fun`, not a raw function |
 | `Continuous.cont_fun D E` | `cont_fun D E` (no module prefix) | |
 | `map_chain_id` in `Continuous.v` | In `theory/CPOTheory.v` | Moved to theory layer |
 | `id_continuous` in `Continuous.v` | `continuous_id` in `Morphisms.v` | Renamed; same proof |
@@ -136,41 +138,19 @@ fields `cf_mfun` and `cf_cont`.
 
 ### `Morphisms.v`
 
-**Old structure:** Already partially migrated in the original — had HB
-imports and the new-style `cont_fun`/`strict_fun` records. But also
-imported `Coq.Logic.ProofIrrelevance` and used it in `cont_comp_assoc`.
+**Old structure:** Already partially migrated — had HB imports and the
+new-style `cont_fun`/`strict_fun` records. But also imported
+`Coq.Logic.ProofIrrelevance` and used it in `cont_comp_assoc`.
 
 **New structure:** Same records, cleaned up.
-
-**Specific changes:**
 
 | Old | New | Notes |
 |-----|-----|-------|
 | `Require Import Coq.Logic.ProofIrrelevance` | Removed | See below |
 | `cont_comp_assoc` via `proof_irrelevance` | Via structural equality | |
-| `g ∘ f` notation for `cont_comp` | Notation dropped from `Morphisms.v` | `⊚` used instead in `Enriched.v` for categorical composition; `∘` reserved for Rocq's stdlib |
+| `g ∘ f` notation for `cont_comp` | Notation dropped from `Morphisms.v` | `⊚` used in `Enriched.v` for categorical composition |
 | `strict_comp_strict` (lemma) + `strict_comp` (definition) | `strict_comp` (lemma) + renamed definition | Two names for one concept was confusing |
-| `From DomainTheory.structures` (lowercase) | `From DomainTheory.Structures` (capital S) | Case fix for current library naming |
-
-**On removing `proof_irrelevance`:**
-
-The old `cont_comp_assoc` proof was:
-```coq
-Lemma cont_comp_assoc ... : h ∘ (g ∘ f) = (h ∘ g) ∘ f.
-Proof.
-  unfold cont_comp. f_equal. destruct h, g, f.
-  apply proof_irrelevance.
-Qed.
-```
-This works but is unsatisfying: it means the proof obligation is
-discharged by an axiom (proof irrelevance) rather than by computation.
-In the new library, `cont_comp_assoc` follows from `mono_comp_assoc`
-(which holds by `reflexivity` since `mono_fun` composition is
-definitionally associative) together with `cont_fun_eq` (two continuous
-functions are equal if their underlying `mono_fun`s are equal). The
-continuity proofs are then equal by `proof_irrelevance` if needed, but
-this should be avoidable with careful use of `Prop` irrelevance built
-into Rocq's kernel rather than the explicit axiom.
+| `From DomainTheory.Structures` (capital S) | `From DomainTheory.structures` (lowercase) | Case fix; dune library names are lowercase |
 
 ---
 
@@ -192,22 +172,12 @@ in `CPO.v`. `strict_fun` lives in `Morphisms.v`. See
 
 ### `Predomains.v`
 
-**Old:** A module aliasing `cpo` as `predomain`:
-```coq
-Module Predomains.
-  Definition predomain := Cpo.cpo.
-  Coercion predomain_to_pre (D : predomain) : preorder := Cpo.cpo_pre D.
-  Definition mono (D E : predomain) := mono_fun D E.
-End Predomains.
-```
+**Old:** A module aliasing `cpo` as `predomain`.
 
 **New:** File not created. The distinction between "predomain" (a CPO
-without a required bottom element) and "pointed CPO" is now expressed
+without a required bottom element) and "pointed CPO" is expressed
 directly through the HB hierarchy: `CPO.type` is a predomain;
-`PointedCPO.type` is a pointed CPO. No alias is needed. This follows
-Benton-Kennedy's own observation (§2.1) that the main benefit of
-predomains over pointed CPOs is exactly that they need not have a bottom
-element — which our `CPO`/`PointedCPO` split captures natively.
+`PointedCPO.type` is a pointed CPO. See `migration-notes.md § Summary`.
 
 ---
 
@@ -215,20 +185,15 @@ element — which our `CPO`/`PointedCPO` split captures natively.
 
 **Old:** A `Module Products` with a monolithic inline construction of
 `prod_cpo`. The product preorder, monotone projections, and lubs were
-all defined in one large term-mode expression. Correct but unreadable:
-```coq
-Definition prod_cpo (A B : Cpo.cpo) : Cpo.cpo :=
-  let pre : Order.preorder := Order.Build_preorder
-    (carrier ... * carrier ...)
-    (fun p q => (le ... (fst p) (fst q)) /\ ...)
-    ...
-```
+all defined in one large term-mode expression. Correct but unreadable.
 
-**New:** Proof-mode construction in `theory/Products.v`, building up
-lemmas step by step: `prod_le_refl`, `prod_le_trans`, `prod_le_antisym`,
-`prod_sup_upper`, `prod_sup_least`. Then `prod_cpo` assembles them. The
-result is the same but each step is independently checkable and citeable
-in the thesis.
+**New:** Proof-mode construction in `theory/Products.v` (519 lines),
+building up lemmas step by step: `prod_le_refl`, `prod_le_trans`,
+`prod_le_antisym`, `prod_sup_upper`, `prod_sup_least`. Then HB instances
+assemble the structure. The result is the same but each step is
+independently checkable and citeable in the thesis. Also includes:
+continuous projections `π₁`/`π₂`, continuous pairing `cont_pair`,
+`cont_prod_map`, `cont_swap`, and the universal property.
 
 ---
 
@@ -241,12 +206,14 @@ Axiom sum_lub_upper : ...
 Axiom sum_lub_least : ...
 ```
 
-**New:** All axioms eliminated. The key insight is that a chain in
-`A ⊕ B` (separated sum) must eventually be entirely in `inl` or
-entirely in `inr` (since the orderings do not mix `inl` and `inr`
-values). The lub is then the lub of the eventually-constant projection
-into `A` or `B`. This proof is non-trivial constructively and belongs in
-`theory/Sums.v`.
+**New:** All axioms eliminated in `theory/Sums.v` (611 lines). The key
+insight is that a chain in `A + B` (separated sum) is eventually entirely
+in `inl` or entirely in `inr`, since the orderings do not mix constructors.
+The sup is the sup of the eventually-stable projection into `A` or `B`.
+This proof is constructive — no classical axioms needed. Note: `A + B` is
+deliberately NOT made a `PointedCPO` even when both `A` and `B` are
+pointed; the separated sum has no global minimum (`inl ⊥` and `inr ⊥`
+are incomparable). For a pointed sum, use `(A + B)⊥`.
 
 ---
 
@@ -254,8 +221,7 @@ into `A` or `B`. This proof is non-trivial constructively and belongs in
 
 **Old:** Axiomatic lubs for the function-space CPO:
 ```coq
-Axiom fun_cpo_lub : forall (D E : Cpo.cpo) (fun_pre : Order.preorder),
-  Order.chain fun_pre -> Order.carrier fun_pre.
+Axiom fun_cpo_lub : ...
 Axiom fun_cpo_lub_upper : ...
 Axiom fun_cpo_lub_least : ...
 ```
@@ -267,14 +233,12 @@ and could not be trusted.
 continuous functions `c : chain (D ⇒ E)` is defined as
 `λ x. sup (map_chain (λ f. f x) c)`, and continuity of this pointwise
 sup is proved in `theory/FunctionSpaces.v`. This requires:
-1. That the family `λ f. f x` is monotone in `f` for fixed `x` (from
-   the pointwise order definition).
+1. That the family `λ f. f x` is monotone in `f` for fixed `x`.
 2. That the pointwise sup of continuous functions is continuous (the key
-   lemma, which uses Scott-continuity of each `f` in the chain and the
+   lemma, using Scott-continuity of each `f` in the chain and the
    commutativity of the double sup `⊔_n ⊔_m = ⊔_m ⊔_n`).
 
-Reference: Benton-Kennedy §2.1, "D1 ⇒c D2 : cpo ... if c : natO →m
-(D1 →c D2) is a chain, then ⊔c : (D1 →c D2) is λd1. ⊔(λn. c n d1)".
+Reference: Benton-Kennedy §2.1.
 
 ---
 
@@ -286,25 +250,43 @@ Axiom lift_lub_of_chain : forall (D : Cpo.cpo), chain (lift_pre D) -> lift_carri
 Axiom lift_lub_upper : ...
 Axiom lift_lub_least : ...
 ```
-The lift was `option D` with `None` as bottom, which is the *flat* lift
-(adding a single new bottom under all existing elements). The `ret` and
-`bind` were not proved continuous.
+The lift was `option D` with `None` as bottom. The `ret` and `kleisli`
+were not proved continuous.
 
-**New:** The flat `option`-based lift is replaced by the coinductive
-`Stream`-based constructive lift following Benton-Kennedy §2.2. This is
-more complex but:
-1. Eliminates the axioms.
-2. Makes the lift a genuine monad (not just a pointed CPO with an
-   ad-hoc unit).
-3. Supports the `kleisli` operator needed for PCF adequacy.
+**New:** `theory/Lift.v` (600 lines). All axioms eliminated. The carrier
+remains `option D` — the *flat* lift — but the sup is now constructed
+using `ClassicalEpsilon`:
 
-The old `lift_carrier D := option D` approach would suffice for a
-classical treatment but fails constructively: determining whether a
-chain in `D⊥` converges requires an unbounded search, which is not a
-total Rocq function. The `Stream`/corecursive approach handles this.
+- `excluded_middle_informative` decides whether the chain ever reaches
+  `Some` (not constructively decidable in general).
+- `constructive_indefinite_description` extracts a witness index `N`.
+- The `D_chain` auxiliary extracts a proper `chain D` from the tail
+  `k ↦ c.[N + k]`, using `chain_some_stable` to show the `None` case
+  is unreachable.
 
-Reference: Benton-Kennedy §2.2, Capretta (2005) on general recursion
-via coinductive types.
+This uses `ClassicalEpsilon`, which strictly extends the `Classical`
+axiom already present in the library. It is the only place outside
+`ScottTopology.v` where a classical principle beyond `Classical.v` is
+used.
+
+**HB instance ordering fix:** `IsPointed` has the HB dependency
+`of CPO T & HasBottom T`. The initial draft registered `HasBottom` and
+`IsPointed` before `IsCPO`, which fails. The correct order is:
+```
+lift_IsCPO → lift_HasBottom → lift_IsPointed
+```
+This ordering constraint is now documented in `CPO.v` and here.
+
+**Monad structure:** `ret` and `kleisli` are proved Scott-continuous.
+The three monad laws (left unit, right unit, associativity) are proved
+as propositional equalities using `cont_fun_ext`.
+
+**Supplementary file:** `theory/LiftMonad.v` (476 lines) develops the
+coinductive `delay` monad — the alternative to the flat lift — and
+proves precisely why it cannot be made into a `CPO.type` without
+quotient types. See `design-decisions.md § DD-006` and `§ DD-007`.
+
+Reference: A&J §2.1.4; Moggi (1991); Benton-Kennedy §2.2.
 
 ---
 
@@ -313,14 +295,18 @@ via coinductive types.
 **Old:** Effectively empty — just re-exported `Cpo` and declared a
 useless `Ltac done := trivial`.
 
-**New:** `theory/FixedPoints.v` will contain the full Kleene fixed-point
+**New:** `theory/FixedPoints.v` (494 lines). Full Kleene fixed-point
 theorem:
-- `kleene_chain`: the chain `⊥, f(⊥), f(f(⊥)), ...`
-- `kleene_chain_upper`: each iterate is below the sup
-- `fixp f := sup (kleene_chain f)` for `f : D →c D`, `D : PointedCPO`
-- `fixp_least`: `fixp` is the least fixed point
-- `FIXP : (D ⇒c D) →c D`: the internalized, continuous fixed-point operator
-- `fixp_ind`: fixed-point induction for admissible predicates
+- `iter f n`: the n-th iterate `fⁿ(⊥)`
+- `kleene_chain f`: the chain `⊥ ⊑ f(⊥) ⊑ f²(⊥) ⊑ ...`
+- `fixp f := ⊔ (kleene_chain f)`: the least fixed point
+- `fixp_is_fixedpoint`: `f (fixp f) = fixp f`
+- `fixp_least`: `fixp f` is the least pre-fixed point
+- `fixp_ind`: fixed-point induction for Scott-admissible predicates
+
+The internalized operator `FIXP : (D ⇒c D) →c D` (continuous in `f`)
+is deferred to `FunctionSpaces.v` where the function-space CPO is
+available.
 
 ---
 
@@ -333,9 +319,32 @@ full inverse-limit construction following Benton-Kennedy §4 and A&J §5.3.
 
 ---
 
-## API Renaming Reference
+## Axioms: Status in Old vs New Library
 
-Quick lookup table for anyone porting old proofs.
+The old library accumulated `Axiom` declarations for constructions that
+were not yet proved. These are **all eliminated** in the new library.
+
+| Axiom | File | Resolution |
+|-------|------|-----------|
+| `fun_cpo_lub` | `FunctionSpaces.v` | Proved: `λ x. ⊔_n (c n x)` in `theory/FunctionSpaces.v` |
+| `fun_cpo_lub_upper` | `FunctionSpaces.v` | Proved from pointwise order definition |
+| `fun_cpo_lub_least` | `FunctionSpaces.v` | Proved from `sup_least` applied pointwise |
+| `lift_lub_of_chain` | `Lift.v` | Proved via `ClassicalEpsilon` in `theory/Lift.v` |
+| `lift_lub_upper` | `Lift.v` | Proved from `D_chain` construction + `le_sup_of_le_elem` |
+| `lift_lub_least` | `Lift.v` | Proved from `sup_least` on the extracted `D_chain` |
+| `sum_lub_of_chain` | `Sums.v` | Proved constructively using chain stability in `theory/Sums.v` |
+| `sum_lub_upper` | `Sums.v` | Follows from above |
+| `sum_lub_least` | `Sums.v` | Follows from above |
+
+**Admitted results:** `theory/LiftMonad.v` contains two admitted lemmas
+(`bisim_trans` and `converges_bisim`) due to known guardedness-checker
+limitations in plain Rocq. These are in the supplementary coinductive
+file only; the main library (`Lift.v`) has no admits. See
+`design-decisions.md § DD-007`.
+
+---
+
+## API Renaming Reference
 
 ### Types and Structures
 
@@ -366,84 +375,29 @@ Quick lookup table for anyone porting old proofs.
 | `Order.mf_mono P Q f x y h` | `mf_mono f h` |
 | `Continuous.cf_mfun D E f` | `cf_mono f` |
 | `Continuous.cf_cont D E f` | `cf_cont f` |
-| `sf_cont f` | `sf_cont f` (unchanged) |
-| `sf_strict f` | `sf_strict f` (unchanged) |
-
-### Constructors
-
-| Old | New |
-|-----|-----|
-| `Order.Build_preorder carrier le refl trans` | `HB.pack` / instance mechanism |
-| `Cpo.mk_cpo pre lub upper least` | `HB.pack` / instance mechanism |
-| `Build_mono_fun P Q f mono` | `Build_mono_fun f mono` (implicit `{P Q}`) |
-| `Build_cont_fun D E mono cont` | `Build_cont_fun mono cont` (implicit `{D E}`) |
-| `Build_chain P ch mono` | `Build_chain ch mono` (implicit `{P}`) |
-
-### Lemmas
-
-| Old | New | Location |
-|-----|-----|----------|
-| `sup_mono` | `sup_mono` | `theory/CPOTheory.v` |
-| `sup_ext` | `sup_ext` | `theory/CPOTheory.v` |
-| `continuous_id` | `continuous_id` | `Morphisms.v` |
-| `continuous_comp` | `continuous_comp` | `Morphisms.v` |
-| `cont_comp_assoc` | `cont_comp_assoc` | `Morphisms.v` |
-| `cont_comp_id_l/r` | `cont_id_l/r` | `Morphisms.v` |
-| `strict_comp_strict` | `strict_comp` (lemma) | `Morphisms.v` |
-| `map_chain_id` | `map_chain_id` | `theory/CPOTheory.v` |
 
 ### Module Imports
 
 | Old | New |
 |-----|-----|
-| `From phase0_foundations Require Import Order` | `From DomainTheory.Structures Require Import Order` |
-| `From phase0_foundations Require Import CPO` | `From DomainTheory.Structures Require Import CPO` |
-| `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.Structures Require Import CPO Morphisms` |
+| `From phase0_foundations Require Import Order` | `From DomainTheory.structures Require Import Order` |
+| `From phase0_foundations Require Import CPO` | `From DomainTheory.structures Require Import CPO` |
+| `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.structures Require Import CPO Morphisms` |
 | `Import Order Cpo` | Not needed; HB coercions handle namespacing |
-| `Import Order.` (dot-import) | Not used in new library |
 
 ---
 
 ## What the Old Library Got Right
 
-Not everything needed changing. The following design choices from the
-original (and from Benton-Kennedy) are preserved unchanged:
+The following design choices from the original (and from Benton-Kennedy)
+are preserved unchanged:
 
 - **`chain` as a record** (not an HB structure): chains are data, not
-  carriers of new algebraic structure. Keeping them as plain records
-  avoids over-engineering.
-- **`mono_fun` as a record** with a coercion to the underlying function:
-  this is the right abstraction level for Phase 0.
+  carriers of new algebraic structure.
+- **`mono_fun` as a record** with a coercion to the underlying function.
 - **Separating `strict_fun` from `cont_fun`**: strictness is not always
-  required; keeping it separate avoids polluting the continuous function
-  API.
-- **`pequiv` (x ≈ y)** for preorder-level equivalence: useful for
-  setoid rewriting when working with quotient constructions.
-- **The `c.[n]` notation** for chain access: clean and unambiguous.
+  required.
+- **`pequiv` (`x ≈ y`)** for preorder-level equivalence.
+- **The `c.[n]` notation** for chain access.
 - **Diagrammatic argument ordering** in composition (`g ∘ f` meaning
-  "first f, then g"): consistent with categorical convention.
-
----
-
-## Axioms: Status in Old vs New Library
-
-The old library accumulated several `Axiom` declarations for
-constructions that were not yet proved. These are **all eliminated** in
-the new library. The table below tracks each one.
-
-| Axiom | File | Resolution |
-|-------|------|-----------|
-| `fun_cpo_lub` | `FunctionSpaces.v` | Proved: `λ x. ⊔_n (c n x)` in `theory/FunctionSpaces.v` |
-| `fun_cpo_lub_upper` | `FunctionSpaces.v` | Proved from pointwise order definition |
-| `fun_cpo_lub_least` | `FunctionSpaces.v` | Proved from `sup_least` applied pointwise |
-| `lift_lub_of_chain` | `Lift.v` | Replaced by coinductive `Stream` construction |
-| `lift_lub_upper` | `Lift.v` | Follows from coinductive definition |
-| `lift_lub_least` | `Lift.v` | Follows from coinductive definition |
-| `sum_lub_of_chain` | `Sums.v` | Proved using eventual-constancy of chains in `A ⊕ B` |
-| `sum_lub_upper` | `Sums.v` | Follows from above |
-| `sum_lub_least` | `Sums.v` | Follows from above |
-
-The theorem checker confirms: the final library should compile with
-`Print Assumptions` returning only Rocq's built-in axioms (`Classical`,
-`FunctionalExtensionality` if used, etc.) and **no** user-declared
-`Axiom` or `admit`.
+  "first f, then g").
