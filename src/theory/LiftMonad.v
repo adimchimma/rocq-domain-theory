@@ -63,7 +63,7 @@
 
 
 (* ================================================================== *)
-(** §1  The coinductive type [delay D]                                  *)
+(* §1  The coinductive type [delay D]                                 *)
 (* ================================================================== *)
 (*
     [delay D] has two constructors:
@@ -198,7 +198,7 @@ Admitted.
 
 
 (* ================================================================== *)
-(** §3  Bottom [bot]                                                    *)
+(* §3  Bottom [bot]                                                   *)
 (* ================================================================== *)
 (*
     The diverging computation: [bot = later (later (later ...))].
@@ -284,7 +284,7 @@ Definition kleisli_delay {D E : Type} (f : D -> delay E) (t : delay D) : delay E
 (** (ML1) Left unit: [bind (now d) f ≈ f d] *)
 Lemma bind_left_unit {D E : Type} (d : D) (f : D -> delay E) :
     bisim (bind (now d) f) (f d).
-Proof. 
+Proof.
   rewrite bind_now; exact (bisim_refl _).
 Qed.
 
@@ -292,7 +292,7 @@ Qed.
 Lemma bind_right_unit {D : Type} (t : delay D) : bisim (bind t now) t.
 Proof.
   revert t; cofix IH; intros t; destruct t as [d | t'].
-  - rewrite bind_now;  exact (bisim_now d).
+  - rewrite bind_now; exact (bisim_now d).
   - rewrite bind_later; exact (bisim_later _ _ (IH t')).
 Qed.
 
@@ -302,9 +302,8 @@ Lemma bind_assoc {D E F : Type}
     bisim (bind (bind t f) g) (bind t (fun d => bind (f d) g)).
 Proof.
   revert t; cofix IH; intros t; destruct t as [d | t'].
-  - rewrite bind_now; rewrite bind_now; exact (bisim_refl _).
-  - rewrite bind_later; rewrite bind_later; rewrite bind_later.
-    exact (bisim_later _ _ (IH t')).
+  - do 2 rewrite bind_now. exact (bisim_refl _).
+  - do 3 rewrite bind_later. exact (bisim_later _ _ (IH t')).
 Qed.
 
 (*
@@ -319,9 +318,9 @@ Proof.
   revert t1 t2 H; cofix IH; intros t1 t2 H.
   inversion_clear H as [d | s1 s2 H' | s1 s2 H' | s1 s2 H'].
   - (* bisim_now d: t1 = t2 = now d *)
-    rewrite bind_now; exact (bisim_refl _).
+    exact (bisim_refl _).
   - (* bisim_later s1 s2 H': t1 = later s1, t2 = later s2 *)
-    rewrite bind_later; rewrite bind_later.
+    do 2 rewrite bind_later.
     exact (bisim_later _ _ (IH s1 s2 H')).
   - (* bisim_left s1 s2 H': t1 = later s1, t2 = s2 *)
     rewrite bind_later.
@@ -430,13 +429,13 @@ Qed.
     [CPO.type] structure (based on propositional equality) without first
     quotienting by [bisim].
 
-    FACT A  [fact_A]:  [now d ≈ later (now d)]
+    FACT A:  [now d ≈ later (now d)]
             They are bisimilar — they should be equal in a CPO.
 
-    FACT B  [fact_B]:  [now d ≠ later (now d)]
+    FACT B:  [now d ≠ later (now d)]
             They are propositionally distinct — they cannot be equal.
 
-    FACT C  [fact_C]:  [now d] and [later (now d)] are mutually below
+    FACT C:  [now d] and [later (now d)] are mutually below
             each other in any order that respects convergence.  By
             antisymmetry they would have to be equal, contradicting B.
 
@@ -449,7 +448,7 @@ Qed.
     convergence preorder without identifying [now d] and [later (now d)].
 
     RESOLUTION: Quotient [delay D] by [bisim].  On the quotient [delay D/bisim]:
-    - [⟦now d⟧ = ⟦later (now d)⟧]           (Fact A makes them equal)
+    - [⟦now d⟧ = ⟦later (now d)⟧]              (Fact A makes them equal)
     - The convergence order is antisymmetric  (bisim identifies the offenders)
     - [delay D/bisim] is isomorphic to [option D] as a CPO, under the
       classical sup of [Lift.v]
