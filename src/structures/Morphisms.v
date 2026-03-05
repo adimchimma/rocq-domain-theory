@@ -1,4 +1,15 @@
-(*  Morphism Structures
+(** * Morphisms
+
+    Phase 0: Structure-preserving maps.
+
+    Definitions to be added:
+    - [IsMonotone]: a map [f : D -> E] that preserves the order.
+    - [IsContinuous]: a monotone map that also preserves lubs of omega-chains.
+    - Bundled record types [MonoFun] and [ContFun].
+    - Identity and composition lemmas.
+*)
+
+(** * Morphism Structures
 
     Monotone and Scott-continuous functions between CPOs, packaged as
     records with categorical structure (identity and composition).
@@ -16,7 +27,7 @@
       Phase 0 — cont_fun, cont_id, cont_comp, strict_fun
 
     Note on future migration (Phase 0/1, FunctionSpaces.v):
-      Once we need [cont_fun D E] to itself be a [CPO.type] under the
+      Once we need [[D →c E]] to itself be a [CPO.type] under the
       pointwise order, [cont_fun] should become an HB structure with
       carrier [D -> E].  At that point [mono_fun] will migrate similarly.
       For now, plain records are simpler and sufficient.
@@ -28,7 +39,7 @@ From DomainTheory.Structures Require Import Order CPO.
 From Stdlib Require Import Logic.ProofIrrelevance.
 
 (* ------------------------------------------------------------------ *)
-(*   §1  Continuous functions                                         *)
+(*   Continuous functions                                             *)
 (* ------------------------------------------------------------------ *)
 (*
     A Scott-continuous function between CPOs is a monotone function that
@@ -36,7 +47,7 @@ From Stdlib Require Import Logic.ProofIrrelevance.
     predicate is already declared in [CPO.v]; here we bundle it with
     the underlying monotone function into a [cont_fun] record.
 
-    The coercion [:>] on [cf_mono] lets a [cont_fun D E] be used
+    The coercion [:>] on [cf_mono] lets a [[D →c E]] be used
     directly as a [mono_fun D E], which in turn coerces to [D -> E]
     via [mf_fun].  So a [cont_fun] can appear anywhere a plain function
     is expected. 
@@ -50,16 +61,22 @@ Arguments Build_cont_fun {D E} cf_mono cf_cont.
 Arguments cf_mono {D E} f : rename.
 Arguments cf_cont {D E} f : rename.
 
+(* Notation for the type of Scott-continuous functions.
+   [D →c E] is sugar for [cont_fun D E], available to any
+   file that imports Morphisms. *)
+Notation "[ D →c E ]" := (cont_fun D E)
+  (at level 0, D at level 99, E at level 200, no associativity).
+
 (*
     Applying a continuous function to a chain still gives a chain
     (inherited from [map_chain] on the underlying [mono_fun]). 
 *)
-Definition map_chain_cont {D E : CPO.type} (f : cont_fun D E) (c : chain D)
+Definition map_chain_cont {D E : CPO.type} (f : [D →c E]) (c : chain D)
    : chain E := map_chain (cf_mono f) c.
 
 
 (* ------------------------------------------------------------------ *)
-(*   §2  Identity and composition                                     *)
+(*   Identity and composition                                         *)
 (* ------------------------------------------------------------------ *)
 (*  
     The identity function is continuous.
@@ -74,7 +91,7 @@ Proof.
     reflexivity.
 Qed.
 
-Definition cont_id (D : CPO.type) : cont_fun D D :=
+Definition cont_id (D : CPO.type) : [D →c D] :=
     Build_cont_fun (mono_id D) continuous_id.
 
 (* 
@@ -83,7 +100,7 @@ Definition cont_id (D : CPO.type) : cont_fun D D :=
     using continuity of [f] then [g], and the fact that
     [map_chain g ∘ map_chain f = map_chain (g ∘ f)]. 
 *)
-Lemma continuous_comp {D E F : CPO.type} (g : cont_fun E F) (f : cont_fun D E):
+Lemma continuous_comp {D E F : CPO.type} (g : [E →c F]) (f : [D →c E]):
     continuous (mono_comp (cf_mono g) (cf_mono f)).
 Proof.
     intro c.
@@ -93,7 +110,7 @@ Proof.
 Qed.
 
 Definition cont_comp {D E F: CPO.type}
-    (g : cont_fun E F) (f : cont_fun D E) : cont_fun D F :=
+    (g : [E →c F]) (f : [D →c E]) : [D →c F] :=
         Build_cont_fun 
                 (mono_comp (cf_mono g) (cf_mono f)) 
                 (continuous_comp g f).
@@ -107,7 +124,7 @@ Notation "g ∘ f" := (cont_comp g f) (at level 40, left associativity).
     underlying functions. 
 *)
 Lemma cont_comp_assoc {D E F G : CPO.type}
-    (h : cont_fun F G) (g : cont_fun E F) (f : cont_fun D E) :
+    (h : [F →c G]) (g : [E →c F]) (f : [D →c E]) :
         h ∘ (g ∘ f) = (h ∘ g) ∘ f.
 Proof.
     unfold cont_comp.
@@ -116,7 +133,7 @@ Proof.
     apply proof_irrelevance.
 Qed.
 
-Lemma cont_fun_eq {D E : CPO.type} (f g : cont_fun D E) :
+Lemma cont_fun_eq {D E : CPO.type} (f g : [D →c E]) :
     cf_mono f = cf_mono g -> f = g.
 Proof.
     destruct f as [m1 h1], g as [m2 h2].
@@ -127,7 +144,7 @@ Proof.
     apply proof_irrelevance.
 Qed.
 
-Lemma cont_comp_id_l {D E : CPO.type} (f : cont_fun D E) :
+Lemma cont_comp_id_l {D E : CPO.type} (f : [D →c E]) :
     cont_id E ∘ f = f.
 Proof.
     apply cont_fun_eq.
@@ -135,7 +152,7 @@ Proof.
     apply mono_comp_id_l.
 Qed.
 
-Lemma cont_comp_id_r {D E : CPO.type} (f : cont_fun D E) :
+Lemma cont_comp_id_r {D E : CPO.type} (f : [D →c E]) :
     f ∘ (cont_id D) = f.
 Proof.
     apply cont_fun_eq.
@@ -145,7 +162,7 @@ Qed.
 
 
 (* ------------------------------------------------------------------ *)
-(*   §3  Strict functions (Phase 0, PointedCPO)                       *)
+(*   Strict functions (Phase 0, PointedCPO)                           *)
 (* ------------------------------------------------------------------ *)
 (*  
     A continuous function between pointed CPOs is _strict_ if it
@@ -155,11 +172,11 @@ Qed.
     call-by-value languages and for the lifting monad (Phase 0),
     and will appear again in the PCF semantics (Phase 1). 
 *)
-Definition strict {D E : PointedCPO.type} (f : cont_fun D E) :=
+Definition strict {D E : PointedCPO.type} (f : [D →c E]) :=
     f ⊥ = ⊥.
 
 Record strict_fun (D E : PointedCPO.type) : Type := Build_strict_fun {
-    sf_cont :> cont_fun D E;
+    sf_cont :> [D →c E];
     sf_strict : strict sf_cont;
 }.
 

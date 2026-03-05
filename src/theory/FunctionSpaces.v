@@ -16,12 +16,12 @@
 
     Summary
     =======
-    For two CPOs [D] and [E], the type [cont_fun D E] of Scott-continuous
+    For two CPOs [D] and [E], the type [D →c E] of Scott-continuous
     functions becomes a CPO under the pointwise order:
 
         f ⊑ g  ↔  ∀ x, f x ⊑ g x
 
-    The supremum of a chain [fs : chain (cont_fun D E)] is computed
+    The supremum of a chain [fs : chain [D →c E]] is computed
     pointwise:
 
         (⊔ fs) x = ⊔ (map_chain (eval_mono x) fs)
@@ -33,16 +33,16 @@
     yields [⊔ (⊔ fs ∘ c) = ⊔ diag].
 
     Additionally, this file proves:
-    - Evaluation [eval : (cont_fun D E) × D →c E] is continuous.
-    - Currying: if [f : C × D →c E] then [curry f : C →c cont_fun D E].
-    - Uncurrying: if [f : C →c cont_fun D E] then [uncurry f : C × D →c E].
+    - Evaluation [eval : [D →c E] × D →c E] is continuous.
+    - Currying: if [f : C × D →c E] then [curry f : C →c [D →c E]].
+    - Uncurrying: if [f : C →c [D →c E]] then [uncurry f : C × D →c E].
     - The curry–uncurry bijection (the exponential adjunction).
 
     Together these establish that the category of CPOs and continuous maps
     is cartesian closed.
 
     Contents:
-    - §1  Pointwise order on [cont_fun D E] — HB instance registrations
+    - §1  Pointwise order on [D →c E] — HB instance registrations
     - §2  Pointwise sup — [HasSup] and [IsCPO] instances
     - §3  Evaluation map
     - §4  Currying and uncurrying
@@ -62,32 +62,32 @@ From Stdlib Require Import PeanoNat.
 
 
 (* ================================================================== *)
-(*   §1  Pointwise order on [cont_fun D E]                            *)
+(*   §1  Pointwise order on [D →c E]                            *)
 (* ================================================================== *)
 (*
-    The pointwise order on [cont_fun D E]:
+    The pointwise order on [D →c E]:
         f ⊑ g  ↔  ∀ x : D, f x ⊑ g x
 *)
 
 Section FunOrder.
 Context {D E : CPO.type}.
 
-Definition fun_le (f g : cont_fun D E) : Prop :=
+Definition fun_le (f g : [D →c E]) : Prop :=
   forall (x : D), f x ⊑ g x.
 
-Lemma fun_le_refl (f : cont_fun D E) : fun_le f f.
+Lemma fun_le_refl (f : [D →c E]) : fun_le f f.
 Proof.
   intro x; apply le_refl.
 Qed.
 
-Lemma fun_le_trans (f g h : cont_fun D E) :
+Lemma fun_le_trans (f g h : [D →c E]) :
   fun_le f g -> fun_le g h -> fun_le f h.
 Proof.
   intros Hfg Hgh x.
   exact (le_trans _ _ _ (Hfg x) (Hgh x)).
 Qed.
 
-Lemma fun_le_antisym (f g : cont_fun D E) :
+Lemma fun_le_antisym (f g : [D →c E]) :
   fun_le f g -> fun_le g f -> f = g.
 Proof.
   intros Hfg Hgf.
@@ -99,24 +99,24 @@ End FunOrder.
 
 
 (*
-    Register the order structure on [cont_fun D E] for all [D E : CPO.type].
-    After these instances, [⊑] on [cont_fun D E] denotes the pointwise order.
+    Register the order structure on [D →c E] for all [D E : CPO.type].
+    After these instances, [⊑] on [D →c E] denotes the pointwise order.
 *)
 HB.instance Definition fun_HasLe {D E : CPO.type} :=
-  HasLe.Build (cont_fun D E) fun_le.
+  HasLe.Build [D →c E] fun_le.
 
 HB.instance Definition fun_IsPreorder {D E : CPO.type} :=
-  IsPreorder.Build (cont_fun D E) fun_le_refl fun_le_trans.
+  IsPreorder.Build [D →c E] fun_le_refl fun_le_trans.
 
 HB.instance Definition fun_IsPartialOrder {D E : CPO.type} :=
-  IsPartialOrder.Build (cont_fun D E) fun_le_antisym.
+  IsPartialOrder.Build [D →c E] fun_le_antisym.
 
 
 (* ================================================================== *)
 (*   §2  Pointwise sup                                                 *)
 (* ================================================================== *)
 (*
-    The sup of a chain [fs : chain (cont_fun D E)] is computed pointwise.
+    The sup of a chain [fs : chain [D →c E]] is computed pointwise.
     Given a point [x : D], we extract the chain [n ↦ (fs.[n]) x] in E,
     and define [(⊔ fs) x = ⊔ (n ↦ (fs.[n]) x)].
 
@@ -129,22 +129,22 @@ Context {D E : CPO.type}.
 
 (*
     [eval_at_mono x] is the monotone function that evaluates a continuous
-    function at [x].  This maps [cont_fun D E → E] and is monotone
+    function at [x].  This maps [[D →c E] → E] and is monotone
     because [fs] is ordered pointwise.
 *)
-Definition eval_at_mono (x : D) : mono_fun (cont_fun D E) E :=
+Definition eval_at_mono (x : D) : mono_fun [D →c E] E :=
   Build_mono_fun
-    (fun (f : cont_fun D E) => f x)
-    (fun (f g : cont_fun D E) (Hfg : fun_le f g) => Hfg x).
+    (fun (f : [D →c E]) => f x)
+    (fun (f g : [D →c E]) (Hfg : fun_le f g) => Hfg x).
 
 (*
     Given a chain of continuous functions and a point, form the chain
     of values at that point.
 *)
-Definition pointwise_chain (fs : chain (cont_fun D E)) (x : D) : chain E :=
+Definition pointwise_chain (fs : chain [D →c E]) (x : D) : chain E :=
   map_chain (eval_at_mono x) fs.
 
-Lemma pointwise_chain_index (fs : chain (cont_fun D E)) (x : D) (n : nat) :
+Lemma pointwise_chain_index (fs : chain [D →c E]) (x : D) (n : nat) :
   (pointwise_chain fs x).[n] = fs.[n] x.
 Proof.
   reflexivity.
@@ -154,7 +154,7 @@ Qed.
     The pointwise-sup function.  Given a chain [fs] of continuous functions,
     for each [x] we take the sup of the values chain.
 *)
-Definition fun_sup_fun (fs : chain (cont_fun D E)) : D -> E :=
+Definition fun_sup_fun (fs : chain [D →c E]) : D -> E :=
   fun x => ⊔ (pointwise_chain fs x).
 
 (*
@@ -162,7 +162,7 @@ Definition fun_sup_fun (fs : chain (cont_fun D E)) : D -> E :=
     Proof: if [x ⊑ y] then [fs.[n] x ⊑ fs.[n] y] (each [fs.[n]] is monotone),
     so [⊔ (fs.[_] x) ⊑ ⊔ (fs.[_] y)] by [sup_mono].
 *)
-Lemma fun_sup_mono (fs : chain (cont_fun D E)) :
+Lemma fun_sup_mono (fs : chain [D →c E]) :
   monotone D E (fun_sup_fun fs).
 Proof.
   intros x y Hxy.
@@ -172,7 +172,7 @@ Proof.
   exact Hxy.
 Qed.
 
-Definition fun_sup_mono_fun (fs : chain (cont_fun D E)) : mono_fun D E :=
+Definition fun_sup_mono_fun (fs : chain [D →c E]) : mono_fun D E :=
   Build_mono_fun (fun_sup_fun fs) (fun_sup_mono fs).
 
 (*
@@ -206,7 +206,7 @@ Definition fun_sup_mono_fun (fs : chain (cont_fun D E)) : mono_fun D E :=
     Coherence means: for [m ≤ n], [fs.[j] (c.[m]) ⊑ fs.[j] (c.[n])].
     This follows from monotonicity of each [fs.[j]].
 *)
-Lemma pointwise_family_coherent (fs : chain (cont_fun D E)) (c : chain D) :
+Lemma pointwise_family_coherent (fs : chain [D →c E]) (c : chain D) :
   coherent_family (fun k => pointwise_chain fs (c.[k])).
 Proof.
   intros m n j Hmn.
@@ -228,7 +228,7 @@ Qed.
 
     Then LHS ⊑ RHS by sup_least over n.
 *)
-Lemma fun_sup_cont_le (fs : chain (cont_fun D E)) (c : chain D) :
+Lemma fun_sup_cont_le (fs : chain [D →c E]) (c : chain D) :
   fun_sup_fun fs (⊔ c) ⊑ ⊔ (map_chain (fun_sup_mono_fun fs) c).
 Proof.
   unfold fun_sup_fun.
@@ -241,7 +241,7 @@ Proof.
   - exact (sup_upper (map_chain (fun_sup_mono_fun fs) c) k).
 Qed.
 
-Lemma fun_sup_continuous (fs : chain (cont_fun D E)) :
+Lemma fun_sup_continuous (fs : chain [D →c E]) :
   continuous (fun_sup_mono_fun fs).
 Proof.
   apply continuous_of_le.
@@ -249,11 +249,11 @@ Proof.
 Qed.
 
 (* The pointwise sup as a [cont_fun]. *)
-Definition fun_sup (fs : chain (cont_fun D E)) : cont_fun D E :=
+Definition fun_sup (fs : chain [D →c E]) : [D →c E] :=
   Build_cont_fun (fun_sup_mono_fun fs) (fun_sup_continuous fs).
 
 (* The pointwise sup unfolds correctly. *)
-Lemma fun_sup_apply (fs : chain (cont_fun D E)) (x : D) :
+Lemma fun_sup_apply (fs : chain [D →c E]) (x : D) :
   fun_sup fs x = ⊔ (pointwise_chain fs x).
 Proof.
   reflexivity.
@@ -263,7 +263,7 @@ Qed.
     [fun_sup fs] is an upper bound of [fs]:
     for each [n] and [x], [fs.[n] x ⊑ (⊔ fs) x] by [sup_upper].
 *)
-Lemma fun_sup_upper (fs : chain (cont_fun D E)) (n : nat) :
+Lemma fun_sup_upper (fs : chain [D →c E]) (n : nat) :
   fs.[n] ⊑ fun_sup fs.
 Proof.
   intro x; simpl.
@@ -275,7 +275,7 @@ Qed.
     if [g] is an upper bound of [fs], then for each [x],
     [fs.[n] x ⊑ g x] for all [n], so [(⊔ fs) x = ⊔(fs.[_] x) ⊑ g x].
 *)
-Lemma fun_sup_least (fs : chain (cont_fun D E)) (g : cont_fun D E) :
+Lemma fun_sup_least (fs : chain [D →c E]) (g : [D →c E]) :
   (forall n, fs.[n] ⊑ g) -> fun_sup fs ⊑ g.
 Proof.
   intros Hub x; simpl.
@@ -287,17 +287,17 @@ End FunSup.
 
 
 (*
-    Register [cont_fun D E] as a CPO via the pointwise sup.
+    Register [D →c E] as a CPO via the pointwise sup.
 *)
 HB.instance Definition fun_HasSup {D E : CPO.type} :=
-  HasSup.Build (cont_fun D E) fun_sup.
+  HasSup.Build [D →c E] fun_sup.
 
 HB.instance Definition fun_IsCPO {D E : CPO.type} :=
-  IsCPO.Build (cont_fun D E) fun_sup_upper fun_sup_least.
+  IsCPO.Build [D →c E] fun_sup_upper fun_sup_least.
 
 
 (*
-    PointedCPO instance: if [E] is a pointed CPO, then [cont_fun D E] is
+    PointedCPO instance: if [E] is a pointed CPO, then [D →c E] is
     pointed with bottom = the constant-⊥ function.
 *)
 Section FunPointed.
@@ -312,10 +312,10 @@ Proof.
   intro c. apply bottom_least.
 Qed.
 
-Definition fun_bottom : cont_fun D E :=
+Definition fun_bottom : [D →c E] :=
   Build_cont_fun fun_bottom_mono fun_bottom_continuous.
 
-Lemma fun_bottom_least (f : cont_fun D E) : fun_bottom ⊑ f.
+Lemma fun_bottom_least (f : [D →c E]) : fun_bottom ⊑ f.
 Proof.
   intro x; simpl.
   apply bottom_least.
@@ -324,21 +324,21 @@ Qed.
 End FunPointed.
 
 HB.instance Definition fun_HasBottom {D : CPO.type} {E : PointedCPO.type} :=
-  HasBottom.Build (cont_fun D E) (fun_bottom (D:=D) (E:=E)).
+  HasBottom.Build [D →c E] (fun_bottom (D:=D) (E:=E)).
 
 HB.instance Definition fun_IsPointed {D : CPO.type} {E : PointedCPO.type} :=
-  IsPointed.Build (cont_fun D E) (fun_bottom_least (D:=D) (E:=E)).
+  IsPointed.Build [D →c E] (fun_bottom_least (D:=D) (E:=E)).
 
 
 (* ================================================================== *)
 (*   §3  Evaluation map                                                *)
 (* ================================================================== *)
 (*
-    The evaluation map [eval : (cont_fun D E) × D → E] sends [(f, x)]
+    The evaluation map [eval : [D →c E] × D → E] sends [(f, x)]
     to [f x].  It is Scott-continuous as a function of the product.
 
     Proof of continuity:
-      Given a chain [c : chain ((cont_fun D E) × D)], let
+      Given a chain [c : chain ([D →c E] × D)], let
       [fs := map_chain fst_mono c] and [ds := map_chain snd_mono c].
       Then eval(⊔ c) = (⊔ fs)(⊔ ds) = ⊔ (pointwise_chain fs (⊔ ds)).
       We reduce to showing ⊔ (pointwise_chain fs (⊔ ds)) ⊑ ⊔ (eval ∘ c)
@@ -351,10 +351,10 @@ Open Scope type_scope.
 Section EvalMap.
 Context {D E : CPO.type}.
 
-Definition eval_fun (p : cont_fun D E * D) : E :=
+Definition eval_fun (p : [D →c E] * D) : E :=
   (fst p) (snd p).
 
-Lemma eval_mono : monotone (cont_fun D E * D) E eval_fun.
+Lemma eval_mono : monotone ([D →c E] * D) E eval_fun.
 Proof.
   intros [f x] [g y] [Hfg Hxy]; simpl in *.
   apply le_trans with (f y).
@@ -362,7 +362,7 @@ Proof.
   - exact (Hfg y).
 Qed.
 
-Definition eval_mono_fun : mono_fun (cont_fun D E * D) E :=
+Definition eval_mono_fun : mono_fun ([D →c E] * D) E :=
   Build_mono_fun eval_fun eval_mono.
 
 (*
@@ -382,7 +382,7 @@ Definition eval_mono_fun : mono_fun (cont_fun D E * D) E :=
 Lemma eval_continuous : continuous eval_mono_fun.
 Proof.
   apply continuous_of_le; intros c.
-  set (fs := map_chain fst_mono c : chain (cont_fun D E)).
+  set (fs := map_chain fst_mono c : chain [D →c E]).
   set (ds := map_chain snd_mono c : chain D).
   apply sup_least; intros n.
   simpl.
@@ -402,11 +402,11 @@ Proof.
     + apply (sup_upper (map_chain eval_mono_fun c)).
 Qed.
 
-Definition cont_eval : cont_fun (cont_fun D E * D) E :=
+Definition cont_eval : [[D →c E] * D →c E] :=
   Build_cont_fun eval_mono_fun eval_continuous.
 
 (* Computation rule: [cont_eval (f, x) = f x]. *)
-Lemma cont_eval_apply (f : cont_fun D E) (x : D) :
+Lemma cont_eval_apply (f : [D →c E]) (x : D) :
   cont_eval (f, x) = f x.
 Proof.
   reflexivity.
@@ -419,13 +419,13 @@ End EvalMap.
 (*   §4  Currying and uncurrying                                       *)
 (* ================================================================== *)
 (*
-    Currying: given [f : C × D →c E], produce [curry f : C →c (cont_fun D E)].
+    Currying: given [f : C × D →c E], produce [curry f : C →c [D →c E]].
 
     For each [c : C], [(curry f) c] must be a continuous function [D → E].
     We define it as [fun d => f (c, d)].  Continuity in [d] follows from
     continuity of [f] applied to a chain with constant first component.
 
-    Then [curry f] must be continuous as a function [C → cont_fun D E],
+    Then [curry f] must be continuous as a function [C → [D →c E]],
     where the codomain has the pointwise order.  For a chain [cs] in [C]:
       (curry f)(⊔ cs) = fun d => f(⊔ cs, d)
     and we need this to equal
@@ -441,7 +441,7 @@ Context {C D E : CPO.type}.
 (*
     For a fixed [c : C], the function [d ↦ f(c, d)] is monotone.
 *)
-Definition curry_inner_mono (f : cont_fun (C * D) E) (c : C) : mono_fun D E :=
+Definition curry_inner_mono (f : [C * D →c E]) (c : C) : mono_fun D E :=
   Build_mono_fun
     (fun d => f (c, d))
     (fun d1 d2 Hd =>
@@ -454,7 +454,7 @@ Definition curry_inner_mono (f : cont_fun (C * D) E) (c : C) : mono_fun D E :=
     since the first component is constant.  Continuity of [f] gives
     f(c, ⊔ dc) = f(⊔ paired) = ⊔ (map_chain f paired) = ⊔_n f(c, dc.[n]).
 *)
-Lemma curry_inner_cont (f : cont_fun (C * D) E) (c : C) :
+Lemma curry_inner_cont (f : [C * D →c E]) (c : C) :
   continuous (curry_inner_mono f c).
 Proof.
   apply continuous_of_le; intros dc.
@@ -475,28 +475,28 @@ Proof.
   apply sup_mono; intros n. exact (le_refl _).
 Qed.
 
-Definition curry_val (f : cont_fun (C * D) E) (c : C) : cont_fun D E :=
+Definition curry_val (f : [C * D →c E]) (c : C) : [D →c E] :=
   Build_cont_fun (curry_inner_mono f c) (curry_inner_cont f c).
 
 (*
-    [curry_val f] is monotone as a function [C → cont_fun D E]:
+    [curry_val f] is monotone as a function [C → [D →c E]]:
     if [c1 ⊑ c2] then [f(c1, d) ⊑ f(c2, d)] for all [d] (by monotonicity of f).
 *)
-Lemma curry_mono (f : cont_fun (C * D) E) :
-  monotone C (cont_fun D E) (curry_val f).
+Lemma curry_mono (f : [C * D →c E]) :
+  monotone C [D →c E] (curry_val f).
 Proof.
   intros c1 c2 Hc d; simpl.
   apply (mf_mono (cf_mono f)).
   exact (conj Hc (le_refl d)).
 Qed.
 
-Definition curry_mono_fun (f : cont_fun (C * D) E) : mono_fun C (cont_fun D E) :=
+Definition curry_mono_fun (f : [C * D →c E]) : mono_fun C [D →c E] :=
   Build_mono_fun (curry_val f) (curry_mono f).
 
 (*
     [curry_val f] is continuous: for a chain [cs] in [C],
     [curry_val f (⊔ cs) = ⊔_n (curry_val f (cs.[n]))]
-    in the pointwise order on [cont_fun D E].
+    in the pointwise order on [D →c E].
 
     This means: for all [d],
       f(⊔ cs, d) = ⊔_n f(cs.[n], d).
@@ -504,7 +504,7 @@ Definition curry_mono_fun (f : cont_fun (C * D) E) : mono_fun C (cont_fun D E) :
     Proof: fix [d].  The chain [(cs.[0], d), (cs.[1], d), …] in [C × D]
     has sup [(⊔ cs, d)], and continuity of [f] gives the result.
 *)
-Lemma curry_continuous (f : cont_fun (C * D) E) :
+Lemma curry_continuous (f : [C * D →c E]) :
   continuous (curry_mono_fun f).
 Proof.
   apply continuous_of_le; intros cs.
@@ -528,13 +528,13 @@ Proof.
   + apply le_refl.
 Qed.
 
-Definition cont_curry (f : cont_fun (C * D) E) : cont_fun C (cont_fun D E) :=
+Definition cont_curry (f : [C * D →c E]) : [C →c [D →c E]] :=
   Build_cont_fun (curry_mono_fun f) (curry_continuous f).
 
 (*
     Computation rule: [(curry f) c d = f (c, d)].
 *)
-Lemma cont_curry_apply (f : cont_fun (C * D) E) (c : C) (d : D) :
+Lemma cont_curry_apply (f : [C * D →c E]) (c : C) (d : D) :
   cont_curry f c d = f (c, d).
 Proof.
   reflexivity.
@@ -544,14 +544,14 @@ Qed.
 (* --- Uncurry --- *)
 
 (*
-    Uncurrying: given [f : C →c (cont_fun D E)], produce
+    Uncurrying: given [f : C →c [D →c E]], produce
     [uncurry f : C × D →c E] defined by [uncurry f (c, d) = f c d].
 *)
 
-Definition uncurry_fun (f : cont_fun C (cont_fun D E)) : C * D -> E :=
+Definition uncurry_fun (f : [C →c [D →c E]]) : C * D -> E :=
   fun p => (f (fst p)) (snd p).
 
-Lemma uncurry_mono (f : cont_fun C (cont_fun D E)) :
+Lemma uncurry_mono (f : [C →c [D →c E]]) :
   monotone (C * D) E (uncurry_fun f).
 Proof.
   intros [c1 d1] [c2 d2] [Hc Hd]; simpl in *.
@@ -560,7 +560,7 @@ Proof.
   - exact ((mf_mono (cf_mono f) c1 c2 Hc : f c1 ⊑ f c2) d2).
 Qed.
 
-Definition uncurry_mono_fun (f : cont_fun C (cont_fun D E)) : mono_fun (C * D) E :=
+Definition uncurry_mono_fun (f : [C →c [D →c E]]) : mono_fun (C * D) E :=
   Build_mono_fun (uncurry_fun f) (uncurry_mono f).
 
 (*
@@ -570,7 +570,7 @@ Definition uncurry_mono_fun (f : cont_fun C (cont_fun D E)) : mono_fun (C * D) E
     and [cont_prod_map f (cont_id D)] are continuous, so is their composite.
     We verify the equality of underlying functions by [reflexivity].
 *)
-Lemma uncurry_continuous (f : cont_fun C (cont_fun D E)) :
+Lemma uncurry_continuous (f : [C →c [D →c E]]) :
   continuous (uncurry_mono_fun f).
 Proof.
   set (g := cont_comp cont_eval (cont_prod_map f (cont_id D))).
@@ -579,13 +579,13 @@ Proof.
   rewrite Heq. exact (cf_cont g).
 Qed.
 
-Definition cont_uncurry (f : cont_fun C (cont_fun D E)) : cont_fun (C * D) E :=
+Definition cont_uncurry (f : [C →c [D →c E]]) : [C * D →c E] :=
   Build_cont_fun (uncurry_mono_fun f) (uncurry_continuous f).
 
 (*
     Computation rule: [(uncurry f) (c, d) = f c d].
 *)
-Lemma cont_uncurry_apply (f : cont_fun C (cont_fun D E)) (c : C) (d : D) :
+Lemma cont_uncurry_apply (f : [C →c [D →c E]]) (c : C) (d : D) :
   cont_uncurry f (c, d) = f c d.
 Proof.
   reflexivity.
@@ -614,7 +614,7 @@ Context {C D E : CPO.type}.
     curry (uncurry f) = f
     i.e., for all c and d: curry(uncurry f) c d = f c d.
 *)
-Lemma curry_uncurry (f : cont_fun C (cont_fun D E)) :
+Lemma curry_uncurry (f : [C →c [D →c E]]) :
   cont_curry (cont_uncurry f) = f.
 Proof.
   apply cont_fun_ext; intros c.
@@ -626,7 +626,7 @@ Qed.
     uncurry (curry f) = f
     i.e., for all (c,d): uncurry(curry f) (c,d) = f(c,d).
 *)
-Lemma uncurry_curry (f : cont_fun (C * D) E) :
+Lemma uncurry_curry (f : [C * D →c E]) :
   cont_uncurry (cont_curry f) = f.
 Proof.
   apply cont_fun_ext; intros [c d].
@@ -636,7 +636,7 @@ Qed.
 (*
     Curry is natural in C: [curry(f ∘ (g × id)) = (curry f) ∘ g].
 *)
-Lemma curry_comp {C' : CPO.type} (f : cont_fun (C * D) E) (g : cont_fun C' C) :
+Lemma curry_comp {C' : CPO.type} (f : [C * D →c E]) (g : [C' →c C]) :
   cont_curry (cont_comp f (cont_prod_map g (cont_id D))) =
   cont_comp (cont_curry f) g.
 Proof.
@@ -648,7 +648,7 @@ Qed.
 (*
     Eval law: [eval ∘ (curry f × id) = f].
 *)
-Lemma eval_curry (f : cont_fun (C * D) E) :
+Lemma eval_curry (f : [C * D →c E]) :
   cont_comp cont_eval (cont_prod_map (cont_curry f) (cont_id D)) = f.
 Proof.
   apply cont_fun_ext; intros [c d].
@@ -658,7 +658,7 @@ Qed.
 (*
     The universal property: [curry] is the unique map making [eval ∘ (h × id) = f].
 *)
-Lemma curry_unique (f : cont_fun (C * D) E) (h : cont_fun C (cont_fun D E)) :
+Lemma curry_unique (f : [C * D →c E]) (h : [C →c [D →c E]]) :
   (forall c d, cont_eval (h c, d) = f (c, d)) ->
   h = cont_curry f.
 Proof.
@@ -681,7 +681,7 @@ Context {D E : CPO.type}.
 (*
     The sup of a constant chain of functions is the function itself.
 *)
-Lemma fun_sup_const (f : cont_fun D E) :
+Lemma fun_sup_const (f : [D →c E]) :
   ⊔ (const_chain f) = f.
 Proof.
   exact (sup_const_chain f).
@@ -691,7 +691,7 @@ Qed.
     Pointwise sup commutes with application.
     (Re-export of [fun_sup_apply] for downstream convenience.)
 *)
-Lemma sup_apply (fs : chain (cont_fun D E)) (x : D) :
+Lemma sup_apply (fs : chain [D →c E]) (x : D) :
   (⊔ fs) x = ⊔ (pointwise_chain fs x).
 Proof.
   reflexivity.
@@ -701,7 +701,7 @@ Qed.
     The sup of a chain of functions applied to a chain element is bounded
     by the overall sup at the overall sup of the argument chain.
 *)
-Lemma sup_chain_apply_le (fs : chain (cont_fun D E)) (c : chain D) (n : nat) :
+Lemma sup_chain_apply_le (fs : chain [D →c E]) (c : chain D) (n : nat) :
   fs.[n] (c.[n]) ⊑ (⊔ fs) (⊔ c).
 Proof.
   apply le_trans with ((⊔ fs) (c.[n])).

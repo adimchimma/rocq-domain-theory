@@ -1,4 +1,16 @@
-(*  CPO-Enriched Category Structures
+(** * Enriched
+
+    Phase 1: Enriched category structures.
+
+    Definitions to be added:
+    - [IsEnriched]: a category whose hom-sets are CPOs and whose composition
+      is a continuous bifunctor.
+    - [IsLocallyContinuous]: functors between enriched categories that act
+      continuously on each hom-object.
+    - Basic laws: associativity, identity, and continuity of composition.
+*)
+
+(** * CPO-Enriched Category Structures
 
     A category enriched over [CPO] is one in which every hom-set is a
     CPO, and composition is a Scott-continuous operation.
@@ -67,7 +79,7 @@ From HB Require Import structures.
 From DomainTheory.Structures Require Import Order CPO Morphisms.
 
 (* ------------------------------------------------------------------ *)
-(*   §1  The data of a CPO-enriched category                          *)
+(*   The data of a CPO-enriched category                              *)
 (* ------------------------------------------------------------------ *)
 (* 
     [HasHom] equips a type [Obj] of objects with a family of hom-CPOs.
@@ -87,7 +99,7 @@ HB.structure Definition Id_Mor := {Obj & HasId Obj}.
 
 
 (* ------------------------------------------------------------------ *)
-(*   §2  CPO-enrichment axioms                                        *)
+(*   CPO-enrichment axioms                                            *)
 (* ------------------------------------------------------------------ *)
 (* 
   [IsCPOEnriched] bundles the data and axioms of a CPO-enriched category:
@@ -188,7 +200,7 @@ Notation "CPOEnrichedCat.type" := CPOEnrichedCat.type (only parsing).
 
 
 (* ------------------------------------------------------------------ *)
-(*   §3  Packaged composition as cont_fun                             *)
+(*   Packaged composition as cont_fun                                 *)
 (* ------------------------------------------------------------------ *)
 (*
     Package post- and pre-composition as [cont_fun]s.  These are the
@@ -196,20 +208,20 @@ Notation "CPOEnrichedCat.type" := CPOEnrichedCat.type (only parsing).
     [EnrichedTheory.v] when constructing natural transformations. 
 *)
 Definition comp_l_cont_fun {C : CPOEnrichedCat.type} {A B D : C}
-  (f : hom D B) : cont_fun (hom A D) (hom A B) :=
+  (f : hom D B) : [(hom A D) →c (hom A B)] :=
       Build_cont_fun
         (Build_mono_fun (fun (g : hom A D) => f ⊚ g) (comp_mono_l A D B f))
         (comp_cont_l A D B f).
 
 Definition comp_r_cont_fun {C : CPOEnrichedCat.type} {A B D : C}
-  (g : hom A D) : cont_fun (hom D B) (hom A B) :=
+  (g : hom A D) : [(hom D B) →c (hom A B)] :=
       Build_cont_fun
         (Build_mono_fun (fun (f : hom D B) => f ⊚ g) (comp_mono_r _ _ _ g))
         (comp_cont_r _ _ _ g).
 
 
 (* ------------------------------------------------------------------ *)
-(*   §4  Locally continuous covariant endofunctors                    *)
+(*   Locally continuous covariant endofunctors                        *)
 (* ------------------------------------------------------------------ *)
 (*
     An endofunctor on a [CPOEnrichedCat] consists of:
@@ -285,14 +297,14 @@ Notation "LocallyContinuousFunctor.type" :=
 
 (* Package [F_mor] as a [cont_fun] for use with [Morphisms.v]. *)
 Definition F_mor_cont_fun {C : LocallyContinuousFunctor.type} {A B : C}
-    : cont_fun (hom A B) (hom (F_obj A) (F_obj B)) :=
+    : [(hom A B) →c (hom (F_obj A) (F_obj B))] :=
   Build_cont_fun
     (Build_mono_fun (fun H => F_mor A B H) (F_mor_mono _ _))
     (F_mor_cont A B).
 
 
 (* ------------------------------------------------------------------ *)
-(*   §5  Mixed-variance bifunctors (data; axioms in DomainEquations)  *)
+(*   Mixed-variance bifunctors (data; axioms in DomainEquations)      *)
 (* ------------------------------------------------------------------ *)
 (* 
     For recursive domain equations [X ≅ F(X, X)] where [F] is

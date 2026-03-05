@@ -30,10 +30,10 @@
 
     Note on FIXP
     ============
-    [FIXP : cont_fun (cont_fun_cpo D D) D] — the fixed-point operator as a
+    [FIXP : [(cont_fun_cpo D D) →c D]] — the fixed-point operator as a
     continuous function from the function-space CPO to [D] — is stated at the
     end of this file but its proof is deferred to [FunctionSpaces.v], since
-    stating it requires [cont_fun D D] to carry a [CPO.type] structure
+    stating it requires [[D →c D]] to carry a [CPO.type] structure
     (the pointwise CPO), which is constructed there.
 
     References: Abramsky & Jung §2.1.3; Benton-Kennedy §2.1.
@@ -53,7 +53,7 @@ From DomainTheory.Theory Require Import OrderTheory ChainTheory CPOTheory.
 
 
 (* ================================================================== *)
-(*   §1  Iteration operator                                           *)
+(*   Iteration operator                                               *)
 (* ================================================================== *)
 (*
     [iter f n] is the [n]-th iterate of [f] applied to [⊥]:
@@ -68,19 +68,19 @@ From DomainTheory.Theory Require Import OrderTheory ChainTheory CPOTheory.
 Section Iter.
 Context {D : PointedCPO.type}.
 
-Fixpoint iter (f : cont_fun D D) (n : nat) : D :=
+Fixpoint iter (f : [D →c D]) (n : nat) : D :=
   match n with
   | O   => ⊥
   | S k => f (iter f k)
   end.
 
 (** Both equations are definitional. *)
-Lemma iter_zero (f : cont_fun D D) : iter f 0 = ⊥.
+Lemma iter_zero (f : [D →c D]) : iter f 0 = ⊥.
 Proof.
     reflexivity.
 Qed.
 
-Lemma iter_succ (f : cont_fun D D) (n : nat) : iter f (S n) = f (iter f n).
+Lemma iter_succ (f : [D →c D]) (n : nat) : iter f (S n) = f (iter f n).
 Proof. 
     reflexivity. 
 Qed.
@@ -91,7 +91,7 @@ Qed.
     - n = 0: [⊥ ⊑ f(⊥)] by [bottom_least].
     - S n:   [f(iter f n) ⊑ f(iter f (S n))] by monotonicity and the IH.
 *)
-Lemma iter_succ_le (f : cont_fun D D) (n : nat) : iter f n ⊑ iter f (S n).
+Lemma iter_succ_le (f : [D →c D]) (n : nat) : iter f n ⊑ iter f (S n).
 Proof.
     induction n.
     - exact (bottom_least (f ⊥)).
@@ -104,7 +104,7 @@ Qed.
     The iteration sequence is weakly increasing: [m ≤ n → iter f m ⊑ iter f n].
     Proof by induction on the proof of [m ≤ n].
 *)
-Lemma iter_mono (f : cont_fun D D) {m n : nat} (H : m <= n) :
+Lemma iter_mono (f : [D →c D]) {m n : nat} (H : m <= n) :
     iter f m ⊑ iter f n.
 Proof.
     induction H.
@@ -122,7 +122,7 @@ Qed.
     - S n: [f(iter f n) ⊑ f(iter g n)] by mono of [f] and IH,
            then [⊑ g(iter g n)] by the pointwise bound.
 *)
-Lemma iter_mono_fun (f g : cont_fun D D)
+Lemma iter_mono_fun (f g : [D →c D])
     (Hle : forall x, f x ⊑ g x) (n : nat) :
     iter f n ⊑ iter g n.
 Proof.
@@ -138,7 +138,7 @@ End Iter.
 
 
 (* ================================================================== *)
-(*  §2  The Kleene chain and fixed point                              *)
+(*  The Kleene chain and fixed point                                  *)
 (* ================================================================== *)
 (*
     The _Kleene chain_ of [f] is the ω-chain [n ↦ iter f n]:
@@ -150,23 +150,23 @@ End Iter.
 Section KleeneChain.
 Context {D : PointedCPO.type}.
 
-Definition kleene_chain (f : cont_fun D D) : chain D :=
+Definition kleene_chain (f : [D →c D]) : chain D :=
   Build_chain (iter f) (fun m n H => iter_mono f H).
 
-Lemma kleene_chain_index (f : cont_fun D D) (n : nat) :
+Lemma kleene_chain_index (f : [D →c D]) (n : nat) :
     (kleene_chain f).[n] = iter f n.
 Proof.
     reflexivity.
 Qed.
 
 (** The Kleene fixed point. *)
-Definition fixp (f : cont_fun D D) : D := ⊔ (kleene_chain f).
+Definition fixp (f : [D →c D]) : D := ⊔ (kleene_chain f).
 
 End KleeneChain.
 
 
 (* ================================================================== *)
-(*   §3  [fixp f] is a fixed point of [f]                             *)
+(*   [fixp f] is a fixed point of [f]                                 *)
 (* ================================================================== *)
 (*
     [f (fixp f) = fixp f].
@@ -190,14 +190,14 @@ Context {D : PointedCPO.type}.
     [map_chain f (kleene_chain f)] and [tail_chain (kleene_chain f)] agree
     pointwise (both equal [iter f (S n)] at each index). 
 *)
-Lemma kleene_map_eq_tail (f : cont_fun D D) (n : nat) :
+Lemma kleene_map_eq_tail (f : [D →c D]) (n : nat) :
     (map_chain (cf_mono f) (kleene_chain f)).[n] =
     (tail_chain (kleene_chain f)).[n].
 Proof.
     reflexivity.
 Qed.
 
-Theorem fixp_is_fixedpoint (f : cont_fun D D) : f (fixp f) = fixp f.
+Theorem fixp_is_fixedpoint (f : [D →c D]) : f (fixp f) = fixp f.
 Proof.
   unfold fixp.
   rewrite cf_cont.
@@ -215,7 +215,7 @@ Qed.
     This is just [fixp_is_fixedpoint] restated, sometimes useful for
     rewriting in the other direction.
 *)
-Lemma fixp_unfold (f : cont_fun D D) : fixp f = f (fixp f).
+Lemma fixp_unfold (f : [D →c D]) : fixp f = f (fixp f).
 Proof.
     exact (eq_sym (fixp_is_fixedpoint f)).
 Qed.
@@ -224,7 +224,7 @@ Qed.
     [fixp f] is a prefixed point: [f (fixp f) ⊑ fixp f].
     Immediate from the fixed-point equation. 
 *)
-Lemma fixp_is_prefixedpoint (f : cont_fun D D) : f (fixp f) ⊑ fixp f.
+Lemma fixp_is_prefixedpoint (f : [D →c D]) : f (fixp f) ⊑ fixp f.
 Proof.
     rewrite fixp_is_fixedpoint; apply le_refl.
 Qed.
@@ -233,7 +233,7 @@ Qed.
     [fixp f] is a postfixed point: [fixp f ⊑ f (fixp f)].
     Also immediate. 
 *)
-Lemma fixp_is_postfixedpoint (f : cont_fun D D) : fixp f ⊑ f (fixp f).
+Lemma fixp_is_postfixedpoint (f : [D →c D]) : fixp f ⊑ f (fixp f).
 Proof.
     rewrite fixp_is_fixedpoint; apply @le_refl.
 Qed.
@@ -241,7 +241,7 @@ Qed.
 (*
     Each iterate is below the fixed point.
 *)
-Lemma iter_le_fixp (f : cont_fun D D) (n : nat) : iter f n ⊑ fixp f.
+Lemma iter_le_fixp (f : [D →c D]) (n : nat) : iter f n ⊑ fixp f.
 Proof.
     unfold fixp.
     exact (sup_upper (kleene_chain f) n).
@@ -251,7 +251,7 @@ End FixpIsFixedPoint.
 
 
 (* ================================================================== *)
-(*   §4  [fixp f] is the LEAST fixed point                            *)
+(*   [fixp f] is the LEAST fixed point                                *)
 (* ================================================================== *)
 (*
     [fixp f] is not just any fixed point — it is the least one.
@@ -272,7 +272,7 @@ Context {D : PointedCPO.type}.
 (*
     Every iterate is below any prefixed point. 
 *)
-Lemma iter_le_prefixedpoint (f : cont_fun D D) (x : D)
+Lemma iter_le_prefixedpoint (f : [D →c D]) (x : D)
     (Hfx : f x ⊑ x) (n : nat) : iter f n ⊑ x.
 Proof.
   induction n.
@@ -283,7 +283,7 @@ Qed.
 (*
     [fixp f] is the least prefixed point of [f]. 
 *)
-Theorem fixp_least (f : cont_fun D D) (x : D) :
+Theorem fixp_least (f : [D →c D]) (x : D) :
     f x ⊑ x -> fixp f ⊑ x.
 Proof.
     intros Hfx.
@@ -295,7 +295,7 @@ Qed.
 (*
     Consequently, [fixp f] is the least fixed point of [f]. 
 *)
-Corollary fixp_least_fixedpoint (f : cont_fun D D) (x : D) :
+Corollary fixp_least_fixedpoint (f : [D →c D]) (x : D) :
     f x = x -> fixp f ⊑ x.
 Proof.
     intros Heq.
@@ -307,7 +307,7 @@ Qed.
     Characterisation: [fixp f] is uniquely determined by being a
     fixed point that is below every prefixed point.
 *)
-Lemma fixp_characterisation (f : cont_fun D D) (x : D) :
+Lemma fixp_characterisation (f : [D →c D]) (x : D) :
     f x = x ->
     (forall y, f y ⊑ y -> x ⊑ y) ->
     x = fixp f.
@@ -323,7 +323,7 @@ Qed.
 (*
     [⊥] is below [fixp f]: the Kleene sequence starts below the fixed point. 
 *)
-Lemma bottom_le_fixp (f : cont_fun D D) : (⊥ : D) ⊑ fixp f.
+Lemma bottom_le_fixp (f : [D →c D]) : (⊥ : D) ⊑ fixp f.
 Proof.
     exact (bottom_least (fixp f)).
 Qed.
@@ -332,7 +332,7 @@ End FixpLeast.
 
 
 (* ================================================================== *)
-(*   §5  Fixed-point induction (Scott's induction principle)          *)
+(*   Fixed-point induction (Scott's induction principle)              *)
 (* ================================================================== *)
 (*
     The _fixed-point induction principle_ states: to prove a property [P]
@@ -356,7 +356,7 @@ Context {D : PointedCPO.type}.
 (*
     Every iterate satisfies [P], given the three hypotheses. 
 *)
-Lemma iter_satisfies (f : cont_fun D D) (P : D -> Prop) :
+Lemma iter_satisfies (f : [D →c D]) (P : D -> Prop) :
     P ⊥ ->
     (forall x, P x -> P (f x)) ->
     forall n, P (iter f n).
@@ -370,7 +370,7 @@ Qed.
 (*
     Scott fixed-point induction. 
 *)
-Theorem fixp_ind (f : cont_fun D D) (P : D -> Prop) :
+Theorem fixp_ind (f : [D →c D]) (P : D -> Prop) :
     admissible P ->
     P ⊥ ->
     (forall x, P x -> P (f x)) ->
@@ -387,7 +387,7 @@ Qed.
     Variant: induction up to a bound.  If [P] holds at ⊥ and is preserved
     by [f], then [P (iter f n)] for every [n]. 
 *)
-Lemma fixp_ind_iterate (f : cont_fun D D) (P : D -> Prop) (n : nat) :
+Lemma fixp_ind_iterate (f : [D →c D]) (P : D -> Prop) (n : nat) :
     P ⊥ ->
     (forall x, P x -> P (f x)) ->
     P (iter f n).
@@ -398,11 +398,11 @@ Qed.
 
 (*
     A refinement using the preimage-admissibility from CPOTheory:
-    if [P = Q ∘ g] for some [g : cont_fun D E] and admissible [Q] on [E],
+    if [P = Q ∘ g] for some [g : [D →c E]] and admissible [Q] on [E],
     then [P] is admissible and we can apply [fixp_ind] directly. 
 *)
 Lemma fixp_ind_preimage {E : CPO.type}
-    (f : cont_fun D D) (g : cont_fun D E) (Q : E -> Prop) :
+    (f : [D →c D]) (g : [D →c E]) (Q : E -> Prop) :
     admissible Q ->
     Q (g ⊥) ->
     (forall x, Q (g x) -> Q (g (f x))) ->
@@ -420,7 +420,7 @@ Qed.
     to show [fixp f ⊑ x], it suffices to show [f x ⊑ x].
     (This is [fixp_least], restated in induction-principle style.) 
 *)
-Lemma fixp_ind_le (f : cont_fun D D) (x : D) :
+Lemma fixp_ind_le (f : [D →c D]) (x : D) :
     f x ⊑ x -> fixp f ⊑ x.
 Proof.
     exact (fixp_least f x).
@@ -430,7 +430,7 @@ End FixpInd.
 
 
 (* ================================================================== *)
-(*   §6  Monotonicity of [fixp] in [f]                                *)
+(*   Monotonicity of [fixp] in [f]                                    *)
 (* ================================================================== *)
 (*
     [fixp] is monotone with respect to the pointwise order on continuous
@@ -443,7 +443,7 @@ End FixpInd.
 Section FixpMono.
 Context {D : PointedCPO.type}.
 
-Theorem fixp_mono (f g : cont_fun D D) :
+Theorem fixp_mono (f g : [D →c D]) :
     (forall x, f x ⊑ g x) -> fixp f ⊑ fixp g.
 Proof.
     intros Hle.
@@ -457,7 +457,7 @@ Qed.
     Pointwise equality of [f] and [g] implies equality of their fixed points.
     Proof: two applications of [fixp_mono]. 
 *)
-Corollary fixp_mono_eq (f g : cont_fun D D) :
+Corollary fixp_mono_eq (f g : [D →c D]) :
     (forall x, f x = g x) -> fixp f = fixp g.
 Proof.
     intros Heq.
@@ -470,7 +470,7 @@ Qed.
     (i.e. when [f ⊥ ≠ ⊥]).  We state the contrapositive: if [fixp f = ⊥],
     then every iterate is [⊥].
 *)
-Lemma fixp_eq_bottom_iter (f : cont_fun D D) :
+Lemma fixp_eq_bottom_iter (f : [D →c D]) :
     fixp f = ⊥ -> forall n, iter f n = ⊥.
 Proof.
     intros Hbottom n.
@@ -500,7 +500,7 @@ End FixpMono.
 (*
     The _internalized_ fixed-point operator
 
-        FIXP : cont_fun (cont_fun_cpo D D) D
+        FIXP : [(cont_fun_cpo D D) →c D]
 
     where [cont_fun_cpo D D] is the function-space CPO (continuous
     functions from [D] to [D] ordered pointwise), is deferred to

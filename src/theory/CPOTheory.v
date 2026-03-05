@@ -46,7 +46,7 @@ From Stdlib Require Import PeanoNat.
 
 
 (* ================================================================== *)
-(*   §1  Sup characterisation lemmas                                  *)
+(*   Sup characterisation lemmas                                      *)
 (* ================================================================== *)
 
 Section SupLemmas.
@@ -204,7 +204,7 @@ End SupLemmas.
 
 
 (* ================================================================== *)
-(*   §2  Sup and [map_chain]                                          *)
+(*   Sup and [map_chain]                                              *)
 (* ================================================================== *)
 
 Section SupMapChain.
@@ -253,7 +253,7 @@ Qed.
       [f (⊔ c) = ⊔ (map_chain f c)]
     This is just unfolding [continuous]. 
 *)
-Lemma cont_apply_sup {D E : CPO.type} (f : cont_fun D E) (c : chain D) :
+Lemma cont_apply_sup {D E : CPO.type} (f : [D →c E]) (c : chain D) :
     f (⊔ c) = ⊔ (map_chain (cf_mono f) c).
 Proof.
     exact (cf_cont f c).
@@ -263,7 +263,7 @@ Qed.
     Image of sup under a cont_fun, stated in the other direction for
     convenience in proofs that need the ⊑ form. 
 *)
-Lemma cont_apply_sup_le {D E : CPO.type} (f : cont_fun D E) (c : chain D) (n : nat) :
+Lemma cont_apply_sup_le {D E : CPO.type} (f : [D →c E]) (c : chain D) (n : nat) :
     f (c.[n]) ⊑ f (⊔ c).
 Proof.
     apply mf_mono.
@@ -287,7 +287,7 @@ End SupMapChain.
 
 
 (* ================================================================== *)
-(*   §3  Scott continuity                                             *)
+(*   Scott continuity                                                 *)
 (* ================================================================== *)
 
 Section ContinuityLemmas.
@@ -354,7 +354,7 @@ Qed.
     functions, then [proof_irrelevance] for the monotonicity and
     continuity proofs. 
 *)
-Lemma cont_fun_ext {D E : CPO.type} (f g : cont_fun D E) :
+Lemma cont_fun_ext {D E : CPO.type} (f g : [D →c E]) :
     (forall x, f x = g x) -> f = g.
 Proof.
     intros Hext.
@@ -387,7 +387,7 @@ Qed.
       [f (⊔ c) = ⊔ (map_chain f (chain_shift k c))]
     because [⊔ (chain_shift k c) = ⊔ c] and continuity.
 *)
-Lemma cont_apply_sup_shift {D E : CPO.type} (f : cont_fun D E) (k : nat) (c : chain D) :
+Lemma cont_apply_sup_shift {D E : CPO.type} (f : [D →c E]) (k : nat) (c : chain D) :
     f (⊔ c) = ⊔ (map_chain (cf_mono f) (chain_shift k c)).
 Proof.
     rewrite <- sup_shift with (k := k).
@@ -397,7 +397,7 @@ Qed.
 (*
     A continuous function commutes with the tail chain sup: 
 *)
-Lemma cont_apply_sup_tail {D E : CPO.type} (f : cont_fun D E) (c : chain D) :
+Lemma cont_apply_sup_tail {D E : CPO.type} (f : [D →c E]) (c : chain D) :
     f (⊔ c) = ⊔ (map_chain (cf_mono f) (tail_chain c)).
 Proof.
     rewrite <- sup_tail.
@@ -408,7 +408,7 @@ End ContinuityLemmas.
 
 
 (* ================================================================== *)
-(*   §4  Admissible predicates and chain Scott induction              *)
+(*   Admissible predicates and chain Scott induction                  *)
 (* ================================================================== *)
 (*
     A predicate [P : D → Prop] on a CPO is _admissible_ if it is
@@ -509,7 +509,7 @@ Qed.
     Image of an admissible predicate under a continuous function is admissible:
     if [P] is admissible on [E] and [f : D →c E], then [fun x => P (f x)] is admissible. 
 *)
-Lemma admissible_preimage {E : CPO.type} (f : cont_fun D E) (P : E -> Prop) :
+Lemma admissible_preimage {E : CPO.type} (f : [D →c E]) (P : E -> Prop) :
     admissible P -> admissible (fun x => P (f x)).
 Proof.
     intros HP c Hchain.
@@ -522,7 +522,7 @@ End AdmissibilityLemmas.
 
 
 (* ================================================================== *)
-(*   §5  PointedCPO consequences                                      *)
+(*   PointedCPO consequences                                          *)
 (* ================================================================== *)
 (*
     Additional lemmas that require the bottom element [⊥]. 

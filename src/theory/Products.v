@@ -49,7 +49,7 @@ From DomainTheory.Structures Require Import Order CPO Morphisms.
 From DomainTheory.Theory Require Import OrderTheory CPOTheory.
 
 (* ================================================================== *)
-(*   §1  Pointwise order on [D * E]                                   *)
+(*   Pointwise order on [D * E]                                       *)
 (* ================================================================== *)
 (*
     The pointwise order on [D * E]:
@@ -102,7 +102,7 @@ HB.instance Definition prod_IsPartialOrder {D E : CPO.type} :=
 
 
 (* ================================================================== *)
-(*   §2  Componentwise sup                                            *)
+(*   Componentwise sup                                                *)
 (* ================================================================== *)
 (*
     The sup of a chain [c : chain (D * E)] is the pair of the sups of
@@ -168,7 +168,7 @@ HB.instance Definition prod_IsCPO {D E : CPO.type} :=
 
 
 (* ================================================================== *)
-(*   §3  Monotone projections and pairing                             *)
+(*   Monotone projections and pairing                                 *)
 (* ================================================================== *)
 
 Section ProdMono.
@@ -225,7 +225,7 @@ Definition mono_prod_map {D' E' : CPO.type}
 End ProdMono.
 
 (* ================================================================== *)
-(*   §4  Continuity of projections, pairing, and product map          *)
+(*   Continuity of projections, pairing, and product map              *)
 (* ================================================================== *)
 
 Section ProdCont.
@@ -242,7 +242,7 @@ Proof.
     intros c. reflexivity.
 Qed.
 
-Definition π₁ : cont_fun (D * E) D :=
+Definition π₁ : [(D * E) →c D] :=
   Build_cont_fun fst_mono continuous_fst.
 
 (*
@@ -253,7 +253,7 @@ Proof.
     intros c. reflexivity.
 Qed.
 
-Definition π₂ : cont_fun (D * E) E :=
+Definition π₂ : [(D * E) →c E] :=
   Build_cont_fun snd_mono continuous_snd.
 
 (*
@@ -270,7 +270,7 @@ Definition π₂ : cont_fun (D * E) E :=
     - snd component similarly.
 *)
 Lemma continuous_pair {C D0 E0 : CPO.type}
-    (f : cont_fun C D0) (g : cont_fun C E0) :
+    (f : [C →c D0]) (g : [C →c E0]) :
     continuous (mono_pair (cf_mono f) (cf_mono g)).
 Proof.
     intros c.
@@ -289,8 +289,8 @@ Qed.
     Notation: [⟨f, g⟩] in the thesis; [cont_pair f g] in Rocq. 
 *)
 Definition cont_pair {C D0 E0 : CPO.type}
-    (f : cont_fun C D0) (g : cont_fun C E0)
-    : cont_fun C (D0 * E0) :=
+    (f : [C →c D0]) (g : [C →c E0])
+    : [C →c (D0 * E0)] :=
   Build_cont_fun (mono_pair (cf_mono f) (cf_mono g)) (continuous_pair f g).
 
 Notation "⟨ f , g ⟩" := (cont_pair f g) (at level 0, f at level 99).
@@ -300,7 +300,7 @@ Notation "⟨ f , g ⟩" := (cont_pair f g) (at level 0, f at level 99).
     Follows from [continuous_pair] applied to [f ∘ π₁] and [g ∘ π₂]. 
 *)
 Lemma continuous_prod_map {D' E' : CPO.type}
-    (f : cont_fun D D') (g : cont_fun E E') :
+    (f : [D →c D']) (g : [E →c E']) :
     continuous (mono_prod_map (cf_mono f) (cf_mono g)).
 Proof.
     intros c; apply le_antisym.
@@ -317,8 +317,8 @@ Proof.
 Qed.
 
 Definition cont_prod_map {D' E' : CPO.type}
-    (f : cont_fun D D') (g : cont_fun E E')
-    : cont_fun (D * E) (D' * E') :=
+    (f : [D →c D']) (g : [E →c E'])
+    : [(D * E) →c (D' * E')] :=
   Build_cont_fun
     (mono_prod_map (cf_mono f) (cf_mono g))
     (continuous_prod_map f g).
@@ -326,7 +326,7 @@ Definition cont_prod_map {D' E' : CPO.type}
 (*
     The swap map [D×E →c E×D]: swaps the two components. 
 *)
-Definition cont_swap : cont_fun (D * E) (E * D) :=
+Definition cont_swap : [(D * E) →c (E * D)] :=
   cont_pair π₂ π₁.
 
 End ProdCont.
@@ -338,7 +338,7 @@ Notation "⟨ f , g ⟩" := (cont_pair f g) (at level 0, f at level 99).
 
 
 (* ================================================================== *)
-(*   §5  Universal property                                           *)
+(*   Universal property                                               *)
 (* ================================================================== *)
 (*
     The product [D × E] satisfies the universal property of categorical
@@ -354,7 +354,7 @@ Section ProdUniversal.
 Context {D E : CPO.type}.
 
 (* β-reduction: [π₁ ∘ ⟨f,g⟩ = f]. *)
-Lemma cont_pair_fst {C : CPO.type} (f : cont_fun C D) (g : cont_fun C E) :
+Lemma cont_pair_fst {C : CPO.type} (f : [C →c D]) (g : [C →c E]) :
     cont_comp π₁ ⟨f,g⟩ = f.
 Proof.
     apply cont_fun_eq.
@@ -363,7 +363,7 @@ Proof.
 Qed.
 
 (* β-reduction: [π₂ ∘ ⟨f,g⟩ = g]. *)
-Lemma cont_pair_snd {C : CPO.type} (f : cont_fun C D) (g : cont_fun C E) :
+Lemma cont_pair_snd {C : CPO.type} (f : [C →c D]) (g : [C →c E]) :
     cont_comp π₂ ⟨f,g⟩ = g.
 Proof.
     apply cont_fun_eq.
@@ -374,7 +374,7 @@ Qed.
 (*
     η-expansion: any [h : C →c D×E] equals [⟨π₁ ∘ h, π₂ ∘ h⟩]. 
 *)
-Lemma cont_pair_eta {C : CPO.type} (h : cont_fun C (D * E)) :
+Lemma cont_pair_eta {C : CPO.type} (h : [C →c (D * E)]) :
     h = ⟨cont_comp π₁ h, cont_comp π₂ h⟩.
 Proof.
     apply cont_fun_ext; intros x.
@@ -384,8 +384,8 @@ Qed.
 (*
     Uniqueness: if [h] satisfies the two β-laws, then [h = ⟨f,g⟩]. 
 *)
-Lemma cont_pair_unique {C : CPO.type} (f : cont_fun C D) (g : cont_fun C E)
-    (h : cont_fun C (D * E)) :
+Lemma cont_pair_unique {C : CPO.type} (f : [C →c D]) (g : [C →c E])
+    (h : [C →c (D * E)]) :
     cont_comp π₁ h = f ->
     cont_comp π₂ h = g ->
     h = ⟨f, g⟩.
@@ -399,7 +399,7 @@ Qed.
     Functoriality of pairing: [⟨f∘k, g∘k⟩ = ⟨f,g⟩ ∘ k]. 
 *)
 Lemma cont_pair_comp {C C' : CPO.type}
-    (f : cont_fun C' D) (g : cont_fun C' E) (k : cont_fun C C') :
+    (f : [C' →c D]) (g : [C' →c E]) (k : [C →c C']) :
     ⟨cont_comp f k, cont_comp g k⟩ = cont_comp ⟨f, g⟩ k.
 Proof.
     apply cont_fun_ext; intros x.
@@ -419,7 +419,7 @@ End ProdUniversal.
 
 
 (* ================================================================== *)
-(*   §6  PointedCPO product                                           *)
+(*   PointedCPO product                                               *)
 (* ================================================================== *)
 (*
     If [D] and [E] are pointed CPOs, so is [D × E], with [⊥ = (⊥, ⊥)].
@@ -523,9 +523,9 @@ Qed.
     Pairing commutes with sup:
     [⟨f,g⟩(⊔ c) = (f(⊔ c), g(⊔ c))]. 
 *)
-Lemma cont_pair_sup {C : CPO.type} (f : cont_fun C D) (g : cont_fun C E)
+Lemma cont_pair_sup {C : CPO.type} (f : [C →c D]) (g : [C →c E])
     (c : chain C) :
-    (⟨f, g⟩ : cont_fun C (D * E)) (⊔ c) = (f (⊔ c), g (⊔ c)).
+    (⟨f, g⟩ : [C →c (D * E)]) (⊔ c) = (f (⊔ c), g (⊔ c)).
 Proof.
     reflexivity.
 Qed.

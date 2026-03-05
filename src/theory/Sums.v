@@ -449,10 +449,10 @@ Proof.
     - exact (eq_sym Hsup).
 Qed.
 
-Definition cont_inl : cont_fun D (D + E) :=
+Definition cont_inl : [D →c (D + E)] :=
   Build_cont_fun inl_mono continuous_inl.
 
-Definition cont_inr : cont_fun E (D + E) :=
+Definition cont_inr : [E →c (D + E)] :=
   Build_cont_fun inr_mono continuous_inr.
 
 (* Thesis notation *)
@@ -492,11 +492,11 @@ Notation ι₂ := cont_inr.
 Section SumCopairing.
 Context {D E F : CPO.type}.
 
-Definition sum_case_fun (f : cont_fun D F) (g : cont_fun E F)
+Definition sum_case_fun (f : [D →c F]) (g : [E →c F])
     (x : D + E) : F :=
   match x with inl a => f a | inr b => g b end.
 
-Lemma sum_case_mono (f : cont_fun D F) (g : cont_fun E F) :
+Lemma sum_case_mono (f : [D →c F]) (g : [E →c F]) :
     monotone (D + E) F (sum_case_fun f g).
 Proof.
     intros x y Hxy.
@@ -505,7 +505,7 @@ Proof.
   - exact (mf_mono (cf_mono g) _ _ Hxy).
 Qed.
 
-Definition sum_case_mfun (f : cont_fun D F) (g : cont_fun E F)
+Definition sum_case_mfun (f : [D →c F]) (g : [E →c F])
     : mono_fun (D + E) F :=
   Build_mono_fun (sum_case_fun f g) (sum_case_mono f g).
 
@@ -515,7 +515,7 @@ Definition sum_case_mfun (f : cont_fun D F) (g : cont_fun E F)
     stability to show all elements live in that summand, and finally
     reduce to continuity of [f] (or [g]).
 *)
-Lemma continuous_sum_case (f : cont_fun D F) (g : cont_fun E F) :
+Lemma continuous_sum_case (f : [D →c F]) (g : [E →c F]) :
     continuous (sum_case_mfun f g).
 Proof.
     intros c.
@@ -552,18 +552,18 @@ Proof.
           -- exact (eq_sym Hcase).
 Qed.
 
-Definition sum_case (f : cont_fun D F) (g : cont_fun E F)
-    : cont_fun (D + E) F :=
+Definition sum_case (f : [D →c F]) (g : [E →c F])
+    : [(D + E) →c F] :=
   Build_cont_fun (sum_case_mfun f g) (continuous_sum_case f g).
 
 (* β-reductions for [sum_case]. *)
-Lemma sum_case_inl (f : cont_fun D F) (g : cont_fun E F) (a : D) :
+Lemma sum_case_inl (f : [D →c F]) (g : [E →c F]) (a : D) :
     sum_case f g (inl a) = f a.
 Proof.
     reflexivity.
 Qed.
 
-Lemma sum_case_inr (f : cont_fun D F) (g : cont_fun E F) (b : E) :
+Lemma sum_case_inr (f : [D →c F]) (g : [E →c F]) (b : E) :
     sum_case f g (inr b) = g b.
 Proof.
     reflexivity.
@@ -572,13 +572,13 @@ Qed.
 (*
     Universal property: β-reductions stated as composition equalities. 
 *)
-Lemma sum_case_comp_inl (f : cont_fun D F) (g : cont_fun E F) :
+Lemma sum_case_comp_inl (f : [D →c F]) (g : [E →c F]) :
     cont_comp (sum_case f g) cont_inl = f.
 Proof.
     apply cont_fun_ext; intros a; reflexivity.
 Qed.
 
-Lemma sum_case_comp_inr (f : cont_fun D F) (g : cont_fun E F) :
+Lemma sum_case_comp_inr (f : [D →c F]) (g : [E →c F]) :
     cont_comp (sum_case f g) cont_inr = g.
 Proof.
     apply cont_fun_ext; intros b; reflexivity.
@@ -587,7 +587,7 @@ Qed.
 (*
     η-expansion: any [h : D+E →c F] equals [sum_case (h ∘ ι₁) (h ∘ ι₂)]. 
 *)
-Lemma sum_case_eta (h : cont_fun (D + E) F) :
+Lemma sum_case_eta (h : [(D + E) →c F]) :
     h = sum_case (cont_comp h cont_inl) (cont_comp h cont_inr).
 Proof.
     apply cont_fun_ext; intros x.
@@ -597,8 +597,8 @@ Qed.
 (*
     Uniqueness: if [h ∘ ι₁ = f] and [h ∘ ι₂ = g], then [h = sum_case f g]. 
 *)
-Lemma sum_case_unique (f : cont_fun D F) (g : cont_fun E F)
-    (h : cont_fun (D + E) F) :
+Lemma sum_case_unique (f : [D →c F]) (g : [E →c F])
+    (h : [(D + E) →c F]) :
     cont_comp h cont_inl = f ->
     cont_comp h cont_inr = g ->
     h = sum_case f g.
@@ -616,7 +616,7 @@ Close Scope type_scope.
 *)
 Lemma sum_case_comp_fusion_poly
     {D E F F' : CPO.type}
-    (f : cont_fun D F) (g : cont_fun E F) (h : cont_fun F F') :
+    (f : [D →c F]) (g : [E →c F]) (h : [F →c F']) :
     cont_comp h (sum_case f g) =
     @sum_case D E F' (cont_comp h f) (cont_comp h g).
 Proof.

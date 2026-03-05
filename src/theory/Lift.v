@@ -449,7 +449,7 @@ Proof.
     reflexivity.
 Qed.
 
-Definition ret : cont_fun D (option D) :=
+Definition ret : [D →c (option D)] :=
   Build_cont_fun ret_mono continuous_ret.
 
 Lemma ret_some (d : D) : ret d = Some d.
@@ -480,10 +480,10 @@ End LiftUnit.
 Section LiftKleisli.
 Context {D E : CPO.type}.
 
-Definition kleisli_fun (f : cont_fun D (option E)) (x : option D) : option E :=
+Definition kleisli_fun (f : [D →c (option E)]) (x : option D) : option E :=
   match x with Some d => f d | None => None end.
 
-Lemma kleisli_mono (f : cont_fun D (option E)) :
+Lemma kleisli_mono (f : [D →c (option E)]) :
     monotone (option D) (option E) (kleisli_fun f).
 Proof.
   intros x y Hxy.
@@ -494,14 +494,14 @@ Proof.
   - exact I.
 Qed.
 
-Definition kleisli_mfun (f : cont_fun D (option E)) : mono_fun (option D) (option E) :=
+Definition kleisli_mfun (f : [D →c (option E)]) : mono_fun (option D) (option E) :=
   Build_mono_fun (kleisli_fun f) (kleisli_mono f).
 
 (*
     Index-shift equality: [(map_chain (kleisli f) c).[N+k] = (map_chain f D_chain).[k]].
 *)
 Lemma kleisli_map_chain_shift_eq
-    (f : cont_fun D (option E)) (c : chain (option D))
+    (f : [D →c (option E)]) (c : chain (option D))
     (N : nat) (d₀ : D) (HN : c.[N] <> None) (k : nat) :
     (map_chain (kleisli_mfun f) c).[N + k] =
     (map_chain (cf_mono f) (D_chain N d₀ c HN)).[k].
@@ -516,7 +516,7 @@ Proof.
     contradiction.
 Qed.
 
-Lemma continuous_kleisli (f : cont_fun D (option E)) :
+Lemma continuous_kleisli (f : [D →c (option E)]) :
     continuous (kleisli_mfun f).
 Proof.
   intros c.
@@ -566,15 +566,15 @@ Proof.
     + exact (eq_sym Hsupk).
 Qed.
 
-Definition kleisli (f : cont_fun D (option E)) : cont_fun (option D) (option E) :=
+Definition kleisli (f : [D →c (option E)]) : [(option D) →c (option E)] :=
   Build_cont_fun (kleisli_mfun f) (continuous_kleisli f).
 
-Lemma kleisli_none (f : cont_fun D (option E)) : kleisli f None = None.
+Lemma kleisli_none (f : [D →c (option E)]) : kleisli f None = None.
 Proof.
   reflexivity.
 Qed.
 
-Lemma kleisli_some (f : cont_fun D (option E)) (d : D) : kleisli f (Some d) = f d.
+Lemma kleisli_some (f : [D →c (option E)]) (d : D) : kleisli f (Some d) = f d.
 Proof.
   reflexivity.
 Qed.
@@ -590,7 +590,7 @@ Section LiftMonadLaws.
 Context {D E F : CPO.type}.
 
 (* (ML1) Left unit: [kleisli f ∘ ret = f] *)
-Lemma kleisli_ret_left (f : cont_fun D (option E)) :
+Lemma kleisli_ret_left (f : [D →c (option E)]) :
     cont_comp (kleisli f) (ret (D := D)) = f.
 Proof.
   apply cont_fun_ext; intros; reflexivity.
@@ -605,7 +605,7 @@ Proof.
 Qed.
 
 (* (ML3) Associativity: [kleisli g ∘ kleisli f = kleisli (kleisli g ∘ f)] *)
-Lemma kleisli_assoc (f : cont_fun D (option E)) (g : cont_fun E (option F)) :
+Lemma kleisli_assoc (f : [D →c (option E)]) (g : [E →c (option F)]) :
     cont_comp (kleisli g) (kleisli f) =
     kleisli (cont_comp (kleisli g) f).
 Proof.
@@ -616,7 +616,7 @@ Qed.
 (*
     [kleisli] is monotone in its argument.
 *)
-Lemma kleisli_mono_fun (f g : cont_fun D (option E))
+Lemma kleisli_mono_fun (f g : [D →c (option E)])
     (Hle : forall d, f d ⊑ g d) :
     forall x : option D, kleisli f x ⊑ kleisli g x.
 Proof.
@@ -627,7 +627,7 @@ Qed.
     Kleisli composition.
 *)
 Lemma kleisli_comp_cont {G : CPO.type}
-    (f : cont_fun D (option E)) (g : cont_fun E (option G)) (x : option D) :
+    (f : [D →c (option E)]) (g : [E →c (option G)]) (x : option D) :
     kleisli g (kleisli f x) = kleisli (cont_comp (kleisli g) f) x.
 Proof.
   destruct x; reflexivity.

@@ -199,7 +199,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   §2  Scott topology                                               *)
+(*   Scott topology                                                   *)
 (* ================================================================== *)
 (*
     A subset [U : D → Prop] is _Scott-open_ when:
@@ -296,7 +296,7 @@ End ScottOpenLemmas.
 
 
 (* ================================================================== *)
-(*   §3  Complement of a principal downset is Scott-open              *)
+(*   Complement of a principal downset is Scott-open                  *)
 (* ================================================================== *)
 (*
     For any [x : D], the set [{z | ¬(z ⊑ x)}] (everything strictly
@@ -331,7 +331,7 @@ Proof.
 Qed.
 
 (* ================================================================== *)
-(*   §4  Algebraic ↔ topological Scott-continuity                     *)
+(*   Algebraic ↔ topological Scott-continuity                         *)
 (* ================================================================== *)
 (*
     A function [f : D → E] is _topologically Scott-continuous_ if
@@ -389,7 +389,7 @@ Proof.
       exact (HUin (map_chain f c) HUfc).
 Qed.
 
-Lemma cont_fun_scott_continuous (f : cont_fun D E) : scott_continuous f.
+Lemma cont_fun_scott_continuous (f : [D →c E]) : scott_continuous f.
 Proof.
     exact (cont_imp_scott_continuous (cf_mono f) (cf_cont f)).
 Qed.
@@ -472,7 +472,7 @@ Qed.
     a topologically Scott-continuous plain function gives rise to a [cont_fun]. 
 *)
 Lemma scott_continuous_to_cont_fun (f : D -> E) (Hsc : scott_continuous f) :
-    cont_fun D E.
+    [D →c E].
 Proof.
   exact (Build_cont_fun
            (Build_mono_fun f (scott_continuous_mono f Hsc))
@@ -489,7 +489,7 @@ Qed.
 (*
     The preimage of a Scott-open set under a continuous function is Scott-open. 
 *)
-Lemma cont_preimage_scott_open (f : cont_fun D E) (U : E -> Prop) :
+Lemma cont_preimage_scott_open (f : [D →c E]) (U : E -> Prop) :
     scott_open U -> scott_open (fun x => U (f x)).
 Proof.
     intros HU.
