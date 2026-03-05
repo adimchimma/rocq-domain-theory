@@ -95,7 +95,7 @@ HB.structure Definition Hom := {Obj & HasHom Obj}.
 HB.mixin Record HasId Obj of HasHom Obj := {
   id_mor : forall (A : Obj), hom A A;
 }.
-HB.structure Definition Id_Mor := {Obj & HasId Obj}.
+HB.structure Definition Id_Mor := {Obj of HasHom Obj & HasId Obj}.
 
 
 (* ------------------------------------------------------------------ *)
@@ -235,7 +235,7 @@ HB.mixin Record HasEndo (Obj : Type) of HasHom Obj := {
   F_obj : Obj -> Obj;
   F_mor : forall {A B : Obj}, hom A B -> hom (F_obj A) (F_obj B);
 }.
-HB.structure Definition F_Obj := {Obj & HasEndo Obj}.
+HB.structure Definition F_Obj := {Obj of HasHom Obj & HasEndo Obj}.
 
 (* 
     [IsLocallyContinuous] axiomatises:

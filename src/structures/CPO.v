@@ -44,7 +44,7 @@ From DomainTheory.Structures Require Import Order.
     (Abramsky & Jung §2.1.1, §2.1.5).
 *)
 HB.mixin Record HasSup T of PartialOrder T := {sup : chain T -> T}.
-HB.structure Definition Sup := {T & HasSup T}.
+HB.structure Definition Sup := {T of PartialOrder T & HasSup T}.
 Notation "⊔ c" := (sup c) (at level 35, right associativity).
 
 
@@ -121,7 +121,7 @@ Qed.
     perfectly valid) are not forced to carry a bottom element. 
 *)
 HB.mixin Record HasBottom T of HasLe T:= {bottom : T}.
-HB.structure Definition Bottom := {T & HasBottom T}.
+HB.structure Definition Bottom := {T of HasLe T & HasBottom T}.
 Notation "⊥" := bottom (at level 0).
 
 (* [IsPointed] asserts that [bottom] is the least element of the CPO. *)
