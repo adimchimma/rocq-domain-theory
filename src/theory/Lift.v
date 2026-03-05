@@ -1,6 +1,6 @@
 (*  Lift
 
-    Phase 0: The flat lift [D⊥] of a CPO [D].
+    Phase 0: The flat lift [⟨D⟩⊥] of a CPO [D].
 
     This is [src/theory/Lift.v].
 
@@ -15,7 +15,7 @@
 
     Summary
     =======
-    The _flat lift_ [D⊥] of a CPO [D] is the type [option D] under the order:
+    The _flat lift_ [⟨D⟩⊥] of a CPO [D] is the type [option D] under the order:
 
         None    ⊑ x          for all x         (None is the unique fresh bottom)
         Some d  ⊑ Some d'    iff d ⊑[D] d'
@@ -40,8 +40,8 @@
     - §2  Auxiliary — value extraction, chain stability, [D_chain]
     - §3  Lift sup — [HasSup] and [IsCPO] instances;
               [lift_sup_some_eq] and [PointedCPO] instances
-    - §4  The unit [ret : D →c D⊥]
-    - §5  Kleisli extension [kleisli f : D⊥ →c E⊥]
+    - §4  The unit [ret : D →c ⟨D⟩⊥]
+    - §5  Kleisli extension [kleisli f : ⟨D⟩⊥ →c ⟨E⟩⊥]
     - §6  Monad laws
 
     References: A&J §2.1.4; Moggi (1991); Benton-Kennedy §2.2.
@@ -103,20 +103,31 @@ HB.instance Definition lift_IsPreorder {D : CPO.type} :=
 HB.instance Definition lift_IsPartialOrder {D : CPO.type} :=
   IsPartialOrder.Build (option D) lift_le_antisym.
 
+(* Postfix notation: [⟨D⟩⊥] for [option D], the flat lift of [D].
+   Angle brackets distinguish this from the standalone [⊥] notation
+   (the bottom element from [CPO.v]).
+   At level 2 with argument at level 1, so [⟨D⟩⊥] is an atom for
+   the purposes of function application and can appear as an
+   unparenthesised argument:
+       chain ⟨D⟩⊥      mono_fun ⟨D⟩⊥ ⟨E⟩⊥      [⟨D⟩⊥ →c ⟨E⟩⊥]
+   Available to any file that imports [Lift.v]. *)
+Notation "⟨ D ⟩⊥" := (option D)
+  (at level 2, D at level 1, format "⟨ D ⟩⊥").
+
 (* Convenience unfolding lemmas. *)
 Lemma lift_le_some_iff {D : CPO.type} (d d' : D) :
-    (Some d : option D) ⊑ Some d' <-> d ⊑ d'.
+    (Some d : ⟨D⟩⊥) ⊑ Some d' <-> d ⊑ d'.
 Proof.
   reflexivity.
 Qed.
 
-Lemma lift_none_le {D : CPO.type} (x : option D) : (None : option D) ⊑ x.
+Lemma lift_none_le {D : CPO.type} (x : ⟨D⟩⊥) : (None : ⟨D⟩⊥) ⊑ x.
 Proof.
   exact I.
 Qed.
 
 Lemma lift_some_not_le_none {D : CPO.type} (d : D) :
-    ~ (Some d : option D) ⊑ None.
+    ~ (Some d : ⟨D⟩⊥) ⊑ None.
 Proof.
   exact id.
 Qed.
@@ -134,13 +145,13 @@ Context {D : CPO.type}.
     References:
       https://www.unwoundstack.com/blog/dependent-matching-in-coq.html
 *)
-Definition extract_some (x : option D) (H : x <> None) : D :=
+Definition extract_some (x : ⟨D⟩⊥) (H : x <> None) : D :=
   match x as y return y <> None -> D with
   | Some d => fun _  => d
   | None   => fun H  => False_rect D (H eq_refl)
   end H.
 
-Lemma some_of_extract (x : option D) (H : x <> None) :
+Lemma some_of_extract (x : ⟨D⟩⊥) (H : x <> None) :
     x = Some (extract_some x H).
 Proof.
   destruct x; [reflexivity| contradiction].
@@ -151,7 +162,7 @@ Qed.
     If [c.[N] = Some _] and [c.[N + k] = None] then
     [c.[N] ⊑ c.[N+k]] gives [Some _ ⊑ None = False].
 *)
-Lemma chain_some_stable (c : chain (option D)) (N k : nat)
+Lemma chain_some_stable (c : chain ⟨D⟩⊥) (N k : nat)
     (HN : c.[N] <> None) : c.[N + k] <> None.
 Proof.
   intros Heq.
@@ -160,7 +171,7 @@ Proof.
   exact Hle.
 Qed.
 
-Lemma chain_some_stable_le (c : chain (option D)) (N m : nat)
+Lemma chain_some_stable_le (c : chain ⟨D⟩⊥) (N m : nat)
     (HN : c.[N] <> None) (HNm : N <= m) : c.[m] <> None.
 Proof.
   pose proof (chain_some_stable c N (m - N) HN).
@@ -175,13 +186,13 @@ Qed.
     The default [d₀] is only used in the vacuous [None] branch (which is
     never reached for [k ≥ 0] when [HN : c.[N] <> None]).
 *)
-Definition D_chain_fn (N : nat) (d₀ : D) (c : chain (option D)) (k : nat) : D :=
+Definition D_chain_fn (N : nat) (d₀ : D) (c : chain ⟨D⟩⊥) (k : nat) : D :=
   match c.[N + k] with Some d => d | None => d₀ end.
 
 (*
     The [None] branch is unreachable: [c.[N + k] = Some (D_chain_fn ...)].
 *)
-Lemma D_chain_fn_eq (N : nat) (d₀ : D) (c : chain (option D)) (k : nat)
+Lemma D_chain_fn_eq (N : nat) (d₀ : D) (c : chain ⟨D⟩⊥) (k : nat)
     (HN : c.[N] <> None) :
     c.[N + k] = Some (D_chain_fn N d₀ c k).
 Proof.
@@ -197,7 +208,7 @@ Qed.
     with [c.[N+m]] and [c.[N+n]] inside the ambient [option D] order, where
     [Some a ⊑ Some b] is definitionally [a ⊑ b].
 *)
-Lemma D_chain_mono (N : nat) (d₀ : D) (c : chain (option D))
+Lemma D_chain_mono (N : nat) (d₀ : D) (c : chain ⟨D⟩⊥)
     (HN : c.[N] <> None) : forall m n : nat, m <= n ->
     D_chain_fn N d₀ c m ⊑ D_chain_fn N d₀ c n.
 Proof.
@@ -208,7 +219,7 @@ Proof.
   exact Hle.
 Qed.
 
-Definition D_chain (N : nat) (d₀ : D) (c : chain (option D))
+Definition D_chain (N : nat) (d₀ : D) (c : chain ⟨D⟩⊥)
     (HN : c.[N] <> None) : chain D :=
   Build_chain (D_chain_fn N d₀ c) (D_chain_mono N d₀ c HN).
 
@@ -238,7 +249,7 @@ End LiftAux.
 Section LiftSup.
 Context {D : CPO.type}.
 
-Definition lift_sup (c : chain (option D)) : option D :=
+Definition lift_sup (c : chain ⟨D⟩⊥) : ⟨D⟩⊥ :=
   match excluded_middle_informative (exists n, c.[n] <> None) with
   | right _   => None
   | left  Hex =>
@@ -247,7 +258,7 @@ Definition lift_sup (c : chain (option D)) : option D :=
     Some (⊔ D_chain N d₀ c HN)
   end.
 
-Lemma lift_sup_none (c : chain (option D)) (Hall : forall n, c.[n] = None) :
+Lemma lift_sup_none (c : chain ⟨D⟩⊥) (Hall : forall n, c.[n] = None) :
     lift_sup c = None.
 Proof.
   unfold lift_sup.
@@ -257,7 +268,7 @@ Proof.
   exact (Hall n).
 Qed.
 
-Lemma lift_sup_upper (c : chain (option D)) (n : nat) :
+Lemma lift_sup_upper (c : chain ⟨D⟩⊥) (n : nat) :
     c.[n] ⊑ lift_sup c.
 Proof.
   unfold lift_sup.
@@ -285,7 +296,7 @@ Proof.
     exists n. rewrite Hn; discriminate.
 Qed. 
 
-Lemma lift_sup_least (c : chain (option D)) (p : option D) :
+Lemma lift_sup_least (c : chain ⟨D⟩⊥) (p : ⟨D⟩⊥) :
     (forall n, c.[n] ⊑ p) -> lift_sup c ⊑ p.
 Proof.
   intros Hub.
@@ -308,18 +319,18 @@ Qed.
 End LiftSup.
 
 HB.instance Definition lift_HasSup {D : CPO.type} :=
-  HasSup.Build (option D) lift_sup.
+  HasSup.Build ⟨D⟩⊥ lift_sup.
 
 HB.instance Definition lift_IsCPO {D : CPO.type} :=
-  IsCPO.Build (option D) lift_sup_upper lift_sup_least.
+  IsCPO.Build ⟨D⟩⊥ lift_sup_upper lift_sup_least.
 
 HB.instance Definition lift_HasBottom {D : CPO.type} :=
-  HasBottom.Build (option D) (@None D).
+  HasBottom.Build ⟨D⟩⊥ (@None D).
 
 Section LiftBottom.
 Context {D : CPO.type}.
 
-Lemma lift_bottom_least (x : option D) : (⊥ : option D) ⊑ x.
+Lemma lift_bottom_least (x : ⟨D⟩⊥) : (⊥ : ⟨D⟩⊥) ⊑ x.
 Proof.
   exact I.
 Qed.
@@ -327,9 +338,9 @@ Qed.
 End LiftBottom.
 
 HB.instance Definition lift_IsPointed {D : CPO.type} :=
-  IsPointed.Build (option D) lift_bottom_least.
+  IsPointed.Build ⟨D⟩⊥ lift_bottom_least.
 
-Lemma lift_bottom_none {D : CPO.type} : (⊥ : option D) = None.
+Lemma lift_bottom_none {D : CPO.type} : (⊥ : ⟨D⟩⊥) = None.
 Proof.
   reflexivity.
 Qed.
@@ -350,7 +361,7 @@ Qed.
 Section LiftSupSomeEq.
 Context {D : CPO.type}.
 
-Lemma lift_sup_some_eq (c : chain (option D)) (N : nat) (d₀ : D)
+Lemma lift_sup_some_eq (c : chain ⟨D⟩⊥) (N : nat) (d₀ : D)
     (HN : c.[N] <> None) :
     ⊔ c = Some (⊔ D_chain N d₀ c HN).
 Proof.
@@ -414,7 +425,7 @@ End LiftSupSomeEq.
 
 
 (* ================================================================== *)
-(* §4  The unit [ret : D →c D⊥]                                       *)
+(* §4  The unit [ret : D →c ⟨D⟩⊥]                                      *)
 (* ================================================================== *)
 (*
     [ret d := Some d].  Monotonicity: immediate from the lift order.
@@ -432,7 +443,7 @@ End LiftSupSomeEq.
 Section LiftUnit.
 Context {D : CPO.type}.
 
-Definition ret_mono : mono_fun D (option D) :=
+Definition ret_mono : mono_fun D ⟨D⟩⊥ :=
   Build_mono_fun Some (fun d d' H => H).
 
 Lemma continuous_ret : continuous ret_mono.
@@ -449,7 +460,7 @@ Proof.
     reflexivity.
 Qed.
 
-Definition ret : [D →c (option D)] :=
+Definition ret : [D →c ⟨D⟩⊥] :=
   Build_cont_fun ret_mono continuous_ret.
 
 Lemma ret_some (d : D) : ret d = Some d.
@@ -461,7 +472,7 @@ End LiftUnit.
 
 
 (* ================================================================== *)
-(* §5  Kleisli extension [kleisli f : D⊥ →c E⊥]                      *)
+(* §5  Kleisli extension [kleisli f : ⟨D⟩⊥ →c ⟨E⟩⊥]                    *)
 (* ================================================================== *)
 (*
     [kleisli f None     = None]
@@ -480,11 +491,11 @@ End LiftUnit.
 Section LiftKleisli.
 Context {D E : CPO.type}.
 
-Definition kleisli_fun (f : [D →c (option E)]) (x : option D) : option E :=
+Definition kleisli_fun (f : [D →c ⟨E⟩⊥]) (x : ⟨D⟩⊥) : ⟨E⟩⊥ :=
   match x with Some d => f d | None => None end.
 
-Lemma kleisli_mono (f : [D →c (option E)]) :
-    monotone (option D) (option E) (kleisli_fun f).
+Lemma kleisli_mono (f : [D →c ⟨E⟩⊥]) :
+    monotone ⟨D⟩⊥ ⟨E⟩⊥ (kleisli_fun f).
 Proof.
   intros x y Hxy.
   destruct x, y; simpl in *.
@@ -494,14 +505,14 @@ Proof.
   - exact I.
 Qed.
 
-Definition kleisli_mfun (f : [D →c (option E)]) : mono_fun (option D) (option E) :=
+Definition kleisli_mfun (f : [D →c ⟨E⟩⊥]) : mono_fun ⟨D⟩⊥ ⟨E⟩⊥ :=
   Build_mono_fun (kleisli_fun f) (kleisli_mono f).
 
 (*
     Index-shift equality: [(map_chain (kleisli f) c).[N+k] = (map_chain f D_chain).[k]].
 *)
 Lemma kleisli_map_chain_shift_eq
-    (f : [D →c (option E)]) (c : chain (option D))
+    (f : [D →c ⟨E⟩⊥]) (c : chain ⟨D⟩⊥)
     (N : nat) (d₀ : D) (HN : c.[N] <> None) (k : nat) :
     (map_chain (kleisli_mfun f) c).[N + k] =
     (map_chain (cf_mono f) (D_chain N d₀ c HN)).[k].
@@ -516,7 +527,7 @@ Proof.
     contradiction.
 Qed.
 
-Lemma continuous_kleisli (f : [D →c (option E)]) :
+Lemma continuous_kleisli (f : [D →c ⟨E⟩⊥]) :
     continuous (kleisli_mfun f).
 Proof.
   intros c.
@@ -566,15 +577,15 @@ Proof.
     + exact (eq_sym Hsupk).
 Qed.
 
-Definition kleisli (f : [D →c (option E)]) : [(option D) →c (option E)] :=
+Definition kleisli (f : [D →c ⟨E⟩⊥]) : [⟨D⟩⊥ →c ⟨E⟩⊥] :=
   Build_cont_fun (kleisli_mfun f) (continuous_kleisli f).
 
-Lemma kleisli_none (f : [D →c (option E)]) : kleisli f None = None.
+Lemma kleisli_none (f : [D →c ⟨E⟩⊥]) : kleisli f None = None.
 Proof.
   reflexivity.
 Qed.
 
-Lemma kleisli_some (f : [D →c (option E)]) (d : D) : kleisli f (Some d) = f d.
+Lemma kleisli_some (f : [D →c ⟨E⟩⊥]) (d : D) : kleisli f (Some d) = f d.
 Proof.
   reflexivity.
 Qed.
@@ -590,7 +601,7 @@ Section LiftMonadLaws.
 Context {D E F : CPO.type}.
 
 (* (ML1) Left unit: [kleisli f ∘ ret = f] *)
-Lemma kleisli_ret_left (f : [D →c (option E)]) :
+Lemma kleisli_ret_left (f : [D →c ⟨E⟩⊥]) :
     cont_comp (kleisli f) (ret (D := D)) = f.
 Proof.
   apply cont_fun_ext; intros; reflexivity.
@@ -598,14 +609,14 @@ Qed.
 
 (* (ML2) Right unit: [kleisli ret = id] *)
 Lemma kleisli_ret_right :
-    kleisli (ret (D := D)) = cont_id (option D).
+    kleisli (ret (D := D)) = cont_id ⟨D⟩⊥.
 Proof.
   apply cont_fun_ext; intros x.
   destruct x; reflexivity.
 Qed.
 
 (* (ML3) Associativity: [kleisli g ∘ kleisli f = kleisli (kleisli g ∘ f)] *)
-Lemma kleisli_assoc (f : [D →c (option E)]) (g : [E →c (option F)]) :
+Lemma kleisli_assoc (f : [D →c ⟨E⟩⊥]) (g : [E →c ⟨F⟩⊥]) :
     cont_comp (kleisli g) (kleisli f) =
     kleisli (cont_comp (kleisli g) f).
 Proof.
@@ -616,9 +627,9 @@ Qed.
 (*
     [kleisli] is monotone in its argument.
 *)
-Lemma kleisli_mono_fun (f g : [D →c (option E)])
+Lemma kleisli_mono_fun (f g : [D →c ⟨E⟩⊥])
     (Hle : forall d, f d ⊑ g d) :
-    forall x : option D, kleisli f x ⊑ kleisli g x.
+    forall x : ⟨D⟩⊥, kleisli f x ⊑ kleisli g x.
 Proof.
   intros x; destruct x; simpl; [exact (Hle s) | exact I].
 Qed.
@@ -627,7 +638,7 @@ Qed.
     Kleisli composition.
 *)
 Lemma kleisli_comp_cont {G : CPO.type}
-    (f : [D →c (option E)]) (g : [E →c (option G)]) (x : option D) :
+    (f : [D →c ⟨E⟩⊥]) (g : [E →c ⟨G⟩⊥]) (x : ⟨D⟩⊥) :
     kleisli g (kleisli f x) = kleisli (cont_comp (kleisli g) f) x.
 Proof.
   destruct x; reflexivity.
