@@ -454,7 +454,7 @@ Qed.
 End Flip.
 
 (*  Flip is involutive: [cont_flip (cont_flip f) = f].  *)
-Lemma cont_flip_flip {A B C : CPO.type} (f : [A →c ([B →c C])]) :
+Lemma cont_flip_involutive {A B C : CPO.type} (f : [A →c ([B →c C])]) :
   cont_flip (cont_flip f) = f.
 Proof.
   apply cont_fun_ext; intro a.
