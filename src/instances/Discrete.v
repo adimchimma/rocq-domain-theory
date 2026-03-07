@@ -21,6 +21,7 @@
     - §1  Unit PointedCPO
     - §2  Generic discrete CPO ([Discrete A] newtype + HB instances)
     - §3  Bool discrete CPO (direct HB registration on [bool])
+    - §4  Nat discrete CPO (direct HB registration on [nat])
 
     Imports:
       [src/structures/Order.v]     — HasLe, IsPreorder, IsPartialOrder, chain
@@ -28,13 +29,16 @@
       [src/theory/CPOTheory.v]     — sup_unique
 
     Note on [nat]:
-      [nat] as a CPO uses the same discrete pattern and is registered
-      separately in [src/instances/Nat.v] to avoid HB instance conflicts.
+      [nat] with the discrete order is now registered directly in §4
+      of this file.  Do NOT also import [src/instances/Nat.v] in the same
+      module, as [Nat.v] registers [nat] with the Peano order [≤], which
+      would cause an HB instance conflict.
 
     Phase coverage:
       Phase 0 — all sections
-      Used by [PCF_Denotational.v] for [sem_env []] (unit) and [sem_ty Bool]
-      (bool).  [Discrete A] is available for examples and tests.
+      Used by [PCF_Denotational.v] for [sem_env []] (unit), [sem_ty Bool]
+      (bool), and [sem_ty Nat] (nat).  [Discrete A] is available for
+      examples and tests.
 
     References:
       Abramsky & Jung §2.1.2 (discrete CPOs as flat ground-type domains).
@@ -416,6 +420,113 @@ Proof.
   apply sup_unique.
   - intro n. simpl.
     rewrite bool_chain_const.
+    apply le_refl.
+  - exact (sup_upper (map_chain f c) 0).
+Qed.
+
+
+(* ================================================================== *)
+(*   §4  Nat discrete CPO                                             *)
+(* ================================================================== *)
+(*
+    [nat] with the discrete (equality) order, registered directly on
+    [nat] so that [sem_ty Nat = nat : CPO.type] in [PCF_Denotational.v]
+    without any newtype wrapping.
+
+    WARNING: [src/instances/Nat.v] registers [nat] with the Peano order
+    [≤], which is NOT a CPO (the chain 0, 1, 2, … has no finite upper
+    bound).  Do NOT import both this file and [Nat.v] in the same module
+    — the HB structures would conflict.  If you need Peano-ordered
+    naturals alongside discrete-ordered naturals, use [Discrete nat]
+    from §2 for the discrete variant.
+
+    Structure:
+      Order:  n ⊑ m  :=  n = m           (discrete)
+      Sup:    ⊔ c    :=  c.[0]            (constant chains)
+
+    [nat] is NOT a [PointedCPO]: there is no "least natural number" in
+    the discrete order (every pair of distinct naturals is incomparable).
+    Use [option nat] via [Lift.v] for a pointed variant.
+*)
+
+Section NatOrder.
+
+Definition nat_le (n m : nat) : Prop := n = m.
+
+Lemma nat_le_refl (n : nat) : nat_le n n.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma nat_le_trans (a b c : nat) :
+    nat_le a b -> nat_le b c -> nat_le a c.
+Proof.
+  intros ->; tauto.
+Qed.
+
+Lemma nat_le_antisym (a b : nat) :
+    nat_le a b -> nat_le b a -> a = b.
+Proof.
+  intros H _; exact H.
+Qed.
+
+End NatOrder.
+
+HB.instance Definition nat_HasLe :=
+  HasLe.Build nat nat_le.
+
+HB.instance Definition nat_IsPreorder :=
+  IsPreorder.Build nat nat_le_refl nat_le_trans.
+
+HB.instance Definition nat_IsPartialOrder :=
+  IsPartialOrder.Build nat nat_le_antisym.
+
+Section NatSup.
+
+Lemma nat_chain_const (c : chain nat) (n : nat) : c.[n] = c.[0].
+Proof.
+  symmetry.
+  exact (ch_mono c 0 n (PeanoNat.Nat.le_0_l n)).
+Qed.
+
+Definition nat_sup (c : chain nat) : nat := c.[0].
+
+Lemma nat_sup_upper (c : chain nat) (n : nat) : c.[n] ⊑ nat_sup c.
+Proof.
+  unfold nat_sup.
+  exact (nat_chain_const c n).
+Qed.
+
+Lemma nat_sup_least (c : chain nat) (x : nat)
+    (Hub : forall n, c.[n] ⊑ x) : nat_sup c ⊑ x.
+Proof.
+  unfold nat_sup.
+  exact (Hub 0).
+Qed.
+
+End NatSup.
+
+HB.instance Definition nat_HasSup :=
+  HasSup.Build nat nat_sup.
+
+HB.instance Definition nat_IsCPO :=
+  IsCPO.Build nat nat_sup_upper nat_sup_least.
+
+(*  Computation rule: [⊔ c = c.[0]] in [nat]. *)
+Lemma nat_sup_eq (c : chain nat) : ⊔ c = c.[0].
+Proof. reflexivity. Qed.
+
+(*
+    Every monotone function out of [nat] (discrete) is Scott-continuous.
+*)
+Lemma nat_continuous_of_any {D : CPO.type} (f : mono_fun nat D) :
+    continuous f.
+Proof.
+  intro c.
+  rewrite nat_sup_eq.
+  apply sup_unique.
+  - intro n. simpl.
+    rewrite nat_chain_const.
     apply le_refl.
   - exact (sup_upper (map_chain f c) 0).
 Qed.
