@@ -47,15 +47,16 @@
     - §3  Evaluation map
     - §4  Currying and uncurrying
     - §5  Exponential adjunction laws
+    - §6  FIXP — the continuous fixed-point operator
 
     Phase coverage:
       Phase 0 — all sections
-      Phase 1 — §3-§5 used in [EnrichedTheory.v], [PCF_Denotational.v]
+      Phase 1 — §3-§6 used in [EnrichedTheory.v], [PCF_Denotational.v]
 *)
 
 From HB Require Import structures.
 From DomainTheory.Structures Require Import Order CPO Morphisms.
-From DomainTheory.Theory Require Import OrderTheory ChainTheory CPOTheory Products.
+From DomainTheory.Theory Require Import OrderTheory ChainTheory CPOTheory Products FixedPoints.
 
 From Stdlib Require Import FunctionalExtensionality ProofIrrelevance.
 From Stdlib Require Import PeanoNat.
@@ -711,3 +712,168 @@ Proof.
 Qed.
 
 End FunMisc.
+
+
+(* ================================================================== *)
+(*   §6  FIXP — the continuous fixed-point operator                    *)
+(* ================================================================== *)
+(*
+    For a pointed CPO [D], the Kleene fixed-point operator
+
+        fixp : [D →c D] → D
+
+    (defined in [FixedPoints.v]) is itself a Scott-continuous map
+    from the function-space CPO [[D →c D]] to [D].  The packaged
+    continuous version is
+
+        FIXP : [[D →c D] →c D]
+
+    Monotonicity of [fixp] is already proved in [FixedPoints.v] as
+    [fixp_mono].
+
+    The continuity proof shows that [⊔ₙ fixp (fₙ)] is a pre-fixed-point
+    of [⊔ₙ fₙ].  Then [fixp_least] gives [fixp (⊔ₙ fₙ) ⊑ ⊔ₙ fixp (fₙ)],
+    which (combined with the monotonicity direction) establishes equality.
+
+    The key step uses continuity of each [fₙ] and the fixed-point
+    identity [fₙ (fixp fₙ) = fixp fₙ] to show the pre-fixed-point
+    inequality.
+
+    Reference: A&J §2.1.3 Proposition 2.1.18; Benton-Kennedy [FIXP].
+*)
+
+Section FIXP.
+Context {D : PointedCPO.type}.
+
+(*
+    Wrap [fixp] as a monotone function on the function-space CPO.
+    Monotonicity: [fixp_mono] from [FixedPoints.v].
+*)
+Definition fixp_mono_fun : mono_fun [D →c D] D :=
+  Build_mono_fun fixp (fun f g Hle => fixp_mono f g Hle).
+
+(*
+    The chain of fixpoints: given a chain [fs] of endomorphisms,
+    [fixp_chain fs] is the chain [n ↦ fixp (fs.[n])] in [D].
+*)
+Definition fixp_chain (fs : chain [D →c D]) : chain D :=
+  map_chain fixp_mono_fun fs.
+
+(*
+    Key lemma: [⊔ₙ fixp (fₙ)] is a pre-fixed-point of [⊔ₙ fₙ].
+
+    i.e., [(⊔ fs) (⊔ fixp_chain) ⊑ ⊔ fixp_chain].
+
+    Proof:
+
+    1.  [(⊔ fs) y = ⊔ₙ (fₙ y)] by the pointwise sup of functions.
+    2.  For each [n], by continuity of [fₙ]:
+          [fₙ y = fₙ (⊔ₘ fixp fₘ) = ⊔ₘ fₙ (fixp fₘ)].
+    3.  For each pair [(n, m)]:
+          [fₙ (fixp fₘ) ⊑  f_{max(n,m)} (fixp f_{max(n,m)})  =  fixp f_{max(n,m)}  ⊑  y]
+        using the chain monotonicity of [fs], [fixp_mono],
+        monotonicity of continuous functions, and the fixed-point identity.
+    4.  By [sup_least] twice, [⊔ₙ ⊔ₘ fₙ (fixp fₘ) ⊑ y].
+*)
+(*
+    Bridge lemma: decompose [⊔ fs] applied at a point into [sup_least]
+    over the pointwise chain.  This avoids the HB structure-unification
+    issue that arises when [D : PointedCPO.type] is coerced to [CPO.type]
+    inside the function-space construction.
+
+    Note: [eval_continuous] (§3) uses the same [eq_ind] technique.
+*)
+Lemma fun_sup_app_le (fs : chain [D →c D]) (x : D) (y : D) :
+    (forall n, fs.[n] x ⊑ y) -> (⊔ fs) x ⊑ y.
+Proof.
+  intro H. exact (sup_least (pointwise_chain fs x) y H).
+Qed.
+
+(*
+    Bridge lemma: decompose [f (⊔ c)] into [sup_least] over the image
+    chain using [cf_cont], again via [eq_ind] to avoid HB mismatch.
+*)
+Lemma cf_app_sup_le (f : [D →c D]) (c : chain D) (y : D) :
+    (forall n, f (c.[n]) ⊑ y) -> f (⊔ c) ⊑ y.
+Proof.
+  intro H.
+  exact (eq_ind _ (fun z => z ⊑ y)
+           (sup_least (map_chain (cf_mono f) c) y H)
+           _ (eq_sym (cf_cont f c))).
+Qed.
+
+Lemma sup_fixp_prefixed (fs : chain [D →c D]) :
+  (⊔ fs) (⊔ (fixp_chain fs)) ⊑ ⊔ (fixp_chain fs).
+Proof.
+  set (y := ⊔ (fixp_chain fs)).
+  (* Step 1: decompose (⊔ fs) y = ⊔_n (fs.[n] y) via bridge *)
+  apply fun_sup_app_le; intros n.
+  (* Goal: fs.[n] y ⊑ y *)
+  (* Step 2: decompose fs.[n] y = ⊔_m fs.[n] (fixp (fs.[m])) via bridge *)
+  apply cf_app_sup_le; intros m.
+  (* Goal: fs.[n] (fixp (fs.[m])) ⊑ y *)
+  (* Step 3: bound by fixp (fs.[max n m]) *)
+  set (p := Nat.max n m).
+  apply @le_trans with (y := fixp (fs.[p])).
+  - (* fs.[n] (fixp (fs.[m])) ⊑ fixp (fs.[p]) *)
+    (* = fs.[p] (fixp (fs.[p]))  by fixp_is_fixedpoint *)
+    rewrite <- (fixp_is_fixedpoint (fs.[p])).
+    apply @le_trans with (y := fs.[p] (fixp (fs.[m]))).
+    + (* fs.[n] ⊑ fs.[p] pointwise, since n ≤ p *)
+      exact (ch_mono fs n p (Nat.le_max_l n m)
+               (fixp (fs.[m]))).
+    + (* fixp (fs.[m]) ⊑ fixp (fs.[p]) by fixp_mono, since m ≤ p *)
+      apply (mf_mono (cf_mono (fs.[p]))).
+      exact (fixp_mono _ _ (fun x => ch_mono fs m p (Nat.le_max_r n m) x)).
+  - (* fixp (fs.[p]) ⊑ y by sup_upper *)
+    exact (sup_upper (fixp_chain fs) p).
+Qed.
+
+(*
+    [fixp] is Scott-continuous on the function-space CPO.
+
+    Proof: by [continuous_of_le], it suffices to show the ⊑ direction:
+      [fixp (⊔ fs) ⊑ ⊔ₙ fixp (fs.[n])].
+
+    Since [⊔ₙ fixp (fs.[n])] is a pre-fixed-point of [⊔ fs]
+    (by [sup_fixp_prefixed]), [fixp_least] gives the result.
+*)
+Lemma fixp_continuous : continuous fixp_mono_fun.
+Proof.
+  apply continuous_of_le; intros fs.
+  simpl. apply fixp_least.
+  exact (sup_fixp_prefixed fs).
+Qed.
+
+(*
+    The continuous fixed-point operator:
+
+        FIXP : [[D →c D] →c D]
+
+    [FIXP f = fixp f = ⊔ₙ fⁿ(⊥)] for any [f : [D →c D]].
+*)
+Definition FIXP : [[D →c D] →c D] :=
+  Build_cont_fun fixp_mono_fun fixp_continuous.
+
+(*  Computation rule: [FIXP f = fixp f]. *)
+Lemma FIXP_eq (f : [D →c D]) : FIXP f = fixp f.
+Proof. reflexivity. Qed.
+
+(*  [FIXP f] is a fixed point of [f]. *)
+Lemma FIXP_is_fixedpoint (f : [D →c D]) : f (FIXP f) = FIXP f.
+Proof. exact (fixp_is_fixedpoint f). Qed.
+
+(*  [FIXP f] is the least fixed point of [f]. *)
+Lemma FIXP_least (f : [D →c D]) (x : D) : f x ⊑ x -> FIXP f ⊑ x.
+Proof. exact (fixp_least f x). Qed.
+
+(*  [FIXP f] is the least pre-fixed point of [f]. *)
+Lemma FIXP_least_fixedpoint (f : [D →c D]) (x : D) : f x = x -> FIXP f ⊑ x.
+Proof. intro H; apply FIXP_least; rewrite H; apply le_refl. Qed.
+
+(*  Fixed-point induction via [FIXP]. *)
+Lemma FIXP_ind (f : [D →c D]) (P : D -> Prop) :
+    admissible P -> P ⊥ -> (forall x, P x -> P (f x)) -> P (FIXP f).
+Proof. exact (fixp_ind f P). Qed.
+
+End FIXP.
