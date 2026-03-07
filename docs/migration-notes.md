@@ -187,7 +187,7 @@ directly through the HB hierarchy: `CPO.type` is a predomain;
 `prod_cpo`. The product preorder, monotone projections, and lubs were
 all defined in one large term-mode expression. Correct but unreadable.
 
-**New:** Proof-mode construction in `theory/Products.v` (519 lines),
+**New:** Proof-mode construction in `theory/Products.v` (533 lines),
 building up lemmas step by step: `prod_le_refl`, `prod_le_trans`,
 `prod_le_antisym`, `prod_sup_upper`, `prod_sup_least`. Then HB instances
 assemble the structure. The result is the same but each step is
@@ -206,7 +206,7 @@ Axiom sum_lub_upper : ...
 Axiom sum_lub_least : ...
 ```
 
-**New:** All axioms eliminated in `theory/Sums.v` (611 lines). The key
+**New:** All axioms eliminated in `theory/Sums.v` (624 lines). The key
 insight is that a chain in `A + B` (separated sum) is eventually entirely
 in `inl` or entirely in `inr`, since the orderings do not mix constructors.
 The sup is the sup of the eventually-stable projection into `A` or `B`.
@@ -232,7 +232,7 @@ and could not be trusted.
 **New:** All axioms eliminated. The pointwise sup of a chain of
 continuous functions `c : chain (D ⇒ E)` is defined as
 `λ x. sup (map_chain (λ f. f x) c)`, and continuity of this pointwise
-sup is proved in `theory/FunctionSpaces.v`. This requires:
+sup is proved in `theory/FunctionSpaces.v` (878 lines). This requires:
 1. That the family `λ f. f x` is monotone in `f` for fixed `x`.
 2. That the pointwise sup of continuous functions is continuous (the key
    lemma, using Scott-continuity of each `f` in the chain and the
@@ -253,7 +253,7 @@ Axiom lift_lub_least : ...
 The lift was `option D` with `None` as bottom. The `ret` and `kleisli`
 were not proved continuous.
 
-**New:** `theory/Lift.v` (600 lines). All axioms eliminated. The carrier
+**New:** `theory/Lift.v` (646 lines). All axioms eliminated. The carrier
 remains `option D` — the *flat* lift — but the sup is now constructed
 using `ClassicalEpsilon`:
 
@@ -281,7 +281,7 @@ This ordering constraint is now documented in `CPO.v` and here.
 The three monad laws (left unit, right unit, associativity) are proved
 as propositional equalities using `cont_fun_ext`.
 
-**Supplementary file:** `theory/LiftMonad.v` (476 lines) develops the
+**Supplementary file:** `theory/LiftMonad.v` (488 lines) develops the
 coinductive `delay` monad — the alternative to the flat lift — and
 proves precisely why it cannot be made into a `CPO.type` without
 quotient types. See `design-decisions.md § DD-006` and `§ DD-007`.
@@ -384,6 +384,149 @@ file only; the main library (`Lift.v`) has no admits. See
 | `From phase0_foundations Require Import CPO` | `From DomainTheory.Structures Require Import CPO` |
 | `From phase0_foundations Require Import CPO Continuous` | `From DomainTheory.Structures Require Import CPO Morphisms` |
 | `Import Order Cpo` | Not needed; HB coercions handle namespacing |
+
+---
+
+### `FunctionSpaces.v` (update: FIXP)
+
+The original FunctionSpaces.v migration (described above) eliminated
+axiomatic lubs for the function-space CPO. Since then, §6 (FIXP) has
+been added (878 lines total, up from 719):
+
+**Addition:** The `FIXP` operator — `fixp` packaged as a Scott-continuous
+map `[[D →c D] →c D]` — now lives in `FunctionSpaces.v` rather than
+being deferred. The continuity proof uses a diagonal argument showing
+that `⊔_n fixp(f_n)` is a pre-fixed-point of `⊔_n f_n`, then
+`fixp_least` gives the ⊑ direction. Bridge lemmas (`fun_sup_app_le`,
+`cf_app_sup_le`) handle HB coercion issues between `PointedCPO.type`
+and `CPO.type`.
+
+This corresponds to Benton-Kennedy's `FIXP : (D ⇒c D) →c D` from §2.1.
+
+---
+
+### `Function.v` (instances)
+
+**Old:** Not present in the original library. The function-space CPO
+instances were registered inline in `FunctionSpaces.v`.
+
+**New:** `instances/Function.v` (462 lines) registers `CPO.type` as a
+CPO-enriched category using the enriched category structures from
+`Enriched.v`:
+
+| Name | Kind | Description |
+|------|------|-------------|
+| `CPO_HasHom` | HB instance | `hom A B := cont_fun A B` (using `fun_cpo`) |
+| `CPO_HasId` | HB instance | `id_mor := cont_id` |
+| `CPO_IsCPOEnriched` | HB instance | `comp := cont_comp`; continuity from `FunctionSpaces.v` |
+| `cont_postcomp g` | Definition | `f ↦ g ∘ f` as a continuous map |
+| `cont_precomp f` | Definition | `g ↦ g ∘ f` as a continuous map |
+| `cont_const` / `cont_K` | Definitions | constant function combinator |
+| `cont_ap` | Definition | application at a point |
+| `cont_flip` | Definition | flip argument order |
+
+This is the concrete instance of the abstract enriched category framework.
+The original Benton-Kennedy library achieved self-enrichment implicitly
+through the function-space CPO; our code makes it explicit via HB
+instances.
+
+---
+
+### `PCF_Syntax.v`
+
+**Old (Benton-Kennedy §3):** The paper describes the final syntax,
+which our implementation follows closely. Benton-Kennedy's constructors
+were prefixed with `T` (for "typed"):
+
+```coq
+(* Benton-Kennedy 2009, Section 3 — final design *)
+Inductive Value : Env → Ty → Type :=
+  | TINT : ∀ Γ, nat → Value Γ Int
+  | TBOOL : ∀ Γ, bool → Value Γ Bool
+  | TVAR : ∀ Γ τ, Var Γ τ → Value Γ τ
+  | TFIX : ∀ Γ τ1 τ2, Exp (τ1 :: τ1 -> τ2 :: Γ) τ2 → Value Γ (τ1 -> τ2)
+  | TPAIR : ∀ Γ τ1 τ2, Value Γ τ1 → Value Γ τ2 → Value Γ (τ1 * τ2)
+with Exp : ...
+```
+
+**New (rocq-domain-theory):**
+
+| Old (Benton-Kennedy) | New | Notes |
+|----------------------|----|-------|
+| `Ty := Int \| Bool \| Arrow \| Prod` | `Ty := Nat \| Bool \| Arrow \| Prod` | `Int` → `Nat` (values are `nat`, not `Z`) |
+| `Arrow` notation `->` | `Arrow` notation `→ₜ` | Subscript avoids clash with Rocq function type |
+| `Prod` notation `*` | `Prod` notation `×ₜ` | Subscript avoids clash with Rocq product |
+| `TINT n` | `NLIT n` | Dropped `T` prefix; `NLIT` for "nat literal" |
+| `TBOOL b` | `BLIT b` | `BLIT` for "bool literal" |
+| `TVAR i` | `VAR v` | |
+| `TFIX e` | `FIX τ₁ τ₂ body` | Explicit type indices in constructor |
+| `TPAIR v1 v2` | `PAIR v1 v2` | |
+| `TVAL v` | `VAL v` | |
+| `TLET e1 e2` | `LET e1 e2` | |
+| `TAPP f v` | `APP f v` | |
+| `TFST/TSND v` | `FST/SND v` | |
+| `TOP op v1 v2` | `OP op v1 v2` | |
+| `TGT v1 v2` | `GT v1 v2` | |
+| `TIF b e1 e2` | `IFB b e1 e2` | |
+| `CExp τ := Exp nil τ` | `CExp τ := Exp [] τ` | `nil` → `[]` |
+| `Subst Γ Γ' := ∀ τ, Var Γ τ → Value Γ' τ` | Same | Unchanged |
+| `hdSubst` / `tlSubst` | Not used | Substitutions defined differently |
+| `substVal` / `substExp` | `substVal` / `substExp` | Same names |
+| `singleSubst v` / `doubleSubst v1 v2` | `single_subst v` / `double_subst varg vfun` | Snake_case |
+
+**Structural preservation:** The overall design (intrinsic typing, ANF,
+typed de Bruijn indices, renaming-bootstrapped substitution) is exactly
+Benton-Kennedy's final approach. The changes are purely cosmetic naming.
+
+**What was dropped:** Benton-Kennedy mention an earlier extrinsic attempt
+with raw `nat` indices and a separate `VTy`/`ETy` typing judgment,
+which required proving typing uniqueness. This was already abandoned in
+their paper; we never implemented it.
+
+---
+
+### `PCF_Operational.v`
+
+**Old (Benton-Kennedy §3):**
+
+```coq
+(* Benton-Kennedy 2009, Section 3 *)
+Inductive Ev : ∀ τ, CExp τ → CValue τ → Prop :=
+  | e_Val : ∀ τ (v : CValue τ), TVAL v ⇓ v
+  | e_Op : ∀ op n1 n2, TOP op (TINT n1) (TINT n2) ⇓ TINT (op n1 n2)
+  | e_Gt : ∀ n1 n2, TGT (TINT n1) (TINT n2) ⇓ TBOOL (ble_nat n2 n1)
+  | e_Fst : ∀ τ1 τ2 (v1 : CValue τ1) (v2 : CValue τ2), TFST (TPAIR v1 v2) ⇓ v1
+  | e_Snd : ∀ τ1 τ2 (v1 : CValue τ1) (v2 : CValue τ2), TSND (TPAIR v1 v2) ⇓ v2
+  | e_App : ∀ τ1 τ2 e (v1 : CValue τ1) (v2 : CValue τ2),
+      substExp (doubleSubst v1 (TFIX e)) e ⇓ v2 → TAPP (TFIX e) v1 ⇓ v2
+  | e_Let : ...
+  | e_IfTrue : ...
+  | e_IfFalse : ...
+```
+
+**New (rocq-domain-theory):**
+
+| Old (Benton-Kennedy) | New | Notes |
+|----------------------|----|-------|
+| `Ev : ∀ τ, CExp τ → CValue τ → Prop` | `Eval : ∀ {τ}, CExp τ → CValue τ → Prop` | Renamed; implicit `τ` |
+| `e ⇓ v` := `Ev e v` | `e ⇓ v` := `Eval e v` | Same notation |
+| `Converges` not defined | `Converges e := ∃ v, Eval e v` | Added existential wrapper + `e ⇓` notation |
+| No determinism proof | `eval_deterministic` | Added: `e ⇓ v₁ → e ⇓ v₂ → v₁ = v₂` |
+| No inversion lemmas | `eval_let_inv`, `eval_app_fix_inv`, `eval_ifb_inv` | Added for proof convenience |
+| `ble_nat n2 n1` | `n₂ <? n₁` (`Nat.ltb`) | Stdlib modernization |
+| `e_App` destructures `TFIX e` directly | `e_App` takes `vf = FIX τ₁ τ₂ body` as premise | More explicit pattern match |
+
+**Structural preservation:** The evaluation rules are the same 9
+constructors as Benton-Kennedy (e_Val, e_Op, e_Gt, e_Fst, e_Snd, e_App,
+e_Let, e_IfTrue, e_IfFalse). The order and structure of rules are
+preserved. The additions (determinism, inversion lemmas) are new utility
+results not in the original library.
+
+**What was added:**
+- `eval_deterministic`: proves the evaluation relation is functional,
+  using `dependent destruction` from `Program.Equality`
+- Three inversion lemmas for `LET`, `APP`+`FIX`, and `IFB` expressions
+- `Converges` definition with `e ⇓` notation
 
 ---
 

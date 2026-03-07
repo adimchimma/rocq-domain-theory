@@ -42,8 +42,8 @@ DomainTheory.Structures
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Structures + core theory complete** |
-| 1 | Enriched categories, locally continuous functors, D ≅ [D→D]⊥ | Structures done; theory not started |
+| 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
+| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF syntax+operational done; denotational WIP; enriched theory not started |
 | 2 | Quantum CPO structures (stretch goal) | Not started |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
@@ -107,7 +107,7 @@ Reference: A&J Definition 2.1.13. Benton-Kennedy §2.1.
 
 ---
 
-### `Morphisms.v` ✓ (Phase 0) — 192 lines
+### `Morphisms.v` ✓ (Phase 0) — 209 lines
 
 **Imports:** `Order`, `CPO`
 
@@ -127,7 +127,7 @@ Reference: A&J §3.2.2. Benton-Kennedy §2.1 (`fconti` record).
 
 ---
 
-### `Enriched.v` ✓ (Phase 1) — 376 lines
+### `Enriched.v` ✓ (Phase 1) — 388 lines
 
 **Imports:** `Order`, `CPO`, `Morphisms`
 
@@ -250,13 +250,13 @@ All files import from `DomainTheory.Structures`. Dune library:
 | `fixp_ind` | Theorem | induction principle for admissible predicates |
 | `iter_satisfies` | Lemma | if `P` is admissible and `P ⊥`, then `P (iter f n)` for all `n` |
 
-The internalized `FIXP : (D ⇒c D) →c D` is deferred to `FunctionSpaces.v`.
+The internalized `FIXP : (D ⇒c D) →c D` lives in `FunctionSpaces.v` §6.
 
 Reference: A&J §2.1.3. Benton-Kennedy §2.1 (`fixp`, `FIXP`, `fixp_ind`).
 
 ---
 
-### `Products.v` ✓ (Phase 0) — 534 lines
+### `Products.v` ✓ (Phase 0) — 533 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`
 
@@ -299,7 +299,7 @@ Reference: Benton-Kennedy §2.1.
 
 ---
 
-### `Lift.v` ✓ (Phase 0) — 635 lines
+### `Lift.v` ✓ (Phase 0) — 646 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`, `ChainTheory`, `ClassicalEpsilon`
 
@@ -326,7 +326,7 @@ Reference: A&J §2.1.4. Moggi (1991). Benton-Kennedy §2.2.
 
 ---
 
-### `LiftMonad.v` ✓ (Phase 0, supplementary) — 489 lines
+### `LiftMonad.v` ✓ (Phase 0, supplementary) — 488 lines
 
 **Imports:** none (self-contained)
 
@@ -372,10 +372,10 @@ horizontal and vertical composition.
 
 ---
 
-### `FunctionSpaces.v` ✓ (Phase 0) — 718 lines
+### `FunctionSpaces.v` ✓ (Phase 0) — 878 lines
 
 **Imports:** `Order`, `CPO`, `Morphisms`, `OrderTheory`, `ChainTheory`,
-`CPOTheory`, `Products`
+`CPOTheory`, `Products`, `FixedPoints`
 
 | Name | Kind | Description |
 |------|------|-------------|
@@ -400,12 +400,21 @@ horizontal and vertical composition.
 | `eval_curry` | Lemma | `ev ∘ (curry(f) × id) = f` |
 | `curry_unique` | Lemma | universal property of the exponential |
 | `fun_sup_const`, `sup_apply`, `sup_chain_apply_le` | Lemmas | miscellaneous function-space sup lemmas |
+| `fixp_mono_fun` | Definition | `fixp` as a monotone map on `[D →c D]` |
+| `fixp_chain` | Definition | `n ↦ fixp(fs.[n])`: chain of fixpoints |
+| `sup_fixp_prefixed` | Lemma | `⊔_n fixp(f_n)` is a pre-fixed-point of `⊔_n f_n` |
+| `fixp_continuous` | Lemma | `fixp` is Scott-continuous on the function-space |
+| `FIXP` | Definition | `[[D →c D] →c D]`: the continuous fixed-point operator |
+| `FIXP_eq`, `FIXP_is_fixedpoint` | Lemmas | computation rule and fixed-point property |
+| `FIXP_least`, `FIXP_least_fixedpoint` | Lemmas | least (pre-)fixed-point properties |
+| `FIXP_ind` | Lemma | fixed-point induction via `FIXP` |
 
 Note: `cont_fun D E` is a `CPO` for all `D E : CPO.type`; it is a
-`PointedCPO` when `E : PointedCPO.type`. Internalized `FIXP` is deferred
-to future work.
+`PointedCPO` when `E : PointedCPO.type`. `FIXP : [[D →c D] →c D]`
+packages the Kleene fixed-point as a continuous operator on the
+function-space CPO.
 
-Reference: A&J §3.2.2. Benton-Kennedy §2.1.
+Reference: A&J §2.1.3, §3.2.2. Benton-Kennedy §2.1.
 
 ---
 
@@ -429,8 +438,8 @@ All files import from both `DomainTheory.Structures` and
 | File | Phase | Lines | Status |
 |------|-------|-------|--------|
 | `Nat.v` | 0 | 371 | ✓ Done |
-| `Discrete.v` | 0 | 185 | ✓ Done |
-| `Function.v` | 0/1 | 5 | Stub (instance in `theory/FunctionSpaces.v`) |
+| `Discrete.v` | 0 | 531 | ✓ Done |
+| `Function.v` | 0/1 | 462 | ✓ Done (CPO self-enrichment + utilities) |
 | `Quantum.v` | 2 | 5 | Stub (stretch goal) |
 
 > **Note:** The Lift, Product, and Sum CPO instances are registered
@@ -444,15 +453,15 @@ All files import from both `DomainTheory.Structures` and
 
 Dune library: `DomainTheory.Lang`. Depends on `DomainTheory.Instances`.
 
-| File | Phase | Description |
-|------|-------|-------------|
-| `PCF_Syntax.v` | 1 | PCF types, terms (strongly-typed de Bruijn) |
-| `PCF_Operational.v` | 1 | Big-step evaluation relation |
-| `PCF_Denotational.v` | 1 | Denotational semantics |
-| `PCF_Soundness.v` | 1 | `e ⇓ v → ⟦e⟧ = η(⟦v⟧)` |
-| `PCF_Adequacy.v` | 1 | Computational adequacy via logical relations |
-| `QMiniCore_Syntax.v` | 2/3 | Quantum lambda calculus syntax |
-| `QMiniCore_Semantics.v` | 2/3 | Quantum denotational semantics |
+| File | Phase | Lines | Description |
+|------|-------|-------|-------------|
+| `PCF_Syntax.v` | 1 | 512 | ✓ Intrinsic typed ANF: Ty, Var, Value/Exp, renamings, substitutions |
+| `PCF_Operational.v` | 1 | 332 | ✓ Big-step CBV evaluation `e ⇓ v`, determinism, inversion lemmas |
+| `PCF_Denotational.v` | 1 | 1,229 | 🔧 In progress (type/term interpretation) |
+| `PCF_Soundness.v` | 1 | 8 | Stub: `e ⇓ v → ⟦e⟧ = η(⟦v⟧)` |
+| `PCF_Adequacy.v` | 1 | 9 | Stub: computational adequacy via logical relations |
+| `QMiniCore_Syntax.v` | 2/3 | 9 | Stub: quantum lambda calculus syntax |
+| `QMiniCore_Semantics.v` | 2/3 | 9 | Stub: quantum denotational semantics |
 
 ---
 
@@ -488,12 +497,24 @@ Order.v
               ├── Sums.v             ← CPOTheory
               ├── Lift.v             ← CPOTheory, ClassicalEpsilon
               ├── LiftMonad.v        ← (self-contained; no imports)
-              ├── FunctionSpaces.v   ← Products
+              ├── FunctionSpaces.v   ← Products, FixedPoints
               ├── EnrichedTheory.v   ← Enriched, FunctionSpaces  [stub]
               ├── NatTrans.v         ← EnrichedTheory     [stub]
               └── DomainEquations.v  ← Enriched, Products,
                                         FunctionSpaces, Lift,
                                         EnrichedTheory     [stub]
+
+[instances/]
+  ├── Nat.v              ← CPOTheory, ChainTheory
+  ├── Discrete.v         ← CPOTheory, ChainTheory
+  └── Function.v         ← Enriched, FunctionSpaces, Morphisms
+
+[lang/]
+  ├── PCF_Syntax.v       ← (Stdlib only)
+  ├── PCF_Operational.v  ← PCF_Syntax
+  ├── PCF_Denotational.v ← PCF_Syntax, FunctionSpaces, Lift, FixedPoints  [WIP]
+  ├── PCF_Soundness.v    ← PCF_Operational, PCF_Denotational  [stub]
+  └── PCF_Adequacy.v     ← PCF_Soundness  [stub]
 ```
 
 ---

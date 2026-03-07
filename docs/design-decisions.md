@@ -275,3 +275,108 @@ before `IsCPO` was registered in §3.
 
 **Rule:** When building a `PointedCPO`, always register in the order:
 `HasLe → IsPreorder → IsPartialOrder → HasSup → IsCPO → HasBottom → IsPointed`.
+
+---
+
+## DD-009: Intrinsic typing and ANF for PCFv
+
+**Decision:** PCF syntax (`lang/PCF_Syntax.v`) uses intrinsically typed
+terms in Administrative Normal Form (ANF), with separate mutually
+inductive `Value` and `Exp` types indexed by `Env` and `Ty`. Variables
+are typed de Bruijn indices (`Var Γ τ`). Renamings are defined before
+substitutions, bootstrapping the latter (McBride's technique).
+
+**Rationale:**
+
+Benton–Kennedy §3 describe two approaches tried during the original
+formalization:
+
+1. **Extrinsic typing** (first attempt): raw `Value`/`Exp` with `nat` de
+   Bruijn indices, plus a separate typing judgment `VTy Γ τ v : Type`.
+   This required lengthy proofs that any two typing derivations of the
+   same term are equal, and all definitions and theorems needed
+   well-formedness side-conditions.
+
+2. **Intrinsic typing** (final design): `Value : Env → Ty → Type` and
+   `Exp : Env → Ty → Type`, where well-typedness is ensured by
+   construction. "Definitions and theorems become more natural and much
+   more concise, and the problems with equality proofs go away."
+   (Benton–Kennedy §3)
+
+We adopt the intrinsic approach directly, with the following specifics:
+
+- **ANF**: arguments to function calls must be values; intermediate
+  computation is sequenced by `LET`. This matches Benton–Kennedy exactly.
+- **`FIX` binds two variables**: `FIX τ₁ τ₂ body` where index 0 is the
+  argument (`x : τ₁`) and index 1 is the self-reference (`f : τ₁ →ₜ τ₂`).
+- **`OP` is parametric**: takes any Rocq function `nat → nat → nat`,
+  keeping the syntax minimal.
+- **No `TyLift`**: classical PCFv doesn't need it; the denotational
+  semantics handles lifting by interpreting base types as pointed CPOs.
+- **Typed de Bruijn via `Var`**: `ZVAR` and `SVAR` witnesses rather than
+  raw `nat` indices. This eliminates the need for `nth_error Γ n = Some τ`
+  proofs.
+- **Renaming bootstrap**: general renamings (`Ren Γ Γ'`) are defined
+  first, then substitutions (`Subst Γ Γ'`) use renamings for the shift
+  operation. This avoids a complex dependent shift operator
+  `Val(Γ ++ Γ') τ → Val(Γ ++ [τ'] ++ Γ') τ` (McBride; Altenkirch & Reus
+  1999; Benton–Kennedy §3).
+
+**Naming changes from Benton–Kennedy:**
+
+| Benton–Kennedy (2009) | rocq-domain-theory | Notes |
+|------------------------|--------------------|-------|
+| `TINT n` | `NLIT n` | "N for Nat" |
+| `TBOOL b` | `BLIT b` | "B for Bool" |
+| `TVAR i` | `VAR v` | |
+| `TFIX e` | `FIX τ₁ τ₂ body` | Explicit type indices |
+| `TPAIR v1 v2` | `PAIR v1 v2` | |
+| `TVAL v` | `VAL v` | |
+| `TLET e1 e2` | `LET e1 e2` | |
+| `TAPP f v` | `APP f v` | |
+| `TFST v` / `TSND v` | `FST v` / `SND v` | |
+| `TOP op v1 v2` | `OP op v1 v2` | |
+| `TGT v1 v2` | `GT v1 v2` | |
+| `TIF b e1 e2` | `IFB b e1 e2` | |
+| `Int` / `Bool` | `Nat` / `Bool` | `Int` → `Nat` (values are `nat`) |
+
+The `T` prefix (for "typed") was dropped since all terms are typed by
+construction.
+
+**Affected files:**
+- `src/lang/PCF_Syntax.v` — 512 lines
+- `src/lang/PCF_Operational.v` — uses `CValue`/`CExp` from PCF_Syntax
+- `src/lang/PCF_Denotational.v` — uses the same syntax
+
+---
+
+## DD-010: Big-step CBV evaluation for PCFv
+
+**Decision:** The operational semantics (`lang/PCF_Operational.v`) uses
+a big-step evaluation relation `Eval : CExp τ → CValue τ → Prop`
+(notation `e ⇓ v`), not a small-step reduction relation.
+
+**Rationale:**
+
+Benton–Kennedy §3 use big-step evaluation for typed PCFv:
+> "the operational semantics can be presented very directly"
+
+The big-step relation matches better with the denotational semantics for
+CBV, where the soundness theorem has the form `e ⇓ v → ⟦e⟧ = η(⟦v⟧)`.
+With small-step semantics, one would need to relate each reduction step
+to denotational equality, requiring a subject-reduction/preservation
+theorem.
+
+With intrinsically typed closed terms, there are no stuck states:
+- Every `CValue τ` is a value by construction (no `value` predicate needed)
+- Every `CExp τ` either diverges (no `Eval` derivation) or evaluates
+- No progress/preservation theorems are needed
+
+The `e_App` rule requires the function value to be `FIX τ₁ τ₂ body` —
+this is the only possibility for a closed value of function type, since
+there are no free variables.
+
+**Affected files:**
+- `src/lang/PCF_Operational.v` — 332 lines
+- `src/lang/PCF_Soundness.v` — will use induction on `Eval`
+- `src/lang/PCF_Adequacy.v` — adequacy statement uses `Converges`
