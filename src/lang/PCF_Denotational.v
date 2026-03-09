@@ -1,54 +1,81 @@
 (*  PCF_Denotational
 
-    Phase 1: Denotational semantics for PCFv.
+    Phase 1: Denotational semantics for typed call-by-value PCF (PCFv).
 
     This is [src/lang/PCF_Denotational.v].
 
     Imports:
-      [src/lang/PCF_Syntax.v]         — intrinsically typed syntax and substitution
+      [src/lang/PCF_Syntax.v]         — intrinsically typed syntax, renamings,
+                                        substitutions, var_case
       [src/structures/Order.v]        — chains and monotone maps
-      [src/structures/CPO.v]          — CPOs and pointed CPOs
-      [src/structures/Morphisms.v]    — continuous maps, identity, composition
+      [src/structures/CPO.v]          — CPO.type, PointedCPO.type
+      [src/structures/Morphisms.v]    — cont_fun, cont_comp, cont_id
       [src/theory/Lift.v]             — lifted CPO [option D], [ret], [kleisli]
-      [src/theory/Products.v]         — product CPOs, projections, pairing
-      [src/theory/FunctionSpaces.v]   — continuous function-space CPOs, [cont_curry]
-      [src/theory/FixedPoints.v]      — [fixp], [fixp_is_fixedpoint]
-      [src/theory/OrderTheory.v]      — [le_antisym], [le_trans]
-      [src/theory/ChainTheory.v]      — [chain_shift], [sup_shift]
-      [src/theory/CPOTheory.v]        — [sup_upper], [sup_least], [sup_ext]
-      [src/instances/Discrete.v]      — shared discrete CPO instances
-      [src/instances/Function.v]      — [cont_const], [cont_flip], [cont_ap]
+      [src/theory/Products.v]         — product CPOs, π₁, π₂, cont_pair,
+                                        cont_prod_map, cont_swap,
+                                        prod_sup_fst, prod_sup_snd
+      [src/theory/FunctionSpaces.v]   — continuous function-space CPO,
+                                        cont_curry, cont_eval, FIXP
+      [src/theory/FixedPoints.v]      — fixp, fixp_is_fixedpoint,
+                                        FIXP_is_fixedpoint
+      [src/theory/OrderTheory.v]      — le_antisym, le_trans
+      [src/theory/ChainTheory.v]      — chain_shift, sup_shift,
+                                        chain_some_stable
+      [src/theory/CPOTheory.v]        — sup_upper, sup_least, sup_ext,
+                                        cont_fun_ext
+      [src/instances/Discrete.v]      — unit PointedCPO, bool CPO, nat CPO;
+                                        nat_sup_eq, bool_sup_eq,
+                                        nat_chain_const, bool_chain_const
+      [src/instances/Function.v]      — cont_const, cont_flip, cont_ap
 
     Summary
     =======
     We give the denotational semantics for typed call-by-value PCF,
     following Benton, Kennedy, and Varming, "Some Domain Theory and
-    Denotational Semantics in Coq", §3.
+    Denotational Semantics in Coq", §3.  The lift monad [D⊥ = option D]
+    carries partiality; [None] denotes divergence.
 
-    The development is structured in six conceptual layers:
+    Type interpretation:
+        sem_ty Nat          = nat          (discrete CPO — Discrete.v §4)
+        sem_ty Bool         = bool         (discrete CPO — Discrete.v §3)
+        sem_ty (τ₁ →ₜ τ₂)  = [sem_ty τ₁ →c option (sem_ty τ₂)]
+        sem_ty (τ₁ ×ₜ τ₂)  = sem_ty τ₁ * sem_ty τ₂
 
-      §1  Type and environment interpretation into CPO domains
-      §2  Variable denotation as iterated projection
-      §3  Parameterised Kleisli lifting and arithmetic/branch combinators
-      §4  Value and expression denotation (mutual fixpoint)
-      §5  Semantic substitutions and their equations
-      §6  Computation rules and substitution lemmas
+    Environment interpretation:
+        sem_env []          = unit         (trivial PointedCPO — Discrete.v §1)
+        sem_env (τ :: Γ)    = sem_ty τ * sem_env Γ
 
-    The denotational semantics maps:
-
+    Denotation:
         sem_val : Value Γ τ  →  [sem_env Γ →c sem_ty τ]
         sem_exp : Exp   Γ τ  →  [sem_env Γ →c option (sem_ty τ)]
 
     using a mutual structural fixpoint, with each case expressed as a
     point-free composition of library combinators.
 
+    The development is structured in nine conceptual layers:
+
+      §1  Type and environment interpretation into CPO domains
+      §2  Variable denotation as iterated projection
+      §3  Parameterised Kleisli lifting and arithmetic/branch combinators
+      §4  Value and expression denotation (mutual fixpoint)
+      §5  Closed-term semantics and notation
+      §6  Semantic substitutions and their equations
+      §7  Computation rules (β-rules)
+      §8  Semantic renaming and weakening
+      §9  Substitution extension, substitution lemmas, and corollaries
+
     Design note: because [Products.v] and [Lift.v] define conflicting
     angle-bracket notations, we write [option D] instead of [⟨D⟩⊥]
     throughout this file.
 
+    Phase coverage:
+      Phase 1 — all sections.
+      Used by [PCF_Soundness.v] and [PCF_Adequacy.v].
+
     References:
       Benton, Kennedy, and Varming, "Some Domain Theory and Denotational
       Semantics in Coq", §3.
+      Abramsky & Jung (1994) §2.1, §3.
 *)
 
 From HB Require Import structures.
@@ -73,10 +100,21 @@ Local Open Scope type_scope.
 (*   §1  Type and environment interpretation                          *)
 (* ================================================================== *)
 (*
-    The denotation of PCFv types uses the shared domain-theory library
-    directly.  The function type is interpreted call-by-value: arguments
-    are values in [sem_ty τ₁], while results live in the lifted codomain
-    [option (sem_ty τ₂)].
+    [nat], [bool], and [unit] carry their discrete / trivial CPO
+    structures from [Discrete.v §1–§4].
+
+    The arrow type [τ₁ →ₜ τ₂] is interpreted as Scott-continuous maps
+    into the LIFT of the codomain:
+        [sem_ty τ₁ →c option (sem_ty τ₂)]
+    The [option] layer models call-by-value partiality.  Since
+    [option (sem_ty τ₂)] is a PointedCPO (Lift.v), so is the entire
+    function space — enabling [fixp] for the FIX case.
+
+    The product type [τ₁ ×ₜ τ₂] is the categorical product CPO from
+    Products.v.
+
+    [sem_env Γ] is the n-ary product of the types in [Γ].  The empty
+    context denotes [unit] (the terminal PointedCPO from Discrete.v §1).
 *)
 
 Fixpoint sem_ty (τ : Ty) : CPO.type :=
@@ -87,21 +125,15 @@ Fixpoint sem_ty (τ : Ty) : CPO.type :=
   | Prod τ₁ τ₂  => (sem_ty τ₁ * sem_ty τ₂)%type
   end.
 
-(*
-    The arrow interpretation carries a pointed CPO structure because
-    the codomain [option (sem_ty τ₂)] is pointed.  We package this as
-    a [PointedCPO.type] for use with [FIXP].
-
-    The coercion from [cont_fun] to [PointedCPO.type] is resolved
-    by Coq's typeclass inference, since [cont_fun X (option Y)] inherits
-    the pointed structure from [option Y].
-*)
-Definition arrow_pcpo (τ₁ τ₂ : Ty) : PointedCPO.type :=
+(*  The function-type domain is a PointedCPO (codomain is [option] hence
+    pointed).  Used by the FIX case (§4) to instantiate [FIXP]. *)
+Definition sem_arrow_pointed (τ₁ τ₂ : Ty) : PointedCPO.type :=
   cont_fun (sem_ty τ₁) (option (sem_ty τ₂)).
 
 (*
     Semantic environments mirror the intrinsic syntax: the head of the
     typing context is the first component of the semantic product.
+    The empty context denotes [unit] (the terminal PointedCPO).
 *)
 Fixpoint sem_env (Γ : Env) : CPO.type :=
   match Γ with
@@ -117,8 +149,10 @@ Notation "γ ↓ Γ" := (snd γ) (at level 20, only parsing).
 (*   §2  Variable denotation                                          *)
 (* ================================================================== *)
 (*
-    Typed de Bruijn variables become projections from semantic
-    environments.
+    [sem_var x] is the continuous projection for the de Bruijn index [x]:
+
+        ZVAR      ↦  π₁
+        SVAR x'   ↦  sem_var x' ∘ π₂
 *)
 
 Fixpoint sem_var {Γ : Env} {τ : Ty} (x : Var Γ τ)
@@ -148,7 +182,7 @@ Proof. reflexivity. Qed.
     continuity (from the constant-chain property of discrete types).
 
     §3a  Parameterised Kleisli lifting (kleislir)
-    §3b  Arithmetic binary operators (nat_op2)
+    §3b  Arithmetic binary operators (nat_binop)
     §3c  Comparison (nat_ltb_pair)
     §3d  Conditional (cont_ifb)
 *)
@@ -365,19 +399,19 @@ End KleisliR.
 
 
 (* ------------------------------------------------------------------ *)
-(*   §3b  Arithmetic binary operators                                 *)
+(*   §3b  Arithmetic binary operators (nat_binop)                     *)
 (* ------------------------------------------------------------------ *)
 (*
-    [nat_op2 op : [(nat × nat) →c nat]]   packages any [op : nat → nat → nat]
-    as a continuous map.  Monotonicity and continuity follow from the
-    discrete order on [nat].
+    Lifts [op : nat → nat → nat] to a continuous map [(nat × nat) →c nat].
+    Monotonicity and continuity hold because [nat * nat] is a product of
+    discrete CPOs, so every chain is constant componentwise.
 
     The proofs are factored out of [refine]/[Proof] mode because
     canonical-structure resolution for [nat * nat] prevents [destruct]
     on pair inhabitants when the goal still contains unresolved evars.
 *)
 
-Lemma nat_op2_mono (op : nat -> nat -> nat) :
+Lemma nat_binop_mono (op : nat -> nat -> nat) :
     monotone (nat * nat)%type nat (fun p => op (fst p) (snd p)).
 Proof.
   intros p q H.
@@ -386,12 +420,12 @@ Proof.
   simpl in *. rewrite Ha, Hb. reflexivity.
 Qed.
 
-Definition nat_op2_mfun (op : nat -> nat -> nat)
+Definition nat_binop_mfun (op : nat -> nat -> nat)
     : mono_fun (nat * nat)%type nat :=
-  Build_mono_fun _ (nat_op2_mono op).
+  Build_mono_fun _ (nat_binop_mono op).
 
-Lemma nat_op2_cont (op : nat -> nat -> nat)
-    : continuous (nat_op2_mfun op).
+Lemma nat_binop_cont (op : nat -> nat -> nat)
+    : continuous (nat_binop_mfun op).
 Proof.
   intro c.
   assert (Hsc : sup c = c.[0]).
@@ -404,17 +438,18 @@ Proof.
   rewrite Hsc. rewrite (nat_sup_eq (map_chain _ c)). reflexivity.
 Qed.
 
-Definition nat_op2 (op : nat -> nat -> nat)
+Definition nat_binop (op : nat -> nat -> nat)
     : cont_fun (nat * nat)%type nat :=
-  Build_cont_fun _ (nat_op2_cont op).
+  Build_cont_fun _ (nat_binop_cont op).
 
 
 (* ------------------------------------------------------------------ *)
-(*   §3c  Comparison                                                  *)
+(*   §3c  Comparison (nat_ltb_pair)                                   *)
 (* ------------------------------------------------------------------ *)
 (*
     [nat_ltb_pair : [(nat × nat) →c bool]]   computes [snd <? fst] as a
-    continuous map, matching the semantics of [GT v₁ v₂].
+    continuous map.  This matches the operational rule [e_Gt]:
+    [GT n₁ n₂ ⇓ BLIT (n₂ <? n₁)].
 *)
 
 Lemma nat_ltb_pair_mono :
@@ -554,7 +589,7 @@ End CondSection.
       FST   v         : ret ∘ π₁ ∘ sem_val v
       SND   v         : ret ∘ π₂ ∘ sem_val v
       LET   e₁ e₂    : kleislir(sem_exp e₂ ∘ swap) ∘ ⟨id, sem_exp e₁⟩
-      OP    op v₁ v₂  : ret ∘ nat_op2 op ∘ ⟨sem_val v₁, sem_val v₂⟩
+      OP    op v₁ v₂  : ret ∘ nat_binop op ∘ ⟨sem_val v₁, sem_val v₂⟩
       GT    v₁ v₂     : ret ∘ nat_ltb_pair ∘ ⟨sem_val v₁, sem_val v₂⟩
       IFB   v e₁ e₂   : cont_ifb ∘ ⟨sem_val v, ⟨sem_exp e₁, sem_exp e₂⟩⟩
 *)
@@ -572,7 +607,7 @@ Fixpoint sem_val {Γ τ} (v : Value Γ τ) {struct v}
       cont_pair (sem_val v₁) (sem_val v₂)
   | FIX τ₁ τ₂ body =>
       cont_comp
-        (@FIXP (arrow_pcpo τ₁ τ₂))
+        (@FIXP (sem_arrow_pointed τ₁ τ₂))
         (cont_flip (cont_curry (cont_flip (cont_curry (sem_exp body)))))
   end
 
@@ -593,7 +628,7 @@ with sem_exp {Γ τ} (e : Exp Γ τ) {struct e}
         (cont_pair (cont_id _) (sem_exp e₁))
   | OP op v₁ v₂ =>
       cont_comp ret
-        (cont_comp (nat_op2 op) (cont_pair (sem_val v₁) (sem_val v₂)))
+        (cont_comp (nat_binop op) (cont_pair (sem_val v₁) (sem_val v₂)))
   | GT v₁ v₂ =>
       cont_comp ret
         (cont_comp nat_ltb_pair (cont_pair (sem_val v₁) (sem_val v₂)))
@@ -604,12 +639,15 @@ with sem_exp {Γ τ} (e : Exp Γ τ) {struct e}
 
 
 (* ================================================================== *)
-(*   §4b  Closed-term semantics                                       *)
+(*   §5  Closed-term semantics and notation                           *)
 (* ================================================================== *)
 (*
     For closed terms the semantic environment is [tt : unit], so the
     denotation of a closed value/expression is the corresponding
     semantic map applied to [tt].
+
+    The bracket notation [⟦ v ⟧ᵥ], [⟦ e ⟧ₑ] is introduced here and
+    used throughout the remaining sections.
 *)
 
 Definition sem_cval {τ : Ty} (v : CValue τ) : sem_ty τ :=
@@ -618,14 +656,24 @@ Definition sem_cval {τ : Ty} (v : CValue τ) : sem_ty τ :=
 Definition sem_cexp {τ : Ty} (e : CExp τ) : option (sem_ty τ) :=
   sem_exp e tt.
 
+Notation "⟦ v ⟧ᵥ"  := (sem_val  v) (at level 9).
+Notation "⟦ e ⟧ₑ"  := (sem_exp  e) (at level 9).
+Notation "⟦ v ⟧ᶜᵥ" := (sem_cval v) (at level 9).
+Notation "⟦ e ⟧ᶜₑ" := (sem_cexp e) (at level 9).
+
 
 (* ================================================================== *)
-(*   §5  Semantic substitutions                                       *)
+(*   §6  Semantic substitutions and their equations                   *)
 (* ================================================================== *)
 (*
     Given a syntactic substitution [σ : Subst Γ Γ'], [sem_subst σ] is the
     continuous map from semantic environments for [Γ'] to semantic
     environments for [Γ].
+
+    The key properties are:
+      [sem_subst_var]:  lookup commutes with semantic substitution
+      [sem_env_ext]:    extensionality principle for semantic environments
+      [sem_subst_id]:   identity substitution acts as identity
 *)
 
 Fixpoint sem_subst {Γ Γ' : Env} (σ : Subst Γ Γ')
@@ -676,23 +724,34 @@ Qed.
 
 
 (* ================================================================== *)
-(*   §6  Computation rules and substitution lemmas                    *)
+(*   §7  Computation rules (β-rules)                                  *)
 (* ================================================================== *)
 (*
-    Most computation rules hold by [reflexivity] because the mutual
-    fixpoint directly reduces to the correct combinator.  The [LET]
-    rule uses a case split on the first sub-expression, and the [FIX]
-    unfold rule invokes [FIXP_is_fixedpoint].
+    These confirm that the denotation computes as expected on each
+    constructor.  All follow by [reflexivity] except [sem_val_FIX_unfold],
+    which uses [FIXP_is_fixedpoint] to unfold the recursive definition.
 
-    Substitution lemmas ([sem_val_subst], [sem_exp_subst]) require
-    mutual induction and are admitted with documented proof strategies.
+    These are the main interface used by [PCF_Soundness.v].
 *)
 
 
-(* -- Variable lookup ------------------------------------------------ *)
+(* -- Value computation rules ----------------------------------------- *)
+
+Lemma sem_val_NLIT {Γ : Env} (n : nat) (γ : sem_env Γ) :
+    sem_val (NLIT n) γ = n.
+Proof. reflexivity. Qed.
+
+Lemma sem_val_BLIT {Γ : Env} (b : bool) (γ : sem_env Γ) :
+    sem_val (BLIT b) γ = b.
+Proof. reflexivity. Qed.
 
 Lemma sem_val_VAR {Γ : Env} {τ : Ty} (x : Var Γ τ) :
     sem_val (VAR x) = sem_var x.
+Proof. reflexivity. Qed.
+
+Lemma sem_val_PAIR {Γ : Env} {τ₁ τ₂ : Ty}
+    (v₁ : Value Γ τ₁) (v₂ : Value Γ τ₂) (γ : sem_env Γ) :
+    sem_val (PAIR v₁ v₂) γ = (sem_val v₁ γ, sem_val v₂ γ).
 Proof. reflexivity. Qed.
 
 
@@ -741,6 +800,19 @@ Lemma sem_exp_IFB {Γ : Env} {τ : Ty}
       if sem_val v γ then sem_exp e₁ γ else sem_exp e₂ γ.
 Proof. reflexivity. Qed.
 
+(*  Split variants for when the branch is known. *)
+Lemma sem_exp_IFB_true {Γ : Env} {τ : Ty}
+    (v : Value Γ Bool) (e₁ e₂ : Exp Γ τ) (γ : sem_env Γ) :
+    sem_val v γ = true ->
+    sem_exp (IFB v e₁ e₂) γ = sem_exp e₁ γ.
+Proof. intro H; rewrite sem_exp_IFB, H; reflexivity. Qed.
+
+Lemma sem_exp_IFB_false {Γ : Env} {τ : Ty}
+    (v : Value Γ Bool) (e₁ e₂ : Exp Γ τ) (γ : sem_env Γ) :
+    sem_val v γ = false ->
+    sem_exp (IFB v e₁ e₂) γ = sem_exp e₂ γ.
+Proof. intro H; rewrite sem_exp_IFB, H; reflexivity. Qed.
+
 
 (* -- FIX unfold ----------------------------------------------------- *)
 (*
@@ -762,19 +834,26 @@ Proof.
      So F (FIXP F) x = sem_exp body (x, (FIXP F, γ)) (reflexivity),
      and FIXP_is_fixedpoint F : F (FIXP F) = FIXP F transports this. *)
   exact (eq_ind (F (FIXP F))
-    (fun g : arrow_pcpo τ₁ τ₂ => g x = sem_exp body (x, (FIXP F, γ)))
+    (fun g : sem_arrow_pointed τ₁ τ₂ => g x = sem_exp body (x, (FIXP F, γ)))
     eq_refl
     (FIXP F)
     (FIXP_is_fixedpoint F)).
 Qed.
 
 
-(* -- Semantic renaming ---------------------------------------------- *)
-(*  sem_ren encodes a renaming as a special substitution. From this we
-    derive sem_ren_ext (renaming commutes with environment extension),
-    the mutual sem_val_ren / sem_exp_ren (renaming commutes with
-    sem_val / sem_exp), sem_ren_wk (weakening drops the outermost
-    component), sem_val_wk, and finally sem_subst_ext. *)
+(* ================================================================== *)
+(*   §8  Semantic renaming and weakening                              *)
+(* ================================================================== *)
+(*
+    [sem_ren ρ] encodes a renaming [ρ : Ren Γ Γ'] as a semantic
+    substitution.  From this we derive:
+
+      [sem_ren_ext]:               renaming commutes with env extension
+      [sem_val_ren / sem_exp_ren]: renaming commutes with sem_val/sem_exp
+                                   (mutual induction)
+      [sem_ren_wk]:                weakening drops the outermost component
+      [sem_val_wk]:                corollary for value weakening
+*)
 
 Definition sem_ren {Γ Γ' : Env} (ρ : Ren Γ Γ')
     : cont_fun (sem_env Γ') (sem_env Γ) :=
@@ -904,7 +983,9 @@ Proof.
   unfold wkVal. rewrite sem_val_ren, sem_ren_wk. reflexivity.
 Qed.
 
-(* -- Substitution extension ----------------------------------------- *)
+(* ================================================================== *)
+(*   §9  Substitution extension, substitution lemmas, and corollaries *)
+(* ================================================================== *)
 
 Lemma sem_subst_ext {Γ Γ' : Env} {τ : Ty}
     (σ : Subst Γ Γ') (x : sem_ty τ) (γ' : sem_env Γ') :
@@ -926,7 +1007,13 @@ Proof.
 Qed.
 
 (*
-    The substitution lemmas require mutual induction over the syntax.
+    The substitution lemmas are the semantic counterpart of [substVal] /
+    [substExp] from [PCF_Syntax.v].  Used in [PCF_Soundness.v].
+
+    Core invariant:
+        sem_val (substVal σ v) γ' = sem_val v (sem_subst σ γ')
+        sem_exp (substExp σ e) γ' = sem_exp e (sem_subst σ γ')
+
     The proof mirrors [sem_val_ren / sem_exp_ren], replacing renamings
     with substitutions throughout.  Each case uses [change] to expose
     the head normal form of [substVal σ _] / [substExp σ _], then
@@ -1018,8 +1105,10 @@ Proof.
 Qed.
 
 
-(* -- Single and double substitution --------------------------------- *)
+(* -- Single and double substitution corollaries ---------------------- *)
 (*
+    Corollaries for the two operational substitutions from [PCF_Syntax.v].
+
     Both proofs use [transitivity] to introduce an explicit pair
     intermediate, then [change] to unfold [sem_subst] one step (via
     kernel conversion), and [injective_projections; cbn [fst snd]] to
