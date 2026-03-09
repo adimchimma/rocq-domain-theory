@@ -139,9 +139,12 @@ Definition monotone (P Q : Preorder.type) (f : P -> Q) : Prop :=
     forall (x y : P), x ⊑ y -> f x ⊑ f y.
 
 (* 
-    TODO: 
-        migrate to using [Funclass] keys in [mono_fun] later.
-        It'll probably be around when implementing [FunctionSpaces] 
+    Note on HB migration:
+        [FunctionSpaces.v] already registers [[D →c E]] as a CPO via
+        HB instances without converting [mono_fun] to a Funclass-keyed
+        HB structure.  A full migration would touch 50+ call sites for
+        limited gain; revisit in Phase 2 if enriched-hom composability
+        demands it.  See also [Morphisms.v] header note.
 *)
 Record mono_fun (P Q : Preorder.type) : Type := Build_mono_fun {
     mf_fun :> P -> Q;

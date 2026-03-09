@@ -167,11 +167,12 @@ Definition continuous {D E : CPO.type} (f : mono_fun D E) :=
 (*  Notes for later phases                                           *)
 (* ------------------------------------------------------------------ *)
 (*
-   Phase 0/1 (FunctionSpaces.v):
-     [mono_fun P Q] will be migrated to an HB structure with carrier
-     [P -> Q] and registered as a [CPO.type] under the pointwise order.
-     At that point [cont_fun] should similarly become an HB structure so
-     that the exponential CPO [D ⇒ E] arises by canonical inference.
+   Phase 0 — done (FunctionSpaces.v):
+     [[D →c E]] is registered as a [CPO.type] (and [PointedCPO.type])
+     under the pointwise order via HB instances in [FunctionSpaces.v],
+     without converting [mono_fun] or [cont_fun] to HB structures.
+     A Funclass-key migration was considered and deferred; see the
+     header notes in [Morphisms.v] and [Order.v].
 
    Phase 1 (Enriched.v):
      The enriched-hom mixin will extend [CPO.type] with a hom-object

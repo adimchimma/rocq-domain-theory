@@ -26,11 +26,23 @@
     Phase coverage:
       Phase 0 — cont_fun, cont_id, cont_comp, strict_fun
 
-    Note on future migration (Phase 0/1, FunctionSpaces.v):
-      Once we need [[D →c E]] to itself be a [CPO.type] under the
-      pointwise order, [cont_fun] should become an HB structure with
-      carrier [D -> E].  At that point [mono_fun] will migrate similarly.
-      For now, plain records are simpler and sufficient.
+    Note on HB migration status:
+      [FunctionSpaces.v] already registers [[D →c E]] as a [CPO.type]
+      (and [PointedCPO.type]) under the pointwise order via HB instances,
+      without converting [cont_fun] itself into an HB structure.
+
+      A full migration — making [mono_fun] and [cont_fun] HB structures
+      with [Funclass] keys (i.e. [HB.mixin Record IsMonotone (P Q : Preorder.type)
+      (f : P -> Q)]) — would touch 50+ construction sites across ~12 files,
+      break proofs that [destruct] these records, and risk fragile
+      canonical-structure inference with dependent types (chains, sups).
+      The practical benefit (automatic monotonicity/continuity inference
+      for composed functions) is small because compositions are already
+      handled explicitly via [cont_comp], [cont_id], etc.
+
+      Revisit if: (a) the enriched-hom setting (Phase 2) needs
+      [IsMonotone]/[IsContinuous] as composable mixins on the same
+      function, or (b) a broader restructuring makes the churn worthwhile.
 *)
 
 From HB Require Import structures.
