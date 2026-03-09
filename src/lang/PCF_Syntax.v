@@ -277,19 +277,35 @@ Definition ren_comp {Γ Γ' Γ'' : Env}
   fun τ v => ρ₂ τ (ρ₁ τ v).
 
 (*
+    [var_case] is a computational case analysis on de Bruijn indices
+    that avoids the opaque [JMeq_eq] axiom introduced by [dependent
+    destruction].  All definitions that case-split on a [Var (τ :: Γ)]
+    ([ren_ext], [subst_ext], [single_subst], [double_subst]) use this
+    combinator so that their computation rules hold definitionally.
+*)
+Definition var_case {Γ τ} {P : Ty -> Type}
+    (hz : P τ) (hs : forall σ, Var Γ σ -> P σ)
+    : forall σ, Var (τ :: Γ) σ -> P σ :=
+  fun σ (x : Var (τ :: Γ) σ) =>
+    match x in Var ctx σ' return
+          match ctx with
+          | []       => P σ'
+          | τ₀ :: Γ₀ => P τ₀ -> (forall σ, Var Γ₀ σ -> P σ) -> P σ'
+          end
+    with
+    | ZVAR   => fun z _  => z
+    | SVAR y => fun _ s  => s _ y
+    end hz hs.
+
+(*
     _Extension_ of a renaming under a binder.
     If [ρ : Ren Γ Γ'] then [ren_ext ρ : Ren (τ :: Γ) (τ :: Γ')].
     The new head variable [ZVAR] maps to itself; all other variables
     are shifted by one and then renamed by [ρ].
 *)
 Definition ren_ext {Γ Γ' : Env} {τ : Ty} (ρ : Ren Γ Γ') :
-    Ren (τ :: Γ) (τ :: Γ').
-Proof.
-  intros σ v.
-  dependent destruction v.
-  - exact ZVAR.
-  - exact (SVAR (ρ _ v)).
-Defined.
+    Ren (τ :: Γ) (τ :: Γ') :=
+  var_case ZVAR (fun σ y => SVAR (ρ σ y)).
 
 (*
     _Weakening_: the canonical renaming from [Γ] into [τ :: Γ] that
@@ -363,13 +379,8 @@ Definition subst_id {Γ : Env} : Subst Γ Γ :=
       maps SVAR v ↦ wkVal (σ v) (the old variables, weakened by one)
 *)
 Definition subst_ext {Γ Γ' : Env} {τ : Ty} (σ : Subst Γ Γ') :
-    Subst (τ :: Γ) (τ :: Γ').
-Proof.
-  intros ρ v.
-  dependent destruction v.
-  - exact (VAR ZVAR).
-  - exact (wkVal (σ _ v)).
-Defined.
+    Subst (τ :: Γ) (τ :: Γ') :=
+  var_case (VAR ZVAR) (fun ρ y => wkVal (σ ρ y)).
 
 (*
     Apply a substitution to a value or expression.  Again, these are
@@ -426,15 +437,19 @@ with substExp {Γ Γ' : Env} (σ : Subst Γ Γ') {τ : Ty}
 (*
     The substitution that maps [ZVAR ↦ v] and leaves all other variables
     shifted down by one (unchanged in the outer context).
+
+    [single_subst], [double_subst], [ren_ext], and [subst_ext] are all
+    defined via [var_case] (see §4), ensuring their computation rules
+    hold _definitionally_:
+        [single_subst v τ ZVAR        ≡ v        ]
+        [single_subst v σ (SVAR x)    ≡ VAR x    ]
+        [double_subst varg vfun _ ZVAR           ≡ varg   ]
+        [double_subst varg vfun _ (SVAR ZVAR)    ≡ vfun   ]
+        [double_subst varg vfun _ (SVAR (SVAR x)) ≡ VAR x ]
 *)
 Definition single_subst {Γ : Env} {τ : Ty} (v : Value Γ τ) :
-    Subst (τ :: Γ) Γ.
-Proof.
-  intros σ w.
-  dependent destruction w.
-  - exact v.
-  - exact (VAR w).
-Defined.
+    Subst (τ :: Γ) Γ :=
+  var_case v (fun σ x => VAR x).
 
 (* Substitute [v] for variable 0 in an expression. *)
 Definition singleSubstExp {Γ : Env} {τ₁ τ₂ : Ty}
@@ -450,15 +465,8 @@ Definition singleSubstExp {Γ : Env} {τ₁ τ₂ : Ty}
 *)
 Definition double_subst {Γ : Env} {τ₁ τ₂ : Ty}
     (varg : Value Γ τ₁) (vfun : Value Γ (τ₁ →ₜ τ₂)) :
-    Subst (τ₁ :: (τ₁ →ₜ τ₂) :: Γ) Γ.
-Proof.
-  intros σ w.
-  dependent destruction w.
-  - exact varg.
-  - dependent destruction w.
-    + exact vfun.
-    + exact (VAR w).
-Qed.
+    Subst (τ₁ :: (τ₁ →ₜ τ₂) :: Γ) Γ :=
+  var_case varg (var_case vfun (fun σ x => VAR x)).
 
 (*
     Apply the double substitution to the body of a FIX.
