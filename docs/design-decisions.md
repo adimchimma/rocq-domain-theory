@@ -380,3 +380,132 @@ there are no free variables.
 - `src/lang/PCF_Operational.v` — 332 lines
 - `src/lang/PCF_Soundness.v` — will use induction on `Eval`
 - `src/lang/PCF_Adequacy.v` — adequacy statement uses `Converges`
+
+---
+
+## DD-011: Point-free mutual fixpoint for `sem_val`/`sem_exp`
+
+**Decision:** The denotation functions `sem_val : Value Γ τ → [sem_env Γ →c sem_ty τ]`
+and `sem_exp : Exp Γ τ → [sem_env Γ →c option (sem_ty τ)]` are defined as a
+single mutual structural `Fixpoint`, with each case expressed as a point-free
+composition of library combinators (no explicit destructuring of environments).
+
+**Rationale:**
+
+Two approaches were evaluated:
+
+1. **Three-pass approach:** Define raw functions `sem_val_fn`/`sem_exp_fn`
+   first, prove monotonicity in a second pass, prove continuity in a third,
+   then package as `cont_fun`. This gives separate lemmas at each stage but
+   multiplicates proof obligations — every case must be handled three times.
+
+2. **Point-free single-pass:** Each syntactic case is a pipeline of library
+   combinators (`cont_comp`, `cont_pair`, `cont_curry`, `cont_flip`, `FIXP`,
+   `kleislir`, `ret`, etc.) that are already packaged as `cont_fun`. The
+   mutual fixpoint directly produces `cont_fun` values with no extra proof
+   obligations.
+
+The single-pass approach was chosen because:
+- The combinator library (`FunctionSpaces.v`, `Products.v`, `Lift.v`,
+  `Function.v`) already provides all needed packaging.
+- The FIX case benefits from `FIXP : [[D →c D] →c D]` being a single
+  continuous operator — no manual monotonicity/continuity threading.
+- The computation rules (§7) reduce by `reflexivity` for all cases except
+  FIX, which uses `FIXP_is_fixedpoint`.
+
+The downside is that `simpl` over `sem_val`/`sem_exp` unfolds all combinator
+internals, producing unreadable goals. This is mitigated by:
+- Using `change` rather than `simpl` in proofs (§8, §9).
+- Making `sem_ren` `Opaque` during the renaming/substitution mutual proofs.
+
+**Affected files:**
+- `src/lang/PCF_Denotational.v` — §4 (mutual fixpoint definition)
+
+---
+
+## DD-012: Renaming route for the substitution lemma
+
+**Decision:** The substitution lemma (`sem_val_subst`/`sem_exp_subst`) is
+proved via an intermediate **renaming route**: first proving the renaming
+lemma (`sem_val_ren`/`sem_exp_ren`) by mutual induction, then using the
+renaming lemma to prove `sem_subst_ext` (which requires `sem_val_wk`,
+which requires `sem_val_ren`), and finally proving the substitution lemma
+by mutual induction using `sem_subst_ext`.
+
+**Rationale:**
+
+The direct approach to `sem_subst_ext` requires knowing that
+`sem_val (wkVal v) (x, γ) = sem_val v γ`, i.e. that syntactic weakening
+(`wkVal`) corresponds to dropping the first environment component. Since
+`wkVal v = renVal ren_wk v`, this requires the renaming lemma.
+
+The dependency chain is:
+```
+sem_ren_ext  (renaming preserves env extension)
+    ↓
+sem_val_ren / sem_exp_ren  (mutual induction on terms)
+    ↓
+sem_ren_wk   (weakening drops outermost component)
+    ↓
+sem_val_wk   (syntactic weakening = semantic projection)
+    ↓
+sem_subst_ext  (substitution preserves env extension)
+    ↓
+sem_val_subst / sem_exp_subst  (mutual induction on terms)
+```
+
+This is exactly the bootstrapping strategy described in Benton–Kennedy §3:
+"first composition of renamings is defined, then composition of substitution
+with renaming, and finally composition of substitutions." Our semantic
+lemmas mirror this syntactic bootstrapping.
+
+**Key proof technique:** During the mutual induction proofs for
+`sem_val_ren`/`sem_exp_ren` and `sem_val_subst`/`sem_exp_subst`, `sem_ren`
+is made `Opaque` to prevent `simpl`/`change` from unfolding it. It is made
+`Transparent` again immediately after. The FIX case in each mutual proof
+uses `cont_fun_ext` to reduce the goal to three nested extensionality
+steps, then applies the IH on the body with two `ren_ext`/`subst_ext`
+applications.
+
+**Affected files:**
+- `src/lang/PCF_Denotational.v` — §8 (renaming), §9 (substitution)
+
+---
+
+## DD-013: `var_case` combinator for `ren_ext` and `subst_ext`
+
+**Decision:** The renaming extension `ren_ext` and substitution extension
+`subst_ext` in `PCF_Syntax.v` are defined using a `var_case` combinator
+that eliminates the head variable by pattern matching with a
+function-returning return type, rather than matching with an `eq_rect` or
+`JMeq_eq` cast.
+
+**Rationale:**
+
+The typed de Bruijn variable `Var (τ :: Γ) σ` can be either `ZVAR`
+(where `σ = τ` by the index) or `SVAR x` (where `x : Var Γ σ`). To
+define `ren_ext` and `subst_ext`, we need to case-split on whether a
+variable refers to the newly bound position or a previous one. The naïve
+`match` produces goals with `JMeq_eq` or `eq_rect` casts because the
+type indices change across branches. The `var_case` combinator avoids
+this by using a dependent match with a return type of the form
+`(fun T => ...) σ`:
+
+```coq
+Definition var_case {Γ τ A}
+    (z : A τ) (s : forall σ, Var Γ σ → A σ) {σ} (x : Var (τ :: Γ) σ) : A σ :=
+  match x in Var G σ return
+    match G with [] => unit | τ' :: Γ' => A τ' → (forall ρ, Var Γ' ρ → A ρ) → A σ end
+  with
+  | ZVAR      => fun z _ => z
+  | SVAR x'   => fun _ s => s _ x'
+  end z s.
+```
+
+This computes cleanly: `var_case z s ZVAR = z` and
+`var_case z s (SVAR x') = s _ x'` hold by `reflexivity`, with no opaque
+equality transports. The benefit appears in `sem_ren_ext` and
+`sem_subst_ext` where the proofs reduce via kernel conversion.
+
+**Affected files:**
+- `src/lang/PCF_Syntax.v` — `var_case`, `ren_ext`, `subst_ext` definitions

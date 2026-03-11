@@ -43,7 +43,7 @@ DomainTheory.Structures
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
-| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF syntax+operational done; denotational WIP; enriched theory not started |
+| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF syntax+operational+denotational done; soundness+adequacy not started; enriched theory not started |
 | 2 | Quantum CPO structures (stretch goal) | Not started |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
@@ -457,7 +457,7 @@ Dune library: `DomainTheory.Lang`. Depends on `DomainTheory.Instances`.
 |------|-------|-------|-------------|
 | `PCF_Syntax.v` | 1 | 512 | ✓ Intrinsic typed ANF: Ty, Var, Value/Exp, renamings, substitutions |
 | `PCF_Operational.v` | 1 | 332 | ✓ Big-step CBV evaluation `e ⇓ v`, determinism, inversion lemmas |
-| `PCF_Denotational.v` | 1 | 1,229 | 🔧 In progress (type/term interpretation) |
+| `PCF_Denotational.v` | 1 | 1,169 | ✓ Denotation, combinators, computation rules, renaming + substitution lemmas (0 Admitted) |
 | `PCF_Soundness.v` | 1 | 8 | Stub: `e ⇓ v → ⟦e⟧ = η(⟦v⟧)` |
 | `PCF_Adequacy.v` | 1 | 9 | Stub: computational adequacy via logical relations |
 | `QMiniCore_Syntax.v` | 2/3 | 9 | Stub: quantum lambda calculus syntax |
@@ -512,7 +512,7 @@ Order.v
 [lang/]
   ├── PCF_Syntax.v       ← (Stdlib only)
   ├── PCF_Operational.v  ← PCF_Syntax
-  ├── PCF_Denotational.v ← PCF_Syntax, FunctionSpaces, Lift, FixedPoints  [WIP]
+  ├── PCF_Denotational.v ← PCF_Syntax, FunctionSpaces, Lift, FixedPoints, Discrete, Function
   ├── PCF_Soundness.v    ← PCF_Operational, PCF_Denotational  [stub]
   └── PCF_Adequacy.v     ← PCF_Soundness  [stub]
 ```
@@ -523,33 +523,42 @@ Order.v
 
 | File | Lines | Status |
 |------|-------|--------|
-| `src/structures/Order.v` | 187 | ✓ Done |
-| `src/structures/CPO.v` | 182 | ✓ Done |
-| `src/structures/Morphisms.v` | 192 | ✓ Done |
-| `src/structures/Enriched.v` | 376 | ✓ Done |
-| **Structures subtotal** | **937** | |
+| `src/structures/Order.v` | 190 | ✓ Done |
+| `src/structures/CPO.v` | 183 | ✓ Done |
+| `src/structures/Morphisms.v` | 221 | ✓ Done |
+| `src/structures/Enriched.v` | 388 | ✓ Done |
+| **Structures subtotal** | **982** | |
 | `src/theory/OrderTheory.v` | 494 | ✓ Done |
 | `src/theory/ChainTheory.v` | 515 | ✓ Done |
 | `src/theory/CPOTheory.v` | 581 | ✓ Done |
 | `src/theory/ScottTopology.v` | 519 | ✓ Done |
 | `src/theory/FixedPoints.v` | 525 | ✓ Done |
-| `src/theory/Products.v` | 534 | ✓ Done |
+| `src/theory/Products.v` | 533 | ✓ Done |
 | `src/theory/Sums.v` | 624 | ✓ Done |
-| `src/theory/Lift.v` | 635 | ✓ Done |
-| `src/theory/LiftMonad.v` | 489 | ✓ Done (supplementary) |
-| `src/theory/FunctionSpaces.v` | 718 | ✓ Done |
+| `src/theory/Lift.v` | 646 | ✓ Done |
+| `src/theory/LiftMonad.v` | 488 | ✓ Done (supplementary) |
+| `src/theory/FunctionSpaces.v` | 878 | ✓ Done |
 | `src/theory/EnrichedTheory.v` | 11 | Stub |
 | `src/theory/NatTrans.v` | 10 | Stub |
 | `src/theory/DomainEquations.v` | 17 | Stub |
-| **Theory subtotal (complete)** | **5,634** | |
+| **Theory subtotal (complete)** | **5,803** | |
 | `src/instances/Nat.v` | 371 | ✓ Done |
-| `src/instances/Discrete.v` | 185 | ✓ Done |
-| `src/instances/Function.v` | 5 | Stub |
+| `src/instances/Discrete.v` | 531 | ✓ Done |
+| `src/instances/Function.v` | 462 | ✓ Done |
 | `src/instances/Quantum.v` | 5 | Stub |
-| **Instances subtotal** | **556** | |
-| `src/lang/` (7 files) | 65 | All stubs |
+| **Instances subtotal** | **1,369** | |
+| `src/lang/PCF_Syntax.v` | 520 | ✓ Done |
+| `src/lang/PCF_Operational.v` | 332 | ✓ Done |
+| `src/lang/PCF_Denotational.v` | 1,169 | ✓ Done (0 Admitted) |
+| `src/lang/PCF_Soundness.v` | 8 | Stub |
+| `src/lang/PCF_Adequacy.v` | 9 | Stub |
+| `src/lang/QMiniCore_Syntax.v` | 9 | Stub |
+| `src/lang/QMiniCore_Semantics.v` | 9 | Stub |
+| **Lang subtotal** | **2,056** | |
 | `src/quantum/` (5 files) | 45 | All stubs |
 | `test/LiftTests.v` | 295 | ✓ Done |
-| **Grand total (written)** | **7,422** | |
+| **Grand total** | **10,588** | |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
+
+> **Note:** Line counts as of 2026-03-09.

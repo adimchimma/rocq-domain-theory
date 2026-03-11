@@ -530,6 +530,100 @@ results not in the original library.
 
 ---
 
+### `PCF_Denotational.v`
+
+**Old (Benton-Kennedy §3.1):**
+
+```coq
+(* Benton-Kennedy 2009, Section 3.1 *)
+Fixpoint SemExp Γ τ (e : Exp Γ τ) : SemEnv Γ →c (SemTy τ)⊥ :=
+  match e with
+  | TOP op v1 v2 ⇒ η ∘ uncurry (SimpleOp2 op) ∘ ⟨SemVal v1, SemVal v2⟩
+  | TGT v1 v2 ⇒ η ∘ uncurry (SimpleOp2 ble_nat) ∘ ⟨SemVal v2, SemVal v1⟩
+  | TAPP v1 v2 ⇒ ev ∘ ⟨SemVal v1, SemVal v2⟩
+  | TVAL v ⇒ η ∘ SemVal v
+  | TLET e1 e2 ⇒ Kleislir (SemExp e2) ∘ ⟨ID, SemExp e1⟩
+  | TIF v e1 e2 ⇒ (choose @3 (SemExp e1)) (SemExp e2) (SemVal v)
+  | TFST v ⇒ η ∘ π1 ∘ SemVal v
+  | TSND v ⇒ η ∘ π2 ∘ SemVal v
+  end with SemVal Γ τ (v : Value Γ τ) : SemEnv Γ →c SemTy τ := ...
+```
+
+Benton-Kennedy's substitution lemma:
+```coq
+Lemma SemCommutesWithSubst:
+  (∀ Γ τ (v : Value Γ τ) Γ' (s : Subst Γ Γ'),
+    SemVal v ∘ SemSubst s == SemVal (substVal s v))
+  ∧ (∀ Γ τ (e : Exp Γ τ) Γ' (s : Subst Γ Γ'),
+    SemExp e ∘ SemSubst s == SemExp (substExp s e)).
+```
+
+**New (rocq-domain-theory):**
+
+| Old (Benton-Kennedy) | New | Notes |
+|----------------------|----|-------|
+| `SemTy τ` | `sem_ty τ` | snake_case |
+| `SemEnv Γ` | `sem_env Γ` | snake_case |
+| `SemVar i` | `sem_var x` | |
+| `SemVal v` / `SemExp e` | `sem_val v` / `sem_exp e` | |
+| `SemSubst s` | `sem_subst σ` | |
+| `SemCommutesWithSubst` | `sem_val_subst` + `sem_exp_subst` | Two separate mutually proved lemmas |
+| `SimpleOp2 op` | `nat_binop op` | More descriptive name |
+| `uncurry (SimpleOp2 ble_nat)` | `nat_ltb_pair` | Dedicated combinator; `Nat.ltb` replaces `ble_nat` |
+| `choose @3 (SemExp e1) (SemExp e2) (SemVal v)` | `cont_ifb ∘ ⟨sem_val v, ⟨sem_exp e₁, sem_exp e₂⟩⟩` | Explicit pairing rather than curried `choose` |
+| `Kleislir (SemExp e2) ∘ ⟨ID, SemExp e1⟩` | `kleislir(sem_exp e₂ ∘ swap) ∘ ⟨id, sem_exp e₁⟩` | Uses `cont_swap` for argument reordering |
+| `FIXP ∘ curry (curry (SemExp e))` | `FIXP ∘ flip(curry(flip(curry(sem_exp body))))` | Double flip to match binding order |
+| `K (n : Discrete nat)` | `cont_const n` | |
+| `(SemTy τ)⊥` (coinductive lift) | `option (sem_ty τ)` (flat lift) | See DD-006 |
+| `==` (setoid equality) | `=` (Leibniz equality) | See DD-004 |
+
+**Structural preservation:** The overall point-free style of the denotational
+semantics is preserved from Benton-Kennedy. Each syntactic case is a
+composition of library combinators, producing a `cont_fun` directly.
+
+**What was changed architecturally:**
+
+- **Lift monad:** Benton-Kennedy use a coinductive `Stream` (§2.2) with
+  `Eps`/`Val` constructors and a coinductively defined order, requiring
+  delicate constructive reasoning for the sup. We use `option D` (flat
+  lift) with `ClassicalEpsilon` (see DD-006). This simplifies the monad
+  structure and eliminates the quotient problem.
+
+- **Renaming route:** Benton-Kennedy's paper mentions that the substitution
+  lemma commutes semantic meaning with syntactic substitution but does not
+  detail the proof strategy. Our proof proceeds via an explicit renaming
+  route (see DD-012): `sem_ren_ext` → `sem_val_ren`/`sem_exp_ren` →
+  `sem_ren_wk` → `sem_val_wk` → `sem_subst_ext` → `sem_val_subst`/`sem_exp_subst`.
+
+- **`var_case` combinator:** The `ren_ext` and `subst_ext` operations use
+  a `var_case` combinator (see DD-013) that eliminates `JMeq_eq` opacity.
+  This ensures that `sem_ren_ext` and `sem_subst_ext` reduce via kernel
+  conversion.
+
+**What was added (not in Benton-Kennedy):**
+
+- `sem_arrow_pointed`: Named definition for the function-type interpretation
+  as a `PointedCPO.type`, used to instantiate `FIXP` in the FIX case
+- `kleislir`: Parameterised Kleisli extension (Benton-Kennedy's `Kleislir`
+  is similar but defined differently; ours has a full standalone continuity
+  proof)
+- `cont_ifb`: Continuous conditional combinator (replaces Benton-Kennedy's
+  `choose`)
+- Computation lemmas: `sem_val_NLIT`, `sem_val_BLIT`, `sem_val_PAIR`,
+  `sem_val_FIX_unfold`, `sem_exp_VAL`, `sem_exp_LET`, `sem_exp_APP`,
+  `sem_exp_FST`, `sem_exp_SND`, `sem_exp_OP`, `sem_exp_GT`, `sem_exp_IFB`,
+  `sem_exp_IFB_true`, `sem_exp_IFB_false`
+- `⟦v⟧ᵥ`, `⟦e⟧ₑ`, `⟦v⟧ᶜᵥ`, `⟦e⟧ᶜₑ` notation for denotation functions
+- `sem_subst_single`, `sem_subst_double`: corollaries connecting the
+  single/double substitution combinators from `PCF_Syntax.v` to semantic
+  pairing
+
+**Proof status:** All 1169 lines compile with 0 Admitted lemmas. The full
+substitution lemma (`sem_val_subst`/`sem_exp_subst`) is proved by mutual
+induction, mirroring the structure of `sem_val_ren`/`sem_exp_ren`.
+
+---
+
 ## What the Old Library Got Right
 
 The following design choices from the original (and from Benton-Kennedy)
