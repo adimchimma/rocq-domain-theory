@@ -624,6 +624,117 @@ induction, mirroring the structure of `sem_val_ren`/`sem_exp_ren`.
 
 ---
 
+### `PCF_Soundness.v`
+
+**Old (Benton-Kennedy §3.2):**
+
+Benton-Kennedy state the soundness theorem:
+```
+Theorem Soundness: ∀ τ (e : CExp τ) (v : CValue τ),
+  Ev e v → SemExp e == η ∘ SemVal v
+```
+using setoid equality `==` and stated in a point-free form (as an equality
+of continuous functions). The proof is described as an induction on `Ev`.
+
+**New (rocq-domain-theory):**
+
+| Old (Benton-Kennedy) | New | Notes |
+|----------------------|----|-------|
+| `SemExp e == η ∘ SemVal v` (point-free, setoid) | `sem_exp e tt = Some (sem_val v tt)` (pointwise, Leibniz) | Closed-term form; see DD-004 |
+| Stated for open terms with semantic environments | Stated for closed terms only (sufficient for adequacy) | Simpler statement |
+| `Ev` as derivation type name | `Eval` (notation `e ⇓ v`) | Renamed |
+
+**Structural preservation:** The proof follows the same strategy as
+Benton-Kennedy — structural induction on the evaluation derivation. Each
+case uses the computation rules from `PCF_Denotational.v` plus the
+induction hypothesis. The LET and APP cases are the non-trivial ones,
+requiring the substitution lemmas.
+
+**What was added (not in Benton-Kennedy):**
+- `sem_single_subst` / `sem_double_subst`: local interface lemmas
+  specializing the substitution lemma at the closed-term level
+- `soundness_not_none`: convergence implies non-⊥ denotation
+- `soundness_val`: values denote themselves
+- `soundness_denotation_agree`: co-evaluating terms have equal denotations
+
+**Proof status:** 261 lines, 0 Admitted.
+
+---
+
+### `PCF_Adequacy.v`
+
+**Old (Benton-Kennedy §3.2):**
+
+Benton-Kennedy state the adequacy theorem:
+```
+Theorem Adequacy: ∀ τ (e : CExp τ),
+  SemExp e ≠ ⊥ → Converges e
+```
+and describe the proof via a logical relation (type-indexed family of
+relations between denotations and syntactic terms). The proof details
+are given in the paper but not in the Coq formalization — the original
+library left adequacy unproved.
+
+**New (rocq-domain-theory):**
+
+| Old (Benton-Kennedy) | New | Notes |
+|----------------------|----|-------|
+| Theorem stated but unproved | `adequacy` fully proved (820 lines) | **Key new contribution** |
+| `SemExp e ≠ ⊥` | `sem_exp e tt <> None` | `option D` lift; `None` is `⊥` |
+| `Converges e` (undefined in original) | `e ⇓` := `∃ v, e ⇓ v` | Uses `Converges` from `PCF_Operational.v` |
+| Logical relation described in paper | `rel_val`/`rel_exp` by `Fixpoint` on `Ty` | Fully formalized |
+
+**Structural preservation:** The proof follows the paper's strategy:
+define a type-indexed logical relation, prove a fundamental lemma by
+mutual induction on syntax, derive adequacy as a corollary for closed
+terms at the empty environment.
+
+**What was added (not in Benton-Kennedy formalization):**
+
+- `rel_val` / `rel_exp`: The logical relation, defined as a mutual
+  `Fixpoint` on `Ty`. `rel_exp` is the lift of `rel_val` through the
+  option monad.
+- `rel_val_admissible`: Admissibility of `rel_val` in the denotational
+  argument, proved by induction on `Ty`. Uses chain-stabilisation
+  properties of the lift CPO and `eval_deterministic` from
+  `PCF_Operational.v`.
+- `rel_exp_admissible`: Admissibility of `rel_exp`, derived from
+  `rel_val_admissible`.
+- `rel_exp_admissible_pointwise`: Pointwise variant for the FIX case.
+- `rel_env`: Environment relation (semantic environment related to
+  syntactic substitution).
+- `fundamental_lemma`: The core result — every well-typed term
+  instantiated by a related environment lies in the logical relation.
+  Proved via `Combined Scheme val_exp_ind` (mutual induction on
+  `Value`/`Exp`).
+- `convergence_iff_defined`: Full operational/denotational correspondence
+  `e ⇓ ↔ sem_exp e tt <> None`, combining `soundness` and `adequacy`.
+- `convergence_implies_defined`: The "easy" direction restated for
+  convenience.
+
+**Key proof techniques:**
+- The FIX case uses `fixp_ind` (Scott's induction principle) with a
+  natural-number induction nested inside.
+- Admissibility proofs use `lift_sup_some_eq`, `chain_some_stable`,
+  `D_chain_fn_eq`, and `eval_deterministic` extensively.
+- The arrow case in `rel_val_admissible` extracts the body from
+  `FIX τ₁ τ₂ body` using `Eqdep.EqdepTheory.inj_pair2` to invert
+  dependent pairs.
+- Imports `Classical` for `excluded_middle` in chain case analysis.
+
+**Proof status:** 820 lines, 0 Admitted. The most technically demanding
+file in the library.
+
+**Combined correspondence:** Together, `PCF_Soundness.v` and
+`PCF_Adequacy.v` establish:
+```
+e ⇓  ↔  sem_exp e tt <> None
+```
+This is the crown-jewel result of the PCF development, validating the
+entire domain-theory framework.
+
+---
+
 ## What the Old Library Got Right
 
 The following design choices from the original (and from Benton-Kennedy)

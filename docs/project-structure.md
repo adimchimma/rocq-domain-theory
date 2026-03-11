@@ -43,7 +43,7 @@ DomainTheory.Structures
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
-| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF syntax+operational+denotational done; soundness+adequacy not started; enriched theory not started |
+| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF syntax+operational+denotational+soundness+adequacy **complete**; enriched theory not started |
 | 2 | Quantum CPO structures (stretch goal) | Not started |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
@@ -455,11 +455,11 @@ Dune library: `DomainTheory.Lang`. Depends on `DomainTheory.Instances`.
 
 | File | Phase | Lines | Description |
 |------|-------|-------|-------------|
-| `PCF_Syntax.v` | 1 | 512 | ✓ Intrinsic typed ANF: Ty, Var, Value/Exp, renamings, substitutions |
+| `PCF_Syntax.v` | 1 | 520 | ✓ Intrinsic typed ANF: Ty, Var, Value/Exp, renamings, substitutions |
 | `PCF_Operational.v` | 1 | 332 | ✓ Big-step CBV evaluation `e ⇓ v`, determinism, inversion lemmas |
 | `PCF_Denotational.v` | 1 | 1,169 | ✓ Denotation, combinators, computation rules, renaming + substitution lemmas (0 Admitted) |
-| `PCF_Soundness.v` | 1 | 8 | Stub: `e ⇓ v → ⟦e⟧ = η(⟦v⟧)` |
-| `PCF_Adequacy.v` | 1 | 9 | Stub: computational adequacy via logical relations |
+| `PCF_Soundness.v` | 1 | 261 | ✓ `e ⇓ v → sem_exp e tt = Some (sem_val v tt)`, corollaries (0 Admitted) |
+| `PCF_Adequacy.v` | 1 | 820 | ✓ Computational adequacy via logical relation, fundamental lemma, full correspondence (0 Admitted) |
 | `QMiniCore_Syntax.v` | 2/3 | 9 | Stub: quantum lambda calculus syntax |
 | `QMiniCore_Semantics.v` | 2/3 | 9 | Stub: quantum denotational semantics |
 
@@ -513,8 +513,8 @@ Order.v
   ├── PCF_Syntax.v       ← (Stdlib only)
   ├── PCF_Operational.v  ← PCF_Syntax
   ├── PCF_Denotational.v ← PCF_Syntax, FunctionSpaces, Lift, FixedPoints, Discrete, Function
-  ├── PCF_Soundness.v    ← PCF_Operational, PCF_Denotational  [stub]
-  └── PCF_Adequacy.v     ← PCF_Soundness  [stub]
+  ├── PCF_Soundness.v    ← PCF_Operational, PCF_Denotational
+  └── PCF_Adequacy.v     ← PCF_Soundness, Lift, FixedPoints, FunctionSpaces, CPOTheory, Classical
 ```
 
 ---
@@ -550,14 +550,14 @@ Order.v
 | `src/lang/PCF_Syntax.v` | 520 | ✓ Done |
 | `src/lang/PCF_Operational.v` | 332 | ✓ Done |
 | `src/lang/PCF_Denotational.v` | 1,169 | ✓ Done (0 Admitted) |
-| `src/lang/PCF_Soundness.v` | 8 | Stub |
-| `src/lang/PCF_Adequacy.v` | 9 | Stub |
+| `src/lang/PCF_Soundness.v` | 261 | ✓ Done |
+| `src/lang/PCF_Adequacy.v` | 820 | ✓ Done |
 | `src/lang/QMiniCore_Syntax.v` | 9 | Stub |
 | `src/lang/QMiniCore_Semantics.v` | 9 | Stub |
-| **Lang subtotal** | **2,056** | |
+| **Lang subtotal** | **3,120** | |
 | `src/quantum/` (5 files) | 45 | All stubs |
 | `test/LiftTests.v` | 295 | ✓ Done |
-| **Grand total** | **10,588** | |
+| **Grand total** | **11,652** | |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
 

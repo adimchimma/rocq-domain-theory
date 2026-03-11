@@ -509,3 +509,95 @@ equality transports. The benefit appears in `sem_ren_ext` and
 
 **Affected files:**
 - `src/lang/PCF_Syntax.v` — `var_case`, `ren_ext`, `subst_ext` definitions
+
+---
+
+## DD-014: Soundness by structural induction on Eval
+
+**Decision:** The soundness theorem (`PCF_Soundness.v`) is proved by
+structural induction on the big-step evaluation derivation `H : e ⇓ v`,
+using the computation rules and substitution lemmas from
+`PCF_Denotational.v` directly — no auxiliary lemmas outside the file.
+
+**Rationale:**
+
+In the CBV big-step setting, soundness has the form
+`e ⇓ v → sem_exp e tt = Some (sem_val v tt)`. Each evaluation rule
+corresponds exactly to a computation rule (`sem_exp_LET`, `sem_exp_APP`,
+`sem_exp_IFB`, etc.) plus induction hypotheses. The two non-trivial
+cases (LET and APP) require the substitution interface:
+
+- LET: `sem_single_subst` reduces `sem_exp (singleSubstExp w₁ e₂) tt`
+  to `sem_exp e₂ (sem_val w₁ tt, tt)`.
+- APP: `sem_double_subst` + `sem_val_FIX_unfold` reduce the application
+  to the body under double substitution.
+
+These two interface lemmas (`sem_single_subst`, `sem_double_subst`) are
+proved locally in `PCF_Soundness.v §1` by composing `sem_exp_subst` with
+`sem_subst_single`/`sem_subst_double` from `PCF_Denotational.v §9`.
+
+Three corollaries are derived:
+- `soundness_not_none`: convergence implies non-⊥ denotation
+- `soundness_val`: `VAL v` denotes `Some (sem_val v tt)`
+- `soundness_denotation_agree`: co-evaluating terms have equal denotations
+
+**Affected files:**
+- `src/lang/PCF_Soundness.v` — 261 lines
+
+---
+
+## DD-015: Adequacy via Benton-Kennedy-Varming logical relation
+
+**Decision:** Computational adequacy (`PCF_Adequacy.v`) is proved via a
+type-indexed logical relation following Benton–Kennedy–Varming §3.2, with
+the relation defined by structural recursion on `Ty`.
+
+**Rationale:**
+
+The adequacy theorem states `sem_exp e tt <> None → e ⇓`. The standard
+proof technique is a logical relation bridging syntax and semantics. Two
+design choices were made:
+
+1. **Value + expression relations (not just one):** We define
+   `rel_val τ : sem_ty τ → CValue τ → Prop` and
+   `rel_exp τ : option (sem_ty τ) → CExp τ → Prop` where `rel_exp` is
+   the "lift" of `rel_val`:
+   ```
+   rel_exp τ None     e := True
+   rel_exp τ (Some d) e := ∃ v, e ⇓ v ∧ rel_val τ d v
+   ```
+   This cleanly handles the option-monad structure of the denotation.
+
+2. **Arrow case uses `doubleSubstExp`:** A function denotation `f` is
+   related to `v` iff `v = FIX τ₁ τ₂ body` and for all related inputs
+   `(d₁, v₁)`, applying `f` to `d₁` is related to
+   `doubleSubstExp v₁ v body`. This directly mirrors the operational
+   rule `e_App`, avoiding an intermediate application form.
+
+3. **FIX case via `fixp_ind`:** The denotation of `FIX` is a Kleene
+   fixed point. We apply Scott's fixed-point induction principle
+   (`fixp_ind`) with a pointwise predicate. Admissibility of `rel_exp`
+   is proved via `rel_val_admissible` (by induction on `τ`) and the
+   chain-stabilisation properties of the lift CPO (`lift_sup_some_eq`,
+   `chain_some_stable`, `D_chain_fn_eq`).
+
+4. **Classical logic:** The file imports `Classical` (for
+   `excluded_middle` in the admissibility proofs) but does not use
+   `ClassicalEpsilon` beyond what `Lift.v` already requires.
+
+5. **Product case uses `dependent destruction`:** The product case in
+   `rel_val_admissible` uses `dependent destruction` from
+   `Program.Equality` to invert the `PAIR` equality. This introduces
+   `JMeq_eq` in the proof term but only at the `Prop` level (relating
+   values, not computing with them), so it does not cause the
+   computation-blocking issues described in DD-013.
+
+The fundamental lemma is proved by mutual induction on `Value`/`Exp`
+using the `Combined Scheme val_exp_ind`. The adequacy theorem follows
+from instantiating the fundamental lemma at the empty environment.
+
+The full correspondence `e ⇓ ↔ sem_exp e tt <> None` combines soundness
+(forward direction) with adequacy (converse).
+
+**Affected files:**
+- `src/lang/PCF_Adequacy.v` — 820 lines
