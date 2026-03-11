@@ -478,6 +478,290 @@ Definition doubleSubstExp {Γ : Env} {τ₁ τ₂ : Ty}
 
 
 (* ================================================================== *)
+(*   §8  Substitution metatheory                                      *)
+(* ================================================================== *)
+(*
+    This section contains the standard sigma-calculus lemmas for
+    intrinsic de Bruijn representations:
+
+    §8a  Extensionality — renamings and substitutions that agree
+         pointwise produce the same result.
+    §8b  Renaming composition — consecutive renamings fuse.
+    §8c  Substitution–renaming interaction — substituting after
+         renaming, or renaming after substituting, can each be
+         expressed as a single substitution.
+    §8d  Substitution composition (fusion) — consecutive substitutions
+         fuse into a single substitution.
+
+    All proofs are by mutual induction on the [Value]/[Exp] structure.
+    Each "binder case" ([FIX], [LET]) reduces to the induction hypothesis
+    plus extensionality (to align the extended substitution/renaming).
+
+    Strategy: In [Lemma ... with ...] blocks, Rocq makes all implicit
+    binders explicit.  We therefore use [intro term; destruct term]
+    (or just [destruct term] since it auto-intros dependencies), then
+    manually [intros] the remaining parameters.  This mirrors the
+    approach used in [PCF_Denotational.v].
+*)
+
+
+(* ------------------------------------------------------------------ *)
+(*   §8a  Extensionality                                               *)
+(* ------------------------------------------------------------------ *)
+
+Lemma renVal_ext : forall {Γ Γ' : Env} {τ : Ty}
+    (v : Value Γ τ) (ρ₁ ρ₂ : Ren Γ Γ'),
+    (forall σ (x : Var Γ σ), ρ₁ σ x = ρ₂ σ x) ->
+    renVal ρ₁ v = renVal ρ₂ v
+with renExp_ext : forall {Γ Γ' : Env} {τ : Ty}
+    (e : Exp Γ τ) (ρ₁ ρ₂ : Ren Γ Γ'),
+    (forall σ (x : Var Γ σ), ρ₁ σ x = ρ₂ σ x) ->
+    renExp ρ₁ e = renExp ρ₂ e.
+Proof.
+  { destruct v; intros ? ? Hext; simpl.
+    - reflexivity.
+    - reflexivity.
+    - f_equal. apply Hext.
+    - (* FIX *) f_equal. apply renExp_ext.
+      intros σ x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; simpl; [reflexivity | do 2 f_equal; apply Hext].
+    - (* PAIR *) f_equal; apply renVal_ext; exact Hext. }
+  { destruct e; intros ? ? Hext; simpl.
+    - f_equal. apply renVal_ext. exact Hext.
+    - (* LET *) f_equal.
+      + apply renExp_ext. exact Hext.
+      + apply renExp_ext. intros σ x; dependent destruction x;
+          [reflexivity | simpl; f_equal; apply Hext].
+    - f_equal; apply renVal_ext; exact Hext.
+    - f_equal. apply renVal_ext. exact Hext.
+    - f_equal. apply renVal_ext. exact Hext.
+    - f_equal; apply renVal_ext; exact Hext.
+    - f_equal; apply renVal_ext; exact Hext.
+    - f_equal; [apply renVal_ext | apply renExp_ext | apply renExp_ext]; exact Hext. }
+Qed.
+
+Lemma substVal_ext : forall {Γ Γ' : Env} {τ : Ty}
+    (v : Value Γ τ) (σ₁ σ₂ : Subst Γ Γ'),
+    (forall ρ (x : Var Γ ρ), σ₁ ρ x = σ₂ ρ x) ->
+    substVal σ₁ v = substVal σ₂ v
+with substExp_ext : forall {Γ Γ' : Env} {τ : Ty}
+    (e : Exp Γ τ) (σ₁ σ₂ : Subst Γ Γ'),
+    (forall ρ (x : Var Γ ρ), σ₁ ρ x = σ₂ ρ x) ->
+    substExp σ₁ e = substExp σ₂ e.
+Proof.
+  { destruct v; intros ? ? Hext; simpl.
+    - reflexivity.
+    - reflexivity.
+    - apply Hext.
+    - (* FIX *) f_equal. apply substExp_ext.
+      intros ρ x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; simpl;
+        [f_equal; apply Hext | unfold wkVal; f_equal; f_equal; apply Hext].
+    - (* PAIR *) f_equal; apply substVal_ext; exact Hext. }
+  { destruct e; intros ? ? Hext; simpl.
+    - f_equal. apply substVal_ext. exact Hext.
+    - (* LET *) f_equal.
+      + apply substExp_ext. exact Hext.
+      + apply substExp_ext. intros ρ x; dependent destruction x; [reflexivity|]; simpl.
+        unfold wkVal. f_equal. apply Hext.
+    - f_equal; apply substVal_ext; exact Hext.
+    - f_equal. apply substVal_ext. exact Hext.
+    - f_equal. apply substVal_ext. exact Hext.
+    - f_equal; apply substVal_ext; exact Hext.
+    - f_equal; apply substVal_ext; exact Hext.
+    - (* IFB *) f_equal;
+        [apply substVal_ext | apply substExp_ext | apply substExp_ext]; exact Hext. }
+Qed.
+
+
+(* ------------------------------------------------------------------ *)
+(*   §8b  Renaming composition                                        *)
+(* ------------------------------------------------------------------ *)
+
+Lemma renVal_comp : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (v : Value Γ τ) (ρ₂ : Ren Γ' Γ'') (ρ₁ : Ren Γ Γ'),
+    renVal ρ₂ (renVal ρ₁ v) = renVal (ren_comp ρ₂ ρ₁) v
+with renExp_comp : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (e : Exp Γ τ) (ρ₂ : Ren Γ' Γ'') (ρ₁ : Ren Γ Γ'),
+    renExp ρ₂ (renExp ρ₁ e) = renExp (ren_comp ρ₂ ρ₁) e.
+Proof.
+  { destruct v; intros ? ?; simpl.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - (* FIX *) f_equal. rewrite renExp_comp. apply renExp_ext.
+      intros σ x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; simpl; reflexivity.
+    - (* PAIR *) f_equal; apply renVal_comp. }
+  { destruct e; intros ? ?; simpl.
+    - f_equal. apply renVal_comp.
+    - (* LET *) f_equal.
+      + apply renExp_comp.
+      + rewrite renExp_comp. apply renExp_ext.
+        intros σ x; dependent destruction x; [reflexivity | simpl; reflexivity].
+    - f_equal; apply renVal_comp.
+    - f_equal. apply renVal_comp.
+    - f_equal. apply renVal_comp.
+    - f_equal; apply renVal_comp.
+    - f_equal; apply renVal_comp.
+    - f_equal; [apply renVal_comp | apply renExp_comp | apply renExp_comp]. }
+Qed.
+
+
+(* ------------------------------------------------------------------ *)
+(*   §8c  Substitution–renaming interaction                           *)
+(* ------------------------------------------------------------------ *)
+(*
+    [substVal_renVal]: substitution after renaming.
+      substVal σ (renVal ρ v) = substVal (fun τ x => σ τ (ρ τ x)) v
+
+    [renVal_substVal]: renaming after substitution.
+      renVal ρ (substVal σ v) = substVal (fun τ x => renVal ρ (σ τ x)) v
+*)
+
+Lemma substVal_renVal : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (v : Value Γ τ) (σ : Subst Γ' Γ'') (ρ : Ren Γ Γ'),
+    substVal σ (renVal ρ v) = substVal (fun τ x => σ τ (ρ τ x)) v
+with substExp_renExp : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (e : Exp Γ τ) (σ : Subst Γ' Γ'') (ρ : Ren Γ Γ'),
+    substExp σ (renExp ρ e) = substExp (fun τ x => σ τ (ρ τ x)) e.
+Proof.
+  { destruct v; intros ? ?; simpl.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - (* FIX *) f_equal. rewrite substExp_renExp. apply substExp_ext.
+      intros ρ' x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; simpl; reflexivity.
+    - (* PAIR *) f_equal; apply substVal_renVal. }
+  { destruct e; intros ? ?; simpl.
+    - f_equal. apply substVal_renVal.
+    - (* LET *) f_equal.
+      + apply substExp_renExp.
+      + rewrite substExp_renExp. apply substExp_ext.
+        intros ρ' x; dependent destruction x; [reflexivity|]; simpl.
+        reflexivity.
+    - f_equal; apply substVal_renVal.
+    - f_equal. apply substVal_renVal.
+    - f_equal. apply substVal_renVal.
+    - f_equal; apply substVal_renVal.
+    - f_equal; apply substVal_renVal.
+    - f_equal; [apply substVal_renVal | apply substExp_renExp | apply substExp_renExp]. }
+Qed.
+
+Lemma renVal_substVal : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (v : Value Γ τ) (ρ : Ren Γ' Γ'') (σ : Subst Γ Γ'),
+    renVal ρ (substVal σ v) = substVal (fun τ x => renVal ρ (σ τ x)) v
+with renExp_substExp : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (e : Exp Γ τ) (ρ : Ren Γ' Γ'') (σ : Subst Γ Γ'),
+    renExp ρ (substExp σ e) = substExp (fun τ x => renVal ρ (σ τ x)) e.
+Proof.
+  { destruct v; intros ? ?; simpl.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - (* FIX *) f_equal. rewrite renExp_substExp. apply substExp_ext.
+      intros ρ' x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; simpl;
+        [reflexivity | unfold wkVal; rewrite !renVal_comp; apply renVal_ext;
+         intros ? ?; reflexivity].
+    - (* PAIR *) f_equal; apply renVal_substVal. }
+  { destruct e; intros ? ?; simpl.
+    - f_equal. apply renVal_substVal.
+    - (* LET *) f_equal.
+      + apply renExp_substExp.
+      + rewrite renExp_substExp. apply substExp_ext.
+        intros ρ' x; dependent destruction x; [reflexivity|]; simpl.
+        unfold wkVal. rewrite !renVal_comp.
+        apply renVal_ext. intros ? ?. reflexivity.
+    - f_equal; apply renVal_substVal.
+    - f_equal. apply renVal_substVal.
+    - f_equal. apply renVal_substVal.
+    - f_equal; apply renVal_substVal.
+    - f_equal; apply renVal_substVal.
+    - f_equal; [apply renVal_substVal | apply renExp_substExp | apply renExp_substExp]. }
+Qed.
+
+
+(* ------------------------------------------------------------------ *)
+(*   §8d  Substitution composition (fusion)                           *)
+(* ------------------------------------------------------------------ *)
+(*
+    substVal σ₂ (substVal σ₁ v) = substVal (fun τ x => substVal σ₂ (σ₁ τ x)) v
+    substExp σ₂ (substExp σ₁ e) = substExp (fun τ x => substVal σ₂ (σ₁ τ x)) e
+*)
+
+Lemma substVal_comp : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (v : Value Γ τ) (σ₂ : Subst Γ' Γ'') (σ₁ : Subst Γ Γ'),
+    substVal σ₂ (substVal σ₁ v) = substVal (fun τ x => substVal σ₂ (σ₁ τ x)) v
+with substExp_comp : forall {Γ Γ' Γ'' : Env} {τ : Ty}
+    (e : Exp Γ τ) (σ₂ : Subst Γ' Γ'') (σ₁ : Subst Γ Γ'),
+    substExp σ₂ (substExp σ₁ e) = substExp (fun τ x => substVal σ₂ (σ₁ τ x)) e.
+Proof.
+  { destruct v; intros ? ?; simpl.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - (* FIX *) f_equal. rewrite substExp_comp. apply substExp_ext.
+      intros ρ x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; simpl;
+        [reflexivity | unfold wkVal; rewrite !substVal_renVal, !renVal_substVal;
+         apply substVal_ext; intros ? ?; simpl; reflexivity].
+    - (* PAIR *) f_equal; apply substVal_comp. }
+  { destruct e; intros ? ?; simpl.
+    - f_equal. apply substVal_comp.
+    - (* LET *) f_equal.
+      + apply substExp_comp.
+      + rewrite substExp_comp. apply substExp_ext.
+        intros ρ x; dependent destruction x; [reflexivity|]; simpl.
+        unfold wkVal. rewrite !substVal_renVal, !renVal_substVal.
+        apply substVal_ext. intros ? ?. simpl. reflexivity.
+    - f_equal; apply substVal_comp.
+    - f_equal. apply substVal_comp.
+    - f_equal. apply substVal_comp.
+    - f_equal; apply substVal_comp.
+    - f_equal; apply substVal_comp.
+    - f_equal; [apply substVal_comp | apply substExp_comp | apply substExp_comp]. }
+Qed.
+
+
+(* ------------------------------------------------------------------ *)
+(*   §8e  Identity substitution                                       *)
+(* ------------------------------------------------------------------ *)
+
+Lemma substVal_id : forall {Γ : Env} {τ : Ty}
+    (v : Value Γ τ),
+    substVal subst_id v = v
+with substExp_id : forall {Γ : Env} {τ : Ty}
+    (e : Exp Γ τ),
+    substExp subst_id e = e.
+Proof.
+  { destruct v; simpl.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - (* FIX *) f_equal. rewrite <- (substExp_id _ _ e) at 2.
+      apply substExp_ext.
+      intros τ' x; dependent destruction x; [reflexivity|]; simpl.
+      dependent destruction x; reflexivity.
+    - (* PAIR *) f_equal; apply substVal_id. }
+  { destruct e; simpl.
+    - f_equal. apply substVal_id.
+    - (* LET *) f_equal.
+      + apply substExp_id.
+      + rewrite <- (substExp_id _ _ e2) at 2.
+        apply substExp_ext.
+        intros τ' x; dependent destruction x; [reflexivity | simpl; reflexivity].
+    - f_equal; apply substVal_id.
+    - f_equal. apply substVal_id.
+    - f_equal. apply substVal_id.
+    - f_equal; apply substVal_id.
+    - f_equal; apply substVal_id.
+    - f_equal; [apply substVal_id | apply substExp_id | apply substExp_id]. }
+Qed.
+
+
+(* ================================================================== *)
 (*   Derived notations and sanity checks                              *)
 (* ================================================================== *)
 (*
