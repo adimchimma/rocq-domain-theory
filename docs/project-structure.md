@@ -525,7 +525,7 @@ Order.v
               ├── LiftMonad.v        ← (self-contained; no imports)
               ├── FunctionSpaces.v   ← Products, FixedPoints
               ├── EnrichedTheory.v   ← Enriched, Products, FunctionSpaces
-              ├── NatTrans.v         ← EnrichedTheory     [stub]
+              ├── NatTrans.v         ← EnrichedTheory
               └── DomainEquations.v  ← Enriched, Products,
                                         FunctionSpaces, Lift,
                                         EnrichedTheory     [stub]
