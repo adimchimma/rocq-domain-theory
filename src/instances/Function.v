@@ -2,23 +2,17 @@
 
     This is [src/instances/Function.v].
 
-    Primary deliverable (§1):
-      Register [CPO.type] as a [CPOEnrichedCat] — i.e. prove that the
-      category of CPOs and continuous maps is enriched over itself.  The
-      hom-objects are the function-space CPOs [[D →c E]] with the
-      pointwise order; composition is [cont_comp]; identity is [cont_id].
-      The separate Scott-continuity conditions (DD-002) are provided by
-      [postcomp_continuous] and [precomp_continuous], proved in §5.
+    Summary
+    =======
+    Register [CPO.type] as a [CPOEnrichedCat] (§2) — i.e. prove that
+    the category of CPOs and continuous maps is enriched over itself.
+    The hom-objects are the function-space CPOs [[D →c E]] with the
+    pointwise order; composition is [cont_comp]; identity is [cont_id].
+    The separate Scott-continuity conditions (DD-002) are provided by
+    [postcomp_continuous] and [precomp_continuous], proved in §1.
 
-    Secondary deliverables (§2–§6):
-      Convenience continuous maps used by [PCF_Denotational.v] and
-      [EnrichedTheory.v]:
-
-        §2  [cont_const e] — constant function [fun _ => e]; K combinator
-        §3  [cont_ap x]    — evaluation at a point [f ↦ f x]
-        §4  [cont_precomp g] — pre-composition [f ↦ f ∘ g]
-        §5  [cont_postcomp g] — post-composition [f ↦ g ∘ f]
-        §6  [cont_flip f]  — argument-flip of a curried function
+    §3–§5 collect convenience continuous maps used by
+    [PCF_Denotational.v] and [EnrichedTheory.v].
 
     Imports:
       [src/structures/Order.v]       — Preorder, PartialOrder, chain, mono_fun
@@ -33,12 +27,21 @@
                                        sup_ext
       [src/theory/FunctionSpaces.v]  — HB CPO instances on [D →c E],
                                        eval_at_mono, pointwise_chain,
-                                       fun_sup_apply, sup_apply,
-                                       postcomp_mono_fun (via §5 below)
+                                       fun_sup_apply, sup_apply
+
+    Contents:
+    - §1  Composition operators — post- and pre-composition
+    - §2  CPO-enriched category — HB instance registration
+    - §3  Constant function — [cont_const], K combinator
+    - §4  Evaluation at a point — [cont_ap]
+    - §5  Flip — [cont_flip]
 
     Phase coverage:
-      Phase 0 — §2, §3
-      Phase 1 — §1 (CPOEnrichedCat), §4, §5, §6
+      Phase 0 — §3, §4
+      Phase 1 — §1, §2 (CPOEnrichedCat), §5
+
+    References:
+      Abramsky & Jung (1994) §5.2.2.
 *)
 
 From HB Require Import structures.
@@ -47,46 +50,15 @@ From DomainTheory.Theory Require Import OrderTheory CPOTheory FunctionSpaces.
 
 
 (* ================================================================== *)
-(*   §1  CPO.type is a CPO-enriched category                         *)
+(*   §1  Composition operators                                       *)
 (* ================================================================== *)
 (*
-    The category CPO, with objects [CPO.type], hom-CPOs [[D →c E]]
-    (pointwise order, from [FunctionSpaces.v]), identity [cont_id],
-    and composition [cont_comp], is a [CPOEnrichedCat].
+    Post-composition [f ↦ g ∘ f] and pre-composition [f ↦ f ∘ g] as
+    continuous maps on function spaces.  These are the covariant and
+    contravariant functorial actions of the hom-functor, respectively.
 
-    This is the canonical example of a CPO-enriched category
-    (Abramsky & Jung §5.2.2).
-
-    The enrichment axioms reduce to:
-      comp_mono_l f   — post-composition with [f] is monotone
-                        (proved as [postcomp_mono] in §5)
-      comp_mono_r g   — pre-composition with [g] is monotone
-                        (proved as [precomp_mono] in §4)
-      comp_cont_l f   — post-composition with [f] is Scott-continuous
-                        (proved as [postcomp_continuous] in §5)
-      comp_cont_r g   — pre-composition with [g] is Scott-continuous
-                        (proved as [precomp_continuous] in §4)
-
-    Note on field ordering in [IsCPOEnriched.Build]:
-      HB requires monotonicity witnesses before continuity witnesses,
-      because the [continuous] predicate takes a [mono_fun] as argument.
-      The fields appear in the order: comp, mono_l, mono_r, cont_l,
-      cont_r, id_l, id_r, assoc.
-
-    Note on [comp_assoc] direction:
-      [IsCPOEnriched] requires [(h ∘ g) ∘ f = h ∘ (g ∘ f)].
-      [cont_comp_assoc] from [Morphisms.v] proves the reverse,
-      [h ∘ (g ∘ f) = (h ∘ g) ∘ f], so we take [eq_sym].
-
-    Design note: separate continuity (DD-002) avoids a dependency on
-    [Products.v] inside [Enriched.v].  The separate conditions are
-    equivalent to joint continuity by A&J Lemma 3.2.6.
-*)
-
-(*
-    §5 (post-composition) and §4 (pre-composition) provide the
-    monotonicity and continuity lemmas needed below.  They are stated
-    before the HB instance declaration and referenced by name.
+    Both monotonicity and continuity are needed in §2 to register
+    [CPO.type] as a [CPOEnrichedCat].
 *)
 
 
@@ -129,7 +101,7 @@ Lemma postcomp_continuous (g : [D →c E]) :
 Proof.
   intro fs.
   apply cont_fun_ext; intro c. simpl.
-  unfold fun_sup_fun. simpl.
+  unfold fun_sup_fun.
   (* Goal: g (⊔ pointwise_chain fs c) = ⊔ pointwise_chain (map_chain ...) c *)
   rewrite (cf_cont g (pointwise_chain fs c)).
   apply sup_ext. intro n. simpl.
@@ -184,7 +156,7 @@ Lemma precomp_continuous (g : [C →c D]) :
 Proof.
   intro fs.
   apply cont_fun_ext; intro c. simpl.
-  unfold fun_sup_fun. simpl.
+  unfold fun_sup_fun.
   apply sup_ext. intro n. simpl.
   reflexivity.
 Qed.
@@ -201,10 +173,41 @@ Qed.
 End PreComp.
 
 
+(* ================================================================== *)
+(*   §2  CPO-enriched category                                       *)
+(* ================================================================== *)
 (*
-    Now that [postcomp_mono], [postcomp_continuous], [precomp_mono], and
-    [precomp_continuous] are in scope, we can register the three HB
-    instances that make [CPO.type] a [CPOEnrichedCat].
+    The category CPO, with objects [CPO.type], hom-CPOs [[D →c E]]
+    (pointwise order, from [FunctionSpaces.v]), identity [cont_id],
+    and composition [cont_comp], is a [CPOEnrichedCat].
+
+    This is the canonical example of a CPO-enriched category
+    (Abramsky & Jung §5.2.2).
+
+    The enrichment axioms reduce to:
+      comp_mono_l f   — post-composition with [f] is monotone
+                        (proved as [postcomp_mono] in §1)
+      comp_mono_r g   — pre-composition with [g] is monotone
+                        (proved as [precomp_mono] in §1)
+      comp_cont_l f   — post-composition with [f] is Scott-continuous
+                        (proved as [postcomp_continuous] in §1)
+      comp_cont_r g   — pre-composition with [g] is Scott-continuous
+                        (proved as [precomp_continuous] in §1)
+
+    Note on field ordering in [IsCPOEnriched.Build]:
+      HB requires monotonicity witnesses before continuity witnesses,
+      because the [continuous] predicate takes a [mono_fun] as argument.
+      The fields appear in the order: comp, mono_l, mono_r, cont_l,
+      cont_r, id_l, id_r, assoc.
+
+    Note on [comp_assoc] direction:
+      [IsCPOEnriched] requires [(h ∘ g) ∘ f = h ∘ (g ∘ f)].
+      [cont_comp_assoc] from [Morphisms.v] proves the reverse,
+      [h ∘ (g ∘ f) = (h ∘ g) ∘ f], so we take [eq_sym].
+
+    Design note: separate continuity (DD-002) avoids a dependency on
+    [Products.v] inside [Enriched.v].  The separate conditions are
+    equivalent to joint continuity by A&J Lemma 3.2.6.
 *)
 
 HB.instance Definition CPO_HasHom :=
@@ -239,7 +242,7 @@ HB.instance Definition CPO_IsCPOEnriched :=
 
 
 (* ================================================================== *)
-(*   §2  Constant continuous function                                 *)
+(*   §3  Constant continuous function                                 *)
 (* ================================================================== *)
 (*
     [cont_const e : [D →c E]] is the constant function [fun _ => e].
@@ -300,7 +303,7 @@ End ConstFun.
 
 
 (* ================================================================== *)
-(*   §3  Evaluation at a point                                        *)
+(*   §4  Evaluation at a point                                        *)
 (* ================================================================== *)
 (*
     [cont_ap x : [([D →c E]) →c E]] is the map [f ↦ f x].
@@ -331,36 +334,7 @@ End ApplyAt.
 
 
 (* ================================================================== *)
-(*   §4  Pre-composition (already proved above for §1)               *)
-(* ================================================================== *)
-(*
-    [cont_precomp g : [([D →c E]) →c ([C →c E])]] sends
-    [f ↦ f ∘ g].  This is the contravariant functorial action of the
-    function-space in its domain argument.
-
-    The monotonicity and continuity proofs live in [PreComp] above.
-    We just export the corollary here for documentation.
-*)
-
-(* cont_precomp, cont_precomp_apply already defined above. *)
-
-
-(* ================================================================== *)
-(*   §5  Post-composition (already proved above for §1)              *)
-(* ================================================================== *)
-(*
-    [cont_postcomp g : [([C →c D]) →c ([C →c E])]] sends
-    [f ↦ g ∘ f].  This is the covariant functorial action of the
-    function-space in its codomain argument.
-
-    The monotonicity and continuity proofs live in [PostComp] above.
-*)
-
-(* cont_postcomp, cont_postcomp_apply already defined above. *)
-
-
-(* ================================================================== *)
-(*   §6  Flip                                                         *)
+(*   §5  Flip                                                         *)
 (* ================================================================== *)
 (*
     [cont_flip f : [B →c ([A →c C])]] swaps the two arguments
