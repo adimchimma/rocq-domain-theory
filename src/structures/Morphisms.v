@@ -75,9 +75,12 @@ Arguments cf_cont {D E} f : rename.
 
 (* Notation for the type of Scott-continuous functions.
    [D →c E] is sugar for [cont_fun D E], available to any
-   file that imports Morphisms. *)
+   file that imports Morphisms.
+   The first argument has no explicit level (i.e., constr) to
+   share a compatible prefix with stdlib list notations
+   [[ _ ]] and [[ _ ; _ ; .. ; _ ]]. *)
 Notation "[ D →c E ]" := (cont_fun D E)
-  (at level 0, D at level 99, E at level 200, no associativity).
+  (at level 0, E at level 200, no associativity).
 
 (*
     Applying a continuous function to a chain still gives a chain

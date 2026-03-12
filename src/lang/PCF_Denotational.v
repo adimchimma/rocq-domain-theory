@@ -64,9 +64,9 @@
       §8  Semantic renaming and weakening
       §9  Substitution extension, substitution lemmas, and corollaries
 
-    Design note: because [Products.v] and [Lift.v] define conflicting
-    angle-bracket notations, we write [option D] instead of [⟨D⟩⊥]
-    throughout this file.
+    Design note: [⟨D⟩⊥] (from [Lift.v]) and [⟨f, g⟩] (from [Products.v])
+    now share a compatible prefix (both at level 0, first argument at
+    level 99).  The [⟨D⟩⊥] notation may be used freely in this file.
 
     Phase coverage:
       Phase 1 — all sections.
@@ -90,9 +90,7 @@ From DomainTheory.Lang Require Import PCF_Syntax.
 
 Import ListNotations.
 
-(* Notation workaround: the conflicting angle-bracket notations from
-   [Lift.v] and [Products.v] prevent [<>] from parsing in certain
-   contexts.  We open [type_scope] to restore [<>] as [not eq]. *)
+(* Open [type_scope] so that [<>] resolves to [not eq]. *)
 Local Open Scope type_scope.
 
 

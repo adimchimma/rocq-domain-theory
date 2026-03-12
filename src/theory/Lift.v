@@ -106,13 +106,14 @@ HB.instance Definition lift_IsPartialOrder {D : CPO.type} :=
 (* Postfix notation: [⟨D⟩⊥] for [option D], the flat lift of [D].
    Angle brackets distinguish this from the standalone [⊥] notation
    (the bottom element from [CPO.v]).
-   At level 2 with argument at level 1, so [⟨D⟩⊥] is an atom for
-   the purposes of function application and can appear as an
-   unparenthesised argument:
+   At level 0 with argument at level 99 — the same level and first-
+   argument level as the pairing notation [⟨f, g⟩] from [Products.v],
+   so both share a compatible prefix.  The parser disambiguates by
+   the second token: [,] for pairing vs [⟩⊥] for lifting.
        chain ⟨D⟩⊥      mono_fun ⟨D⟩⊥ ⟨E⟩⊥      [⟨D⟩⊥ →c ⟨E⟩⊥]
    Available to any file that imports [Lift.v]. *)
 Notation "⟨ D ⟩⊥" := (option D)
-  (at level 2, D at level 1, format "⟨ D ⟩⊥").
+  (at level 0, D at level 99, format "⟨ D ⟩⊥").
 
 (* Convenience unfolding lemmas. *)
 Lemma lift_le_some_iff {D : CPO.type} (d d' : D) :
