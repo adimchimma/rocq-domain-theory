@@ -84,8 +84,9 @@ This is precisely the strategy used in Kornell-Lindenhovius-Mislove (2024)
 
 **Affected files:**
 - `src/structures/Enriched.v` — `IsCPOEnriched.comp_cont_l/r`
-- `src/theory/EnrichedTheory.v` — should derive the joint form once
-  `Products.v` is available
+- `src/theory/EnrichedTheory.v` — derives the joint form
+  (`comp_joint_continuous`, `comp_joint_cont_fun`) from the separate
+  axioms + `Products.v`; see DD-016 for the two-stage proof strategy
 
 ---
 
@@ -601,3 +602,76 @@ The full correspondence `e ⇓ ↔ sem_exp e tt <> None` combines soundness
 
 **Affected files:**
 - `src/lang/PCF_Adequacy.v` — 820 lines
+
+---
+
+## DD-016: HB coercion workarounds in `EnrichedTheory.v`
+
+**Decision:** `EnrichedTheory.v` (706 lines) uses a systematic set of
+HB coercion workarounds — `etransitivity`, explicit `@`-qualified
+projections, `unshelve econstructor`, `Arguments {C}` directives, and
+`cbn [mf_fun]` / `cbv beta` normalization — to compile from source
+rather than from `.vo` files.
+
+**Rationale:**
+
+When building `EnrichedTheory.v` with `dune build` (compiling from
+source), HB canonical structure resolution fails in several contexts
+that work fine when loading from `.vo` files in the IDE. The core
+problem is that HB-synthesized coercion paths (e.g.,
+`CPOEnrichedCat.sort` → `CPO.sort`) resolve ambiguously or fail to
+unify when the elaborator encounters intermediate terms with
+under-determined types. Five categories of workarounds were identified:
+
+1. **`etransitivity` instead of `le_trans with X`:** The `with X` clause
+   forces Rocq to elaborate `X` immediately, which triggers HB
+   canonical-structure search on the intermediate term. When
+   `CPOEnrichedCat.sort` and `CPO.sort` offer competing coercion paths,
+   this search fails. `etransitivity` defers the intermediate term to a
+   unification variable, letting each half of the transitivity chain
+   resolve independently.
+
+2. **Explicit `@` for HB projections:** Writing `@comp_assoc C A B C' D`
+   instead of `comp_assoc` and `@le_refl (hom A B) f` instead of
+   `le_refl` provides enough type information for HB to resolve the
+   correct structure instance without ambiguity.
+
+3. **`unshelve econstructor` for record construction:** Building records
+   like `lc_functor` and `ep_pair` with `refine {| ... |}` causes HB to
+   attempt structure resolution on each field simultaneously, which
+   fails. `unshelve econstructor` constructs the record one field at a
+   time, giving the tactic engine more control over elaboration order.
+
+4. **`Arguments lcf_obj {C}` directives:** Record projections for
+   `lc_functor` default to making all arguments explicit. Adding
+   `Arguments ... {C}` makes the enriched-category argument implicit,
+   matching HB's conventions and preventing resolution failures at call
+   sites.
+
+5. **`cbn [mf_fun]` + `cbv beta` before rewrites:** HB-wrapped terms
+   often contain nested coercions that prevent `rewrite` from matching
+   the LHS. Selectively unfolding `mf_fun` (the innermost coercion) and
+   then beta-reducing exposes the term structure that `rewrite` expects.
+
+**Additional architectural choice — product-free joint continuity (§2):**
+
+Joint continuity of composition (`comp_joint_continuous`) is proved
+via a two-stage approach:
+
+- **Stage A** (product-free): Proves `comp_joint_sup` using only
+  `comp_chain` (a chain of compositions `f.[n] ⊚ g.[n]`) and the
+  diagonal argument. No product CPO types appear in the proof terms,
+  avoiding coercion-path conflicts between `CPO.sort` and
+  `CPOEnrichedCat.sort`.
+
+- **Stage B** (product packaging): Wraps the Stage A result into a
+  `cont_fun (hom B C * hom A B) (hom A C)` by using the product CPO
+  projections to extract chains and applying Stage A. The coercion
+  conflicts are confined to the thin packaging layer.
+
+This two-stage split was necessary because a direct proof over the
+product CPO type caused irreconcilable HB coercion failures throughout
+the transitivity and rewriting steps.
+
+**Affected files:**
+- `src/theory/EnrichedTheory.v` — 706 lines (§1–§4)

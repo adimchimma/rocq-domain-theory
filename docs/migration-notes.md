@@ -735,6 +735,52 @@ entire domain-theory framework.
 
 ---
 
+### `EnrichedTheory.v` (**new**, Phase 1)
+
+**Old:** Not present in the original Benton-Kennedy library. The
+original code had no notion of CPO-enriched categories, locally
+continuous functors, or embedding-projection pairs as abstract concepts.
+These were used implicitly (e.g., the self-enrichment of CPO was implicit
+in the function-space CPO construction).
+
+**New:** `theory/EnrichedTheory.v` (706 lines) develops the derived
+theory for CPO-enriched categories in four sections:
+
+| Section | Key definitions | Lines |
+|---------|----------------|-------|
+| §1 Continuity equations | `comp_cont_l_eq`, `comp_cont_r_eq`, `F_mor_sup_eq` | ~50 |
+| §2 Joint continuity | `comp_chain`, `comp_joint_sup`, `comp_joint_continuous`, `comp_joint_cont_fun`, `comp_joint_apply` | ~155 |
+| §3 LC functors | `lc_functor` record, `lc_functor_of_hb`, `id_lc_functor`, `comp_lc_functor` | ~200 |
+| §4 EP-pairs | `ep_pair` record, `ep_id`, `ep_comp`, order lemmas, `ep_chain` record | ~260 |
+
+**What was added (not in Benton-Kennedy):**
+
+- **Joint continuity of composition** (§2): Derives the joint Scott-continuity
+  of `comp : Hom(B,C) × Hom(A,B) → Hom(A,C)` from the separate continuity
+  axioms in `IsCPOEnriched`, using a two-stage proof (product-free core +
+  product packaging) to work around HB coercion conflicts. This is A&J
+  Lemma 3.2.6 applied to the abstract enriched setting.
+
+- **`lc_functor` plain record** (§3): A record bundling an endofunctor on a
+  CPO-enriched category with locally-continuous axioms, separate from the
+  HB `LocallyContinuousFunctor` structure. Includes `lc_functor_of_hb` for
+  converting HB instances, plus identity and composition constructions.
+
+- **EP-pair infrastructure** (§4): `ep_pair` record with retraction and
+  deflation laws, `ep_id`, `ep_comp`, order lemmas (`ep_emb_mono`,
+  `ep_proj_mono`, `ep_proj_emb_cancel`), and `ep_chain` record for
+  ω-sequences of EP-pairs. This is the foundation for `DomainEquations.v`.
+
+**HB coercion workarounds:** This file required extensive workarounds for
+HB canonical structure resolution failures when compiling from source.
+See `design-decisions.md § DD-016` for the full list.
+
+**Proof status:** 706 lines, 0 Admitted.
+
+Reference: A&J §5.2. Benton-Kennedy §4. Kelly (1982).
+
+---
+
 ## What the Old Library Got Right
 
 The following design choices from the original (and from Benton-Kennedy)

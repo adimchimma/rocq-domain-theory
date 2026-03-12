@@ -43,7 +43,7 @@ DomainTheory.Structures
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
-| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF syntax+operational+denotational+soundness+adequacy **complete**; enriched theory not started |
+| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF pipeline **complete**; EnrichedTheory **complete** (706 lines); NatTrans + DomainEquations remaining |
 | 2 | Quantum CPO structures (stretch goal) | Not started |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
@@ -354,12 +354,38 @@ and `§ DD-007`.
 
 ---
 
-### `EnrichedTheory.v` ✗ (Phase 1) — *not yet written*
+### `EnrichedTheory.v` ✓ (Phase 1) — 706 lines
 
-**Imports:** `Enriched`, `CPOTheory`, `FunctionSpaces`
+**Imports:** `Order`, `CPO`, `Morphisms`, `Enriched`, `OrderTheory`,
+`ChainTheory`, `CPOTheory`, `Products`, `FunctionSpaces`
 
-Planned: enriched natural transformations, A&J Proposition 5.2.4,
-Yoneda in the enriched setting.
+| Name | Kind | Description |
+|------|------|-------------|
+| `comp_cont_l_eq` | Lemma | `f ⊚ (⊔ c) = ⊔ (map_chain (comp_l_cont_fun f) c)` |
+| `comp_cont_r_eq` | Lemma | `(⊔ c) ⊚ g = ⊔ (map_chain (comp_r_cont_fun g) c)` |
+| `F_mor_sup_eq` | Lemma | `F_mor (⊔ c) = ⊔ (map_chain F_mor_cont_fun c)` |
+| `comp_chain` | Definition | chain of compositions `f.[n] ⊚ g.[n]` |
+| `comp_joint_sup` | Lemma | `⊔ comp_chain = (⊔ fs) ⊚ (⊔ gs)` (product-free) |
+| `comp_joint_continuous` | Lemma | composition is jointly Scott-continuous |
+| `comp_joint_cont_fun` | Definition | joint composition as `cont_fun` |
+| `comp_joint_apply` | Lemma | computation rule for `comp_joint_cont_fun` |
+| `lc_functor` | Record | plain record for locally continuous endofunctors |
+| `lc_functor_of_hb` | Definition | convert HB `LocallyContinuousFunctor` to `lc_functor` |
+| `lc_functor_mor_eq` | Lemma | `lcf_mor` preserves chain sups |
+| `id_lc_functor` | Definition | identity endofunctor |
+| `comp_lc_functor` | Definition | composition of LC functors |
+| `ep_pair` | Record | embedding-projection pair with retraction + deflation |
+| `ep_id` | Definition | identity EP-pair |
+| `ep_comp` | Definition | composition of EP-pairs |
+| `ep_emb_mono` | Lemma | embeddings preserve order |
+| `ep_proj_mono` | Lemma | projections preserve order |
+| `ep_proj_emb_cancel` | Lemma | EP-pair cancellation |
+| `ep_chain` | Record | ω-sequence of EP-pairs with accessors |
+
+Proof strategy: §2 uses a two-stage approach (product-free core +
+product packaging) to avoid HB coercion conflicts. See DD-016.
+
+Reference: A&J §5.2. Benton-Kennedy §4.
 
 ---
 
@@ -498,7 +524,7 @@ Order.v
               ├── Lift.v             ← CPOTheory, ClassicalEpsilon
               ├── LiftMonad.v        ← (self-contained; no imports)
               ├── FunctionSpaces.v   ← Products, FixedPoints
-              ├── EnrichedTheory.v   ← Enriched, FunctionSpaces  [stub]
+              ├── EnrichedTheory.v   ← Enriched, Products, FunctionSpaces
               ├── NatTrans.v         ← EnrichedTheory     [stub]
               └── DomainEquations.v  ← Enriched, Products,
                                         FunctionSpaces, Lift,
@@ -538,10 +564,10 @@ Order.v
 | `src/theory/Lift.v` | 646 | ✓ Done |
 | `src/theory/LiftMonad.v` | 488 | ✓ Done (supplementary) |
 | `src/theory/FunctionSpaces.v` | 878 | ✓ Done |
-| `src/theory/EnrichedTheory.v` | 11 | Stub |
+| `src/theory/EnrichedTheory.v` | 706 | ✓ Done |
 | `src/theory/NatTrans.v` | 10 | Stub |
 | `src/theory/DomainEquations.v` | 17 | Stub |
-| **Theory subtotal (complete)** | **5,803** | |
+| **Theory subtotal (complete)** | **6,498** | |
 | `src/instances/Nat.v` | 371 | ✓ Done |
 | `src/instances/Discrete.v` | 531 | ✓ Done |
 | `src/instances/Function.v` | 462 | ✓ Done |
@@ -557,8 +583,8 @@ Order.v
 | **Lang subtotal** | **3,120** | |
 | `src/quantum/` (5 files) | 45 | All stubs |
 | `test/LiftTests.v` | 295 | ✓ Done |
-| **Grand total** | **11,652** | |
+| **Grand total** | **12,347** | |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
 
-> **Note:** Line counts as of 2026-03-09.
+> **Note:** Line counts as of 2026-03-12.
