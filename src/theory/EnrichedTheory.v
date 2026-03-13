@@ -51,7 +51,7 @@
 
     References:
       Abramsky & Jung §5.2 (enriched categories, locally continuous functors)
-      Benton-Kennedy §4 (ep-pairs, bilimit construction)
+      Benton-Kennedy-Varming (2009) §4 (ep-pairs, bilimit construction)
       design-decisions.md §DD-002 (separate vs joint continuity)
       design-decisions.md §DD-004 (Leibniz equality for categorical laws)
 *)
@@ -491,7 +491,7 @@ Proof. reflexivity. Qed.
     the Scott order inherited from the CPO structure.
 
     This is the standard notion from Abramsky & Jung §5.3 and
-    Benton-Kennedy §4; it is the key relation used in the inverse-limit
+    Benton-Kennedy-Varming §4; it is the key relation used in the inverse-limit
     (bilimit) construction in [DomainEquations.v].
 *)
 

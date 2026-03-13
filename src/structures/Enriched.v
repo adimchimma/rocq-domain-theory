@@ -313,7 +313,7 @@ Definition F_mor_cont_fun {C : LocallyContinuousFunctor.type} {A B : C}
 
     ** Object part **
     [MF_obj : Obj -> Obj -> Obj] assigns to each pair (A, B) the object
-    F(A, B).  This corresponds to Benton-Kennedy's [ob : cpo → cpo → cpo].
+    F(A, B).  This corresponds to Benton-Kennedy-Varming's [ob : cpo → cpo → cpo].
 
     ** Morphism part **
     The action on morphisms is:
@@ -321,7 +321,7 @@ Definition F_mor_cont_fun {C : LocallyContinuousFunctor.type} {A B : C}
       and    [g : hom B1 B2]   (covariant:     "forwards"  in 2nd arg)
       produce [MF_mor f g : hom (MF_obj A1 B1) (MF_obj A2 B2)].
 
-    This corresponds to Benton-Kennedy's:
+    This corresponds to Benton-Kennedy-Varming's:
       [mor : ∀ (A B C D), (B ⇒ c A) × (C ⇒ c D) ⇒c (ob A C ⇒ c ob B D)]
 
     and implements A&J Definition 5.2.5's condition (in its bilinear form)
@@ -348,6 +348,8 @@ HB.mixin Record HasMixedEndo (Obj : Type) of HasHom Obj := {
       hom B1 B2 ->    (* covariant    in second argument  *)
       hom (MF_obj A1 B1) (MF_obj A2 B2) ;
 }.
+HB.structure Definition MF_Obj :=
+  {Obj of CPOEnrichedCat Obj & HasMixedEndo Obj}.
 
 (** Axioms to be added in [DomainEquations.v] over [HasMixedEndo]:
       - [MF_mor_id]    : [MF_mor (id A) (id B) = id (MF_obj A B)]

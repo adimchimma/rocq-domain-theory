@@ -42,7 +42,7 @@
 
     References:
       Abramsky & Jung §2.1.2 (discrete CPOs as flat ground-type domains).
-      Benton & Kennedy §3 (denotational semantics of PCFv ground types).
+      Benton, Kennedy & Varming (2009) §3 (denotational semantics of PCFv ground types).
 *)
 
 From HB Require Import structures.

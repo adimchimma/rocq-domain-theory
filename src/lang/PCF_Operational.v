@@ -11,7 +11,7 @@
     Summary
     =======
     We define the big-step evaluation relation [e ⇓ v] for closed PCFv
-    terms, following Benton-Kennedy §3.  The relation is in [Prop]: since
+    terms, following Benton-Kennedy-Varming §3.  The relation is in [Prop]: since
     our terms are intrinsically typed, we never need to extract information
     from a derivation; the derivation is used only as a proof object in
     soundness and adequacy arguments.
@@ -37,7 +37,7 @@
                [PCF_Adequacy.v] (logical relation over [⇓])
 
     References:
-      Benton & Kennedy §3.1 (typed language, big-step)
+      Benton, Kennedy & Varming (2009) §3.1 (typed language, big-step)
 *)
 
 From Stdlib Require Import List PeanoNat Bool Program.Equality.

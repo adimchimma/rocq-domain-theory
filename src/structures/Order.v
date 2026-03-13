@@ -13,9 +13,10 @@
     Phase coverage:
       Phase 0 — HasLe, IsPreorder, IsPartialOrder, chain, mono_fun
     
-    Reference:
+    References:
+      Benton, Kennedy & Varming (2009) §2 — preorders, partial orders.
+      Abramsky & Jung (1994) §2.1.1 — posets and preorders.
       https://en.wikipedia.org/wiki/Partially_ordered_set
-      https://people.maths.ox.ac.uk/bays/teaching/3u03/notes/8-porders.pdf  
 *)
 
 From HB Require Import structures.

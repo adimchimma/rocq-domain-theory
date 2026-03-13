@@ -16,14 +16,13 @@
       Phase 0 — HasSup, IsCPO, CPO
                 HasBot, IsPointed, PointedCPO
 
-    Reference:
-      Abramsky & Jung, "Domain Theory" (1994), Definition 2.1.13:
-      "A *poset* D in which every directed subset has a supremum we call
-      a directed-complete partial order, or dcpo for short."
+    References:
+      Benton, Kennedy & Varming (2009) §2 — [cpo], [Pointed].
+      Abramsky & Jung (1994) Definition 2.1.13:
+        "A *poset* D in which every directed subset has a supremum we call
+        a directed-complete partial order, or dcpo for short."
       A poset (Definition 2.1.1) includes antisymmetry, so CPO is built
       on [PartialOrder], not merely [Preorder].
-
-      https://ncatlab.org/nlab/show/dcpo
 *)
 
 From HB Require Import structures.

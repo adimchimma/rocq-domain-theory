@@ -44,7 +44,7 @@
     - §5  Kleisli extension [kleisli f : ⟨D⟩⊥ →c ⟨E⟩⊥]
     - §6  Monad laws
 
-    References: A&J §2.1.4; Moggi (1991); Benton-Kennedy §2.2.
+    References: A&J §2.1.4; Moggi (1991); Benton-Kennedy-Varming (2009) §2.2.
 *)
 
 From HB Require Import structures.

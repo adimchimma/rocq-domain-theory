@@ -43,6 +43,10 @@
       Revisit if: (a) the enriched-hom setting (Phase 2) needs
       [IsMonotone]/[IsContinuous] as composable mixins on the same
       function, or (b) a broader restructuring makes the churn worthwhile.
+
+    References:
+      Benton, Kennedy & Varming (2009) §2 — [continuous], [fcontit].
+      Abramsky & Jung (1994) §2.1.2 — monotone and continuous maps.
 *)
 
 From HB Require Import structures.

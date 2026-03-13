@@ -36,7 +36,7 @@
     stating it requires [[D →c D]] to carry a [CPO.type] structure
     (the pointwise CPO), which is constructed there.
 
-    References: Abramsky & Jung §2.1.3; Benton-Kennedy §2.1.
+    References: Abramsky & Jung §2.1.3; Benton-Kennedy-Varming (2009) §2.1.
 
     Contents:
     - §1  Iteration operator [iter]
@@ -347,7 +347,7 @@ End FixpLeast.
     This is the primary tool for proving properties of recursively-defined
     programs in the denotational semantics (Phase 1).
 
-    Reference: A&J §2.1.3 Proposition 2.1.17; Benton-Kennedy [fixp_ind].
+    Reference: A&J §2.1.3 Proposition 2.1.17; Benton-Kennedy-Varming [fixp_ind].
 *)
 
 Section FixpInd.
@@ -522,5 +522,5 @@ End FixpMono.
     where the two sups commute because the family [k ↦ n ↦ f_n^k(⊥)]
     is coherent in the sense of [ChainTheory.coherent_family].
 
-    Reference: A&J §2.1.3 Proposition 2.1.18; Benton-Kennedy [FIXP].
+    Reference: A&J §2.1.3 Proposition 2.1.18; Benton-Kennedy-Varming [FIXP].
 *)

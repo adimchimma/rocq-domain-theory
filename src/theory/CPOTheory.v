@@ -27,6 +27,10 @@
     Phase coverage:
       Phase 0 — all sections
       Phase 1 — §4 (admissibility) re-used in enriched setting
+
+    References:
+      Benton, Kennedy & Varming (2009) §2 — continuous functions, admissibility.
+      Abramsky & Jung (1994) §2.1–2.2 — CPO theory, sup lemmas.
 *)
 
 From HB Require Import structures.
@@ -421,7 +425,7 @@ End ContinuityLemmas.
     fixpoint-specific form lives in [FixedPoints.v]; here we establish
     the chain-level theory.
 
-    Reference: A&J §2.2.  Benton-Kennedy §2.1 [admissible], [fixp_ind].
+    Reference: A&J §2.2; Benton-Kennedy-Varming (2009) §2.1 [admissible], [fixp_ind].
 *)
 
 Definition admissible {D : CPO.type} (P : D -> Prop) : Prop :=

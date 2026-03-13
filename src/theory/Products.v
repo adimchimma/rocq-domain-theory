@@ -42,6 +42,10 @@
     Phase coverage:
       Phase 0 — all sections
       Phase 1 — §4 used in [EnrichedTheory.v] via separate continuity (DD-002)
+
+    References:
+      Benton, Kennedy & Varming (2009) §2 — product CPOs (implicit).
+      Abramsky & Jung (1994) §2.2.4 — products of dcpos.
 *)
 
 From HB Require Import structures.

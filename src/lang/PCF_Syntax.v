@@ -13,7 +13,7 @@
 
     Summary
     =======
-    We formalize PCFv following Benton and Kennedy's strongly-typed term
+    We formalize PCFv following Benton, Kennedy and Varming's strongly-typed term
     representation.  The key design choice is that every syntactic object
     is indexed by its typing context [Γ : Env] and its type [τ : Ty],
     guaranteeing well-typedness by construction.  There are no separate
@@ -58,7 +58,7 @@
 
     Substitutions:
       A substitution [Subst Γ Γ'] is a context-indexed family of value
-      maps [∀ τ, Var Γ τ → Value Γ' τ].  Following Benton-Kennedy, we
+      maps [∀ τ, Var Γ τ → Value Γ' τ].  Following Benton-Kennedy-Varming, we
       bootstrap via _renamings_ (Var-to-Var maps) to avoid the need for
       a separate shift operator.
 
@@ -76,8 +76,8 @@
       Used by [PCF_Operational.v], [PCF_Denotational.v]
 
     References:
-      Benton & Kennedy, "Some Domain Theory and Denotational Semantics
-      in Rocq" (2009), §3.
+      Benton, Kennedy & Varming, "Some Domain Theory and Denotational
+      Semantics in Coq" (2009), §3.
 *)
 
 From Stdlib Require Import List.
@@ -122,7 +122,7 @@ Definition Env : Type := list Ty.
     [ZVAR] is index 0 (the head of the context).
     [SVAR v] is index [1 + i] where [v : Var Γ τ] has index [i].
 
-    This is the standard intrinsic representation from Benton-Kennedy.
+    This is the standard intrinsic representation from Benton-Kennedy-Varming.
 *)
 
 Inductive Var : Env -> Ty -> Type :=
@@ -167,7 +167,7 @@ Arguments SVAR {Γ τ τ'} v.
     fixing a particular set of built-ins.  This keeps the syntax small
     and the denotational semantics clean.
 
-    Note on FIX: we follow Benton-Kennedy exactly.
+    Note on FIX: we follow Benton-Kennedy-Varming exactly.
       [FIX τ₁ τ₂ e] represents [fix f(x : τ₁) : τ₂ = e]
       where inside [e]:
         - index 0 (ZVAR) is the argument [x : τ₁]
@@ -260,7 +260,7 @@ Definition CExp   (τ : Ty) : Type := Exp   [] τ.
     application, we avoid having to define and verify a shift lemma at
     the level of values.
 
-    This is the approach taken in Benton-Kennedy and in the PLFA-style
+    This is the approach taken in Benton-Kennedy-Varming and in the PLFA-style
     treatment of intrinsic de Bruijn syntax.
 *)
 
