@@ -43,7 +43,7 @@ DomainTheory.Structures
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
-| 1 | Enriched categories, locally continuous functors, PCF adequacy | Structures done; PCF pipeline **complete**; EnrichedTheory **complete** (706 lines); NatTrans + DomainEquations remaining |
+| 1 | Enriched categories, locally continuous functors, PCF adequacy | **Complete**: Structures, EnrichedTheory, NatTrans, DomainEquations, Yoneda, PCF pipeline all done |
 | 2 | Quantum CPO structures (stretch goal) | Not started |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
@@ -107,7 +107,7 @@ Reference: A&J Definition 2.1.13. Benton-Kennedy §2.1.
 
 ---
 
-### `Morphisms.v` ✓ (Phase 0) — 209 lines
+### `Morphisms.v` ✓ (Phase 0) — 224 lines
 
 **Imports:** `Order`, `CPO`
 
@@ -127,7 +127,7 @@ Reference: A&J §3.2.2. Benton-Kennedy §2.1 (`fconti` record).
 
 ---
 
-### `Enriched.v` ✓ (Phase 1) — 388 lines
+### `Enriched.v` ✓ (Phase 1) — 390 lines
 
 **Imports:** `Order`, `CPO`, `Morphisms`
 
@@ -389,12 +389,31 @@ Reference: A&J §5.2. Benton-Kennedy §4.
 
 ---
 
-### `NatTrans.v` ✗ (Phase 1) — *not yet written*
+### `NatTrans.v` ✓ (Phase 1) — 518 lines
 
-**Imports:** `Enriched`, `EnrichedTheory`
+**Imports:** `Order`, `CPO`, `Morphisms`, `Enriched`,
+`OrderTheory`, `CPOTheory`, `EnrichedTheory`
 
-Planned: enriched natural transformations as a CPO (pointwise order),
-horizontal and vertical composition.
+| Name | Kind | Description |
+|------|------|-------------|
+| `nat_trans F G` | Record | enriched natural transformation: components + naturality |
+| `nt_component` | Accessor | component of a nat trans at an object |
+| `nt_naturality` | Accessor | naturality square: `G(f) ∘ α_X = α_Y ∘ F(f)` |
+| `nt_id F` | Definition | identity natural transformation (components = `id_mor`) |
+| `nt_vcomp β α` | Definition | vertical composition (componentwise `β_X ∘ α_X`) |
+| `nt_lwhisker H α` | Definition | left whiskering `H * α` (apply `H` to components) |
+| `nt_rwhisker α H` | Definition | right whiskering `α * H` |
+| `nt_le` | Definition | pointwise order on components |
+| `nt_le_refl/trans/antisym` | Lemmas | partial order on nat trans |
+| `nt_chain_component` | Definition | extract a chain in hom-CPO from chain of nat trans |
+| `nt_sup` | Definition | pointwise supremum of a chain of nat trans |
+| `nt_sup_upper/least` | Lemmas | CPO axioms for nat trans |
+| `nt_interchange` | Lemma | `(β' · β) * (α' · α) = (β' * α') · (β * α)` |
+
+Design: uses `lc_functor` plain record to avoid universe inconsistencies.
+0 Admitted. See DD-018.
+
+Reference: Kelly (1982) Ch. 1. Mac Lane (1998) Ch. IX. A&J §5.2.
 
 ---
 
@@ -444,15 +463,45 @@ Reference: A&J §2.1.3, §3.2.2. Benton-Kennedy §2.1.
 
 ---
 
-### `DomainEquations.v` ✗ (Phase 0/1) — *not yet written*
+### `DomainEquations.v` ✓ (Phase 0/1) — 446 lines
 
-**Imports:** `Enriched`, `Products`, `FunctionSpaces`, `Lift`,
-`EnrichedTheory`
+**Imports:** `Order`, `CPO`, `Morphisms`, `Enriched`, `OrderTheory`,
+`ChainTheory`, `CPOTheory`, `Products`, `FunctionSpaces`, `EnrichedTheory`,
+`PeanoNat`
 
-Planned: `IsMixedLocallyContinuous` mixin; embedding-projection pairs;
-bilimit / inverse-limit construction; proof `D ≅ [D → D]⊥`.
+| Name | Kind | Description |
+|------|------|-------------|
+| `IsMixedLocallyContinuous` | HB mixin | 6 axioms: identity, composition, separate mono + cont |
+| `MixedLCFunctor` | HB structure | bundled mixed-variance LC bifunctor |
+| `mf_mor` | Definition | wrapper pinning carrier to `MixedLCFunctor.type` |
+| `MF_mor_l_cont_fun` | Definition | left variable as `cont_fun` |
+| `MF_mor_r_cont_fun` | Definition | right variable as `cont_fun` |
+| `MF_mor_cont_l_eq/r_eq` | Lemmas | equational rewrites for continuity |
+| `MF_mor_mono` | Lemma | joint monotonicity (derived from separate) |
+| `mf_diag_chain` | Definition | diagonal chain from two chains |
+| `mf_diag_bound` | Lemma | diagonal elements bounded by sup |
+| `MF_mor_joint_sup` | Theorem | `mf_mor (⊔ fs) (⊔ gs) = ⊔ (mf_diag_chain fs gs)` |
+| `MF_mor_id_both` | Lemma | identity on both arguments |
+| `mf_ep_pair` | Definition | EP-pair lifting (A&J Prop. 5.2.6) |
+| `mf_ep_emb/proj` | Lemmas | unfolding lemmas for lifted EP-pair |
+| `mf_ep_comp_emb/proj` | Lemmas | compatibility with EP-pair composition |
+| `mf_approx_obj` | Fixpoint | `D_n = F^n(D_0)` approximation objects |
+| `mf_approx_ep` | Fixpoint | EP-pairs `D_n ↪ D_{n+1}` |
+| `mf_approx_epc` | Definition | approximation sequence as `ep_chain` |
+| `BilimitData` | Record | bilimit cone: emb/proj, compatibility, roll/unroll |
+| `bilimit_exists` | Axiom | existence of bilimit (requires omega-product CPO) |
+| `D_inf` | Definition | the bilimit object `D_∞` |
+| `ROLL` / `UNROLL` | Definitions | isomorphism `F(D_∞, D_∞) ≅ D_∞` |
+| `bil_iso_roll_unroll` | Theorem | `ROLL ∘ UNROLL = id` |
+| `bil_iso_unroll_roll` | Theorem | `UNROLL ∘ ROLL = id` |
+| `bil_defl_chain` | Definition | chain of deflations `emb_n ∘ proj_n` |
+| `bil_sup_deflations` | Lemma | `⊔ bil_defl_chain = id` |
+| `bil_lim_iso` | Definition | `D_∞ ≅ F(D_∞, D_∞)` as `ep_pair` |
+| `bil_cone_ep` | Definition | cone EP-pairs `D_n ↪ D_∞` |
 
-Reference: A&J §5.2–5.3. Benton-Kennedy §4. Pitts (1996).
+0 Admitted; 1 Axiom (`bilimit_exists`). See DD-017.
+
+Reference: A&J §5.2–5.3. Benton-Kennedy §4. Smyth & Plotkin (1982).
 
 ---
 
@@ -465,7 +514,8 @@ All files import from both `DomainTheory.Structures` and
 |------|-------|-------|--------|
 | `Nat.v` | 0 | 371 | ✓ Done |
 | `Discrete.v` | 0 | 531 | ✓ Done |
-| `Function.v` | 0/1 | 462 | ✓ Done (CPO self-enrichment + utilities) |
+| `Function.v` | 0/1 | 436 | ✓ Done (CPO self-enrichment + utilities) |
+| `Yoneda.v` | 1 | 443 | ✓ Done (representable functor + Yoneda lemma) |
 | `Quantum.v` | 2 | 5 | Stub (stretch goal) |
 
 > **Note:** The Lift, Product, and Sum CPO instances are registered
@@ -481,9 +531,9 @@ Dune library: `DomainTheory.Lang`. Depends on `DomainTheory.Instances`.
 
 | File | Phase | Lines | Description |
 |------|-------|-------|-------------|
-| `PCF_Syntax.v` | 1 | 520 | ✓ Intrinsic typed ANF: Ty, Var, Value/Exp, renamings, substitutions |
+| `PCF_Syntax.v` | 1 | 804 | ✓ Intrinsic typed ANF: Ty, Var, Value/Exp, renamings, substitutions |
 | `PCF_Operational.v` | 1 | 332 | ✓ Big-step CBV evaluation `e ⇓ v`, determinism, inversion lemmas |
-| `PCF_Denotational.v` | 1 | 1,169 | ✓ Denotation, combinators, computation rules, renaming + substitution lemmas (0 Admitted) |
+| `PCF_Denotational.v` | 1 | 1,167 | ✓ Denotation, combinators, computation rules, renaming + substitution lemmas (0 Admitted) |
 | `PCF_Soundness.v` | 1 | 261 | ✓ `e ⇓ v → sem_exp e tt = Some (sem_val v tt)`, corollaries (0 Admitted) |
 | `PCF_Adequacy.v` | 1 | 820 | ✓ Computational adequacy via logical relation, fundamental lemma, full correspondence (0 Admitted) |
 | `QMiniCore_Syntax.v` | 2/3 | 9 | Stub: quantum lambda calculus syntax |
@@ -527,13 +577,14 @@ Order.v
               ├── EnrichedTheory.v   ← Enriched, Products, FunctionSpaces
               ├── NatTrans.v         ← EnrichedTheory
               └── DomainEquations.v  ← Enriched, Products,
-                                        FunctionSpaces, Lift,
-                                        EnrichedTheory     [stub]
+                                        FunctionSpaces,
+                                        EnrichedTheory
 
 [instances/]
   ├── Nat.v              ← CPOTheory, ChainTheory
   ├── Discrete.v         ← CPOTheory, ChainTheory
-  └── Function.v         ← Enriched, FunctionSpaces, Morphisms
+  ├── Function.v         ← Enriched, FunctionSpaces, Morphisms
+  └── Yoneda.v           ← NatTrans, Function, EnrichedTheory
 
 [lang/]
   ├── PCF_Syntax.v       ← (Stdlib only)
@@ -551,9 +602,9 @@ Order.v
 |------|-------|--------|
 | `src/structures/Order.v` | 190 | ✓ Done |
 | `src/structures/CPO.v` | 183 | ✓ Done |
-| `src/structures/Morphisms.v` | 221 | ✓ Done |
-| `src/structures/Enriched.v` | 388 | ✓ Done |
-| **Structures subtotal** | **982** | |
+| `src/structures/Morphisms.v` | 224 | ✓ Done |
+| `src/structures/Enriched.v` | 390 | ✓ Done |
+| **Structures subtotal** | **987** | |
 | `src/theory/OrderTheory.v` | 494 | ✓ Done |
 | `src/theory/ChainTheory.v` | 515 | ✓ Done |
 | `src/theory/CPOTheory.v` | 581 | ✓ Done |
@@ -565,26 +616,28 @@ Order.v
 | `src/theory/LiftMonad.v` | 488 | ✓ Done (supplementary) |
 | `src/theory/FunctionSpaces.v` | 878 | ✓ Done |
 | `src/theory/EnrichedTheory.v` | 706 | ✓ Done |
-| `src/theory/NatTrans.v` | 10 | Stub |
-| `src/theory/DomainEquations.v` | 17 | Stub |
-| **Theory subtotal (complete)** | **6,498** | |
+| `src/theory/NatTrans.v` | 518 | ✓ Done |
+| `src/theory/DomainEquations.v` | 446 | ✓ Done (1 Axiom) |
+| **Theory subtotal (complete)** | **7,444** | |
 | `src/instances/Nat.v` | 371 | ✓ Done |
 | `src/instances/Discrete.v` | 531 | ✓ Done |
-| `src/instances/Function.v` | 462 | ✓ Done |
+| `src/instances/Function.v` | 436 | ✓ Done |
+| `src/instances/Yoneda.v` | 443 | ✓ Done |
 | `src/instances/Quantum.v` | 5 | Stub |
-| **Instances subtotal** | **1,369** | |
-| `src/lang/PCF_Syntax.v` | 520 | ✓ Done |
+| **Instances subtotal** | **1,786** | |
+| `src/lang/PCF_Syntax.v` | 804 | ✓ Done |
 | `src/lang/PCF_Operational.v` | 332 | ✓ Done |
-| `src/lang/PCF_Denotational.v` | 1,169 | ✓ Done (0 Admitted) |
+| `src/lang/PCF_Denotational.v` | 1,167 | ✓ Done (0 Admitted) |
 | `src/lang/PCF_Soundness.v` | 261 | ✓ Done |
 | `src/lang/PCF_Adequacy.v` | 820 | ✓ Done |
 | `src/lang/QMiniCore_Syntax.v` | 9 | Stub |
 | `src/lang/QMiniCore_Semantics.v` | 9 | Stub |
-| **Lang subtotal** | **3,120** | |
+| **Lang subtotal** | **3,402** | |
 | `src/quantum/` (5 files) | 45 | All stubs |
 | `test/LiftTests.v` | 295 | ✓ Done |
-| **Grand total** | **12,347** | |
+| **Grand total** | **13,944** | |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
+Actual: ~13,944 lines (exceeds target).
 
 > **Note:** Line counts as of 2026-03-12.

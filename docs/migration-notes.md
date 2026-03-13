@@ -314,8 +314,76 @@ available.
 
 **Old:** Completely empty file.
 
-**New:** Replaced by `theory/DomainEquations.v`, which will contain the
-full inverse-limit construction following Benton-Kennedy §4 and A&J §5.3.
+**New:** Replaced by `theory/DomainEquations.v` (446 lines), which
+contains the full mixed-variance locally continuous bifunctor framework
+and bilimit construction following Benton-Kennedy §4 and A&J §5.2–5.3.
+
+Contents:
+- §1: `IsMixedLocallyContinuous` HB mixin with 6 axiom fields (identity,
+  composition, separate monotonicity, separate continuity) and
+  `MixedLCFunctor` HB structure.
+- §2: Packaged `cont_fun` accessors (`MF_mor_l_cont_fun`,
+  `MF_mor_r_cont_fun`) and equational rewrites.
+- §3: Derived properties — joint monotonicity (`MF_mor_mono`), diagonal
+  chain (`mf_diag_chain`), `MF_mor_joint_sup` theorem.
+- §4: EP-pair lifting (`mf_ep_pair`) — A&J Proposition 5.2.6: given
+  `ep_pair A B`, construct `ep_pair (MF_obj A A) (MF_obj B B)`.
+- §5: Approximation sequence (`mf_approx_obj`, `mf_approx_ep`,
+  `mf_approx_epc`).
+- §6: `BilimitData` record specifying the cone, compatibility, and
+  roll/unroll isomorphism. `Axiom bilimit_exists` (requires omega-product
+  CPO not yet constructed).
+- §7: Consequences — `D_inf`, `ROLL`, `UNROLL`, deflation chain,
+  `bil_sup_deflations`, `bil_lim_iso`, `bil_cone_ep`.
+
+0 Admitted proofs; 1 `Axiom` (`bilimit_exists`). See DD-017.
+
+---
+
+### `NatTrans.v` (**new**, Phase 1)
+
+**Old:** Not present in the original Benton-Kennedy library.
+
+**New:** `theory/NatTrans.v` (518 lines) develops enriched natural
+transformations between locally continuous endofunctors and proves they
+form a CPO under pointwise order.
+
+Contents:
+- §1: `nat_trans F G` record with components and naturality.
+- §2: Identity (`nt_id`), vertical composition (`nt_vcomp`).
+- §3: Left/right whiskering (`nt_lwhisker`, `nt_rwhisker`).
+- §4: Pointwise order — `nt_le` with reflexivity, transitivity,
+  antisymmetry (natural transformations form a partial order).
+- §5: Chains and suprema — `nt_chain_component`, `nt_sup`,
+  `nt_sup_upper`, `nt_sup_least` (natural transformations form a CPO).
+- §6: Interchange law for vertical and horizontal composition.
+
+0 Admitted. Design: uses `lc_functor` plain record (not HB
+`LocallyContinuousFunctor`) to avoid universe inconsistencies. See DD-018.
+
+Reference: Kelly (1982) Ch. 1. Mac Lane (1998) Ch. IX.
+
+---
+
+### `Yoneda.v` (**new**, Phase 1)
+
+**Old:** Not present in the original Benton-Kennedy library.
+
+**New:** `instances/Yoneda.v` (443 lines) constructs the representable
+functor and proves the enriched Yoneda lemma.
+
+Contents:
+- §1: `repr_functor X` — the covariant hom-functor `Hom(X,-)` as an
+  `lc_functor` on `CPO.type`.
+- §2: Enriched Yoneda lemma — `yoneda_eval` (extract `alpha_X(id_X)`),
+  `yoneda_embed` (given `x : F(X)`, define `alpha_A(f) = F(f)(x)`),
+  round-trip laws (`yoneda_eval_embed`, `yoneda_embed_eval`).
+- §3: Yoneda isomorphism packaged as an `ep_pair`.
+
+0 Admitted. Lives in `instances/` because it depends on the concrete
+CPO-enriched category instance from `Function.v`. See DD-019.
+
+Reference: Kelly (1982), Mac Lane (1998).
 
 ---
 
@@ -341,6 +409,13 @@ were not yet proved. These are **all eliminated** in the new library.
 limitations in plain Rocq. These are in the supplementary coinductive
 file only; the main library (`Lift.v`) has no admits. See
 `design-decisions.md § DD-007`.
+
+**New axiom:** `theory/DomainEquations.v` introduces one `Axiom`
+(`bilimit_exists`) asserting the existence of the bilimit of an
+approximation sequence. Its proof requires an omega-product CPO
+construction not yet in the library. All consequences of the bilimit
+are fully proved from the axiom's `BilimitData` record. See
+`design-decisions.md § DD-017`.
 
 ---
 

@@ -675,3 +675,126 @@ the transitivity and rewriting steps.
 
 **Affected files:**
 - `src/theory/EnrichedTheory.v` — 706 lines (§1–§4)
+
+---
+
+## DD-017: `IsMixedLocallyContinuous` axiom design in `DomainEquations.v`
+
+**Decision:** The `IsMixedLocallyContinuous` HB mixin in
+`DomainEquations.v` axiomatises the mixed-variance bifunctor `MF_mor`
+via six fields — identity, composition, separate monotonicity (left/right),
+and separate continuity (left/right) — rather than using joint continuity
+or joint monotonicity.
+
+**Rationale:**
+
+The mixed-variance bifunctor `MF_mor` takes a contravariant argument
+and a covariant argument:
+```coq
+MF_mor : forall {A1 A2 B1 B2}, hom A2 A1 -> hom B1 B2 ->
+         hom (MF_obj A1 B1) (MF_obj A2 B2)
+```
+
+Joint monotonicity and joint continuity (`MF_mor_mono`, `MF_mor_joint_sup`)
+are *derived* from the separate axioms in the `MFDerived` section. This
+mirrors the same strategy used in DD-002 for composition continuity:
+separate axioms avoid importing `Products.v` at the mixin declaration
+point.
+
+Additionally:
+- Monotonicity fields (`MF_mor_mono_l`, `MF_mor_mono_r`) precede
+  continuity fields (`MF_mor_cont_l`, `MF_mor_cont_r`), following DD-003.
+- The `mf_mor` wrapper definition pins the carrier to
+  `MixedLCFunctor.type`, working around an HB canonical-structure
+  resolution issue where `MF_Obj`'s carrier sort does not unify with
+  `MixedLCFunctor.sort`.
+
+**The `bilimit_exists` axiom:**
+
+`DomainEquations.v` contains one `Axiom`:
+```coq
+Axiom bilimit_exists :
+  forall {C : MixedLCFunctor.type} (D0 : C)
+         (ep0 : ep_pair D0 (MF_obj D0 D0)),
+    BilimitData D0 ep0.
+```
+
+This axiom asserts the existence of the bilimit (inverse limit) of the
+approximation sequence `D0, F(D0,D0), F(F(...),F(...)), ...`. Its proof
+requires constructing the omega-product CPO `∏_n D_n` (the product of
+countably many CPOs) and carving out the coherent sub-CPO
+`{ (d_n) | p_n(d_{n+1}) = d_n }`. The omega-product construction is not
+yet in the library (it requires an infinite-product CPO, not just binary
+products). Following Benton-Kennedy §4 and A&J §3.3.7, the axiom is
+acceptable for the thesis; the `BilimitData` record precisely specifies
+the proof obligation.
+
+All consequences of the bilimit (D_inf, ROLL/UNROLL, the isomorphism
+`D_inf ≅ F(D_inf, D_inf)`, the deflation chain, and `bil_sup_deflations`)
+are fully proved from the record fields — no additional axioms or admits.
+
+**Affected files:**
+- `src/theory/DomainEquations.v` — 446 lines (§1–§7)
+
+---
+
+## DD-018: `nat_trans` as a plain record over `lc_functor`
+
+**Decision:** Natural transformations in `NatTrans.v` are defined as a
+plain `Record nat_trans` (not an HB structure) parameterised over two
+`lc_functor` values, not over HB `LocallyContinuousFunctor` instances.
+
+**Rationale:**
+
+The `lc_functor` plain record (from `EnrichedTheory.v`) was chosen over
+the HB `LocallyContinuousFunctor` structure for two reasons:
+
+1. **Universe consistency:** Registering HB instances for functors on
+   `CPOEnrichedCat.type` triggers universe inconsistencies when natural
+   transformations attempt to quantify over all objects `X : C` in the
+   enriched category. The `lc_functor` record avoids HB's universe
+   machinery entirely.
+
+2. **Composability:** Identity, vertical composition, and horizontal
+   composition (whiskering) of natural transformations produce new
+   `nat_trans` values. With HB structures, each composition would need
+   a new HB instance registration, which is cumbersome and error-prone.
+   Plain records compose directly.
+
+The CPO structure on natural transformations (pointwise order, chains,
+suprema) is proved directly on `nat_trans` without HB instance
+registration — the `nat_trans` type is not a general-purpose carrier
+but a proof-theoretic tool.
+
+**Affected files:**
+- `src/theory/NatTrans.v` — 518 lines (§1–§6)
+
+---
+
+## DD-019: Yoneda lemma in `instances/Yoneda.v`
+
+**Decision:** The representable functor `Hom(X,-)` and the enriched
+Yoneda lemma live in `instances/Yoneda.v` rather than in `NatTrans.v`.
+
+**Rationale:**
+
+The representable functor requires the concrete CPO-enriched category
+instance (`CPO.type` with `cont_fun` as hom-CPOs), which is registered
+in `instances/Function.v`. Placing the Yoneda material in `NatTrans.v`
+(a theory file) would create a dependency from `theory/` to `instances/`,
+violating the build-order constraint:
+```
+DomainTheory.Theory → DomainTheory.Instances  (allowed)
+DomainTheory.Instances → DomainTheory.Theory  (NOT allowed in reverse)
+```
+
+By placing Yoneda in `instances/`, the dependency chain is:
+`NatTrans.v` (theory) → `Yoneda.v` (instances) → `Function.v` (instances).
+
+The Yoneda lemma establishes an isomorphism (as an `ep_pair`) between
+`nat_trans (repr_functor X) F` and `lcf_obj F X`, with both directions
+(`yoneda_eval`, `yoneda_embed`) and both round-trip laws
+(`yoneda_eval_embed`, `yoneda_embed_eval`) fully proved.
+
+**Affected files:**
+- `src/instances/Yoneda.v` — 443 lines
