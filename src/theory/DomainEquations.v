@@ -1,4 +1,4 @@
-(** * DomainEquations
+(* DomainEquations
 
     Mixed-variance locally continuous bifunctors and the inverse-limit
     (bilimit) construction for solving recursive domain equations
