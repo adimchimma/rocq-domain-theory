@@ -387,6 +387,42 @@ Reference: Kelly (1982), Mac Lane (1998).
 
 ---
 
+### `FunLift.v` (**new**, Phase 1)
+
+**Old:** Not present in the original Benton-Kennedy library. The old
+`RecursiveDomains.v` was an empty file; no concrete functor instance
+existed.
+
+**New:** `instances/FunLift.v` (298 lines) provides the concrete
+`MixedLCFunctor` instance on `CPO.type`, connecting the abstract bilimit
+machinery in `DomainEquations.v` to the concrete domain constructors in
+`FunctionSpaces.v` and `Lift.v`.
+
+The bifunctor maps `(A, B) ↦ ⟨[A →c B]⟩⊥` — the flat lift of the
+continuous function space. The morphism action `FL_mor f g` maps
+`Some h ↦ Some (g ∘ h ∘ f)` and `None ↦ None`.
+
+Contents:
+- §1: `lift_map` — functorial action of the lift on morphisms, defined
+  as `kleisli (ret ∘ f)`. Identity, composition, monotonicity lemmas.
+- §2: `FL_obj`, `FL_sandwich`, `FL_mor` — object and morphism actions of
+  the bifunctor, with computation lemmas (`FL_mor_some`, `FL_mor_none`).
+- §3: Six property proofs (`FL_mor_id`, `FL_mor_comp`, `FL_mor_mono_l/r`,
+  `FL_mor_cont_l/r`). All use the `change` tactic to bypass
+  HB-generated coercion chains — see DD-020. The `None` case in
+  continuity proofs uses `lift_sup_none` rather than `le_antisym`.
+- §4: HB instance registration (`CPO_HasMixedEndo`,
+  `CPO_IsMixedLocallyContinuous`), placed after all proofs to avoid
+  canonical-structure interference during rewrites.
+
+0 Admitted. 0 Axioms. Lives in `instances/` because it depends on the
+concrete CPO-enriched category instance from `Function.v` and on
+`DomainEquations.v`.
+
+Reference: A&J §5.2–5.3. Benton-Kennedy §4.
+
+---
+
 ## Axioms: Status in Old vs New Library
 
 The old library accumulated `Axiom` declarations for constructions that

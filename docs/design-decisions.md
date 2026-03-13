@@ -798,3 +798,100 @@ The Yoneda lemma establishes an isomorphism (as an `ep_pair`) between
 
 **Affected files:**
 - `src/instances/Yoneda.v` — 443 lines
+
+---
+
+## DD-020: `FunLift.v` proof strategy — `change` tactic for coercion bypass
+
+**Decision:** The six axiom proofs in `FunLift.v` (identity, composition,
+separate monotonicity, separate continuity) use the `change` tactic to
+normalize coercion-wrapped goals to their known reduced forms, rather than
+`rewrite FL_mor_some` or `unfold FL_mor, lift_map; rewrite kleisli_some`.
+
+**Rationale:**
+
+After `cont_fun_ext; intro x; destruct x`, the `Some h` branch produces
+goals where `FL_mor f g (Some h)` is wrapped in HB-generated coercion
+chains (from `cont_fun` to its underlying function). These coercions
+prevent `rewrite FL_mor_some` from matching the LHS.
+
+Two alternative strategies were tried and fail:
+
+1. **`unfold FL_mor, lift_map; rewrite kleisli_some`:** After `unfold`,
+   the term `kleisli (cont_comp ret (FL_sandwich f g)) (Some h)`
+   iota-reduces immediately during elaboration, so the `kleisli` head
+   symbol disappears. There is no `kleisli ... (Some ...)` pattern left
+   for `rewrite` to find.
+
+2. **`subst mono_f; unfold FL_mor, lift_map`:** When `FL_mor` is bound
+   via `set mono_f := ...`, the `set` variable prevents `unfold FL_mor`
+   from seeing through the binding. `subst` removes it, but then the
+   iota-reduction issue from (1) recurs.
+
+The working strategy uses `change` to assert the known reduced form
+directly:
+```coq
+change (Some (FL_sandwich (⊔ fs) g h) =
+        (⊔ (map_chain mono_f fs)) (Some h)).
+```
+
+Key details:
+- `change` bypasses coercions entirely: it only checks definitional
+  equality between the stated term and the actual goal.
+- Parenthesization matters: `(⊔ (map_chain mono_f fs)) (Some h)` wraps
+  the sup before applying it to `Some h`. Without the parentheses, Rocq
+  parses the application differently.
+- The None case uses `lift_sup_none` (proving `⊔ c = None` when all
+  chain elements are `None`) rather than `le_antisym`, which triggers
+  canonical-structure path mismatches between `CPO` and `PartialOrder`
+  for the `⊑` relation on lift types.
+
+**Affected files:**
+- `src/instances/FunLift.v` — 298 lines
+
+---
+
+## DD-021: Example file design patterns
+
+**Decision:** The four worked example files (`examples/*.v`) use `apply`
+rather than `exact` for HB-generated accessor lemmas, and `sem_cexp` /
+`sem_cval` wrappers rather than raw `sem_exp e tt` / `sem_val v tt`.
+
+**Rationale:**
+
+1. **`apply` vs `exact`:** HB accessor lemmas such as `comp_id_l`,
+   `comp_id_r`, `comp_assoc` have implicit arguments resolved through
+   HB canonical structure unification. Within `Section` contexts that
+   bind variables of type `CPOEnrichedCat.type`, `exact (comp_id_l f)`
+   fails to resolve the enriched-category implicit argument, while
+   `apply comp_id_l` succeeds because tactic unification has more
+   flexibility. The examples use `apply` uniformly.
+
+2. **`sem_cexp` wrappers:** In `pcf_examples.v`, stating goals as
+   `sem_exp (APP pcf_id (NLIT 5)) tt = ...` fails because the Coq
+   elaborator cannot coerce `tt : unit` to
+   `Preorder.sort (CPO.CPO.Exports.CPO_CPO__to__Order_Preorder (sem_env []))`.
+   The issue is that `sem_env [] = unit` as a `CPO.type`, but `tt`
+   has bare Coq type `unit`, and the coercion chain from `unit` to the
+   HB-packed carrier `Preorder.sort ...` is not inserted automatically.
+   Using the wrapper `sem_cexp e` (which internally applies the semantic
+   function to `tt` at the correct type) avoids the coercion problem.
+
+3. **`FIX`-based denotation opacity:** Denotational semantics of programs
+   involving `FIX` go through the `fixp` operator, which does not reduce
+   by computation (its definition involves an opaque supremum). Therefore
+   `reflexivity` cannot close goals like `⟦ APP pcf_id (NLIT 5) ⟧ᶜₑ = Some 5`.
+   Instead, denotational results for `FIX`-based programs are obtained
+   via the `soundness` theorem applied to evaluation derivations.
+
+4. **Abstract enriched context:** `enriched_usage.v` uses
+   `Context {C : CPOEnrichedCat.type}` with `Variables A B D : C`
+   rather than concrete CPO.type values, so that examples work for
+   any CPO-enriched category.
+
+**Affected files:**
+- `examples/basic_cpos.v` — 320 lines
+- `examples/enriched_usage.v` — 234 lines
+- `examples/pcf_examples.v` — 191 lines
+- `examples/recursive_domain.v` — 179 lines
+- `src/instances/FunLift.v` — 298 lines (§3 proofs)

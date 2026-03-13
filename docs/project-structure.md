@@ -516,6 +516,7 @@ All files import from both `DomainTheory.Structures` and
 | `Discrete.v` | 0 | 531 | ✓ Done |
 | `Function.v` | 0/1 | 436 | ✓ Done (CPO self-enrichment + utilities) |
 | `Yoneda.v` | 1 | 443 | ✓ Done (representable functor + Yoneda lemma) |
+| `FunLift.v` | 1 | 298 | ✓ Done (MixedLCFunctor instance for lifted function-space bifunctor) |
 | `Quantum.v` | 2 | 5 | Stub (stretch goal) |
 
 > **Note:** The Lift, Product, and Sum CPO instances are registered
@@ -538,6 +539,21 @@ Dune library: `DomainTheory.Lang`. Depends on `DomainTheory.Instances`.
 | `PCF_Adequacy.v` | 1 | 820 | ✓ Computational adequacy via logical relation, fundamental lemma, full correspondence (0 Admitted) |
 | `QMiniCore_Syntax.v` | 2/3 | 9 | Stub: quantum lambda calculus syntax |
 | `QMiniCore_Semantics.v` | 2/3 | 9 | Stub: quantum denotational semantics |
+
+---
+
+## `examples/` -- Worked Examples
+
+Pedagogical example files demonstrating the library's main constructions.
+All compile clean as of 2026-03-13.
+
+| File | Lines | Description |
+|------|-------|-------------|
+| `basic_cpos.v` | 320 | Guided tour: unit (S1), nat_inf (S2), discrete bool (S3), products (S4), lift (S5), function spaces (S6), Kleene fixed-point (S7). Demonstrates chains, sups, order, continuity, `fixp`. |
+| `enriched_usage.v` | 234 | CPO-enriched category toolkit: category axioms (S1), composition continuity (S2), representable functor `Hom(X,-)` (S3), natural transformations (S4), EP-pairs (S5). Uses abstract `Context {C : CPOEnrichedCat.type}`. |
+| `pcf_examples.v` | 191 | Full PCF pipeline: base expressions with literals/arithmetic/comparison/if (S1), function application with identity/constant/double via `FIX` (S2), denotational semantics for base cases (S3), soundness (S4), adequacy + convergence_iff_defined (S5). |
+| `recursive_domain.v` | 179 | Bilimit machinery: abstract ROLL/UNROLL isomorphism (S1), concrete lifted function-space functor FL on CPO.type with unit initial EP-pair (S2), approximation tower levels 0/1/2 (S3), deflation chain below id with sup = id completeness (S4). |
+| **Examples subtotal** | **924** | |
 
 ---
 
@@ -584,7 +600,8 @@ Order.v
   ├── Nat.v              ← CPOTheory, ChainTheory
   ├── Discrete.v         ← CPOTheory, ChainTheory
   ├── Function.v         ← Enriched, FunctionSpaces, Morphisms
-  └── Yoneda.v           ← NatTrans, Function, EnrichedTheory
+  ├── Yoneda.v           ← NatTrans, Function, EnrichedTheory
+  └── FunLift.v          ← Function, FunctionSpaces, Lift, DomainEquations
 
 [lang/]
   ├── PCF_Syntax.v       ← (Stdlib only)
@@ -623,8 +640,9 @@ Order.v
 | `src/instances/Discrete.v` | 531 | ✓ Done |
 | `src/instances/Function.v` | 436 | ✓ Done |
 | `src/instances/Yoneda.v` | 443 | ✓ Done |
+| `src/instances/FunLift.v` | 298 | ✓ Done |
 | `src/instances/Quantum.v` | 5 | Stub |
-| **Instances subtotal** | **1,786** | |
+| **Instances subtotal** | **2,084** | |
 | `src/lang/PCF_Syntax.v` | 804 | ✓ Done |
 | `src/lang/PCF_Operational.v` | 332 | ✓ Done |
 | `src/lang/PCF_Denotational.v` | 1,167 | ✓ Done (0 Admitted) |
@@ -635,9 +653,14 @@ Order.v
 | **Lang subtotal** | **3,402** | |
 | `src/quantum/` (5 files) | 45 | All stubs |
 | `test/LiftTests.v` | 295 | ✓ Done |
-| **Grand total** | **13,944** | |
+| `examples/basic_cpos.v` | 320 | ✓ Done |
+| `examples/enriched_usage.v` | 234 | ✓ Done |
+| `examples/pcf_examples.v` | 191 | ✓ Done |
+| `examples/recursive_domain.v` | 179 | ✓ Done |
+| **Examples subtotal** | **924** | |
+| **Grand total** | **15,166** | |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
-Actual: ~13,944 lines (exceeds target).
+Actual: ~15,166 lines (exceeds target; includes 924 lines of worked examples).
 
 > **Note:** Line counts as of 2026-03-12.
