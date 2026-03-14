@@ -96,6 +96,37 @@ Definition pcf_double : CValue (Nat →ₜ Nat) :=
 Example eval_double : APP pcf_double (NLIT 7) ⇓ NLIT 14.
 Proof. apply e_App. apply e_Op. Qed.
 
+(* The factorial function *)
+Definition factorial : CValue (Nat →ₜ Nat) :=
+  FIX Nat Nat 
+    (LET (GT (VAR ZVAR) (NLIT 0))
+        (IFB (VAR ZVAR)
+            (LET (OP Nat.sub (VAR (SVAR ZVAR)) (NLIT 1)) 
+                 (LET (APP (VAR (SVAR (SVAR (SVAR ZVAR)))) (VAR ZVAR))
+                    (OP Nat.mul (VAR ZVAR) (VAR (SVAR (SVAR (SVAR ZVAR)))))
+                 )
+            )
+            
+            (VAL (NLIT 1))
+        )).
+
+(* Automation for PCF evaluation proofs: try each big-step rule. *)
+Local Ltac pcf_eval :=
+  simpl;
+  first
+    [ apply e_Val
+    | apply e_Op
+    | apply e_Gt
+    | apply e_Fst
+    | apply e_Snd
+    | apply e_IfTrue; pcf_eval
+    | apply e_IfFalse; pcf_eval
+    | eapply e_Let; [pcf_eval | pcf_eval]
+    | apply e_App; pcf_eval ].
+
+Example eval_factorial_5 : APP factorial (NLIT 5) ⇓ NLIT 120.
+Proof. pcf_eval. Qed.
+
 
 (* ================================================================== *)
 (*  §3  Denotational semantics                                        *)
