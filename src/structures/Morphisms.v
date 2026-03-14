@@ -179,6 +179,12 @@ Proof.
     apply mono_comp_id_r.
 Qed.
 
+Lemma cont_comp_apply {A B C : CPO.type} (f : [A →c B]) (g : [B →c C]) :
+    forall x, (g ∘ f) x = g(f x).
+Proof.
+    reflexivity.
+Qed.
+
 
 (* ------------------------------------------------------------------ *)
 (*   Strict functions (Phase 0, PointedCPO)                           *)

@@ -18,42 +18,42 @@
 
     Contents
     ========
-    S1  Natural transformation record
+    §1  Natural transformation record
           [nat_trans F G]: components + naturality between [lc_functor]s.
           [nt_component]: accessor for the component at an object.
 
-    S2  Identity and vertical composition
+    §2  Identity and vertical composition
           [nt_id F]: identity natural transformation (components = id).
           [nt_vcomp beta alpha]: vertical composition (componentwise).
 
-    S3  Horizontal composition (whiskering)
+    §3  Horizontal composition (whiskering)
           [nt_lwhisker H alpha]: left whiskering [H * alpha].
           [nt_rwhisker alpha H]: right whiskering [alpha * H].
 
-    S4  Pointwise order — natural transformations as a preorder
+    §4  Pointwise order — natural transformations as a preorder
           [nt_le]: pointwise order on components.
           [nt_le_refl], [nt_le_trans], [nt_le_antisym].
 
-    S5  Chains and suprema — natural transformations form a CPO
+    §5  Chains and suprema — natural transformations form a CPO
           [nt_chain_component]: extract a chain in a hom-CPO from a
             chain of natural transformations.
           [nt_sup]: pointwise supremum of a chain of natural
             transformations.
           [nt_sup_upper], [nt_sup_least]: CPO axioms.
 
-    S6  Interchange law
+    §6  Interchange law
           The interchange law for vertical and horizontal composition:
           [(beta' . beta) * (alpha' . alpha) = (beta' * alpha') . (beta * alpha)].
 
     Deferred (dependency on DomainTheory.Instances.Function):
-      S7  Representable functor Hom(X,-) as an lc_functor on CPO.type.
-      S8  Enriched Yoneda lemma: nat_trans (Hom(X,-)) F is isomorphic
+      §7  Representable functor Hom(X,-) as an lc_functor on CPO.type.
+      §8  Enriched Yoneda lemma: nat_trans (Hom(X,-)) F is isomorphic
           (as a CPO) to F(X).
 
     References:
       Kelly (1982) Ch. 1 — enriched natural transformations
       Mac Lane (1998) Ch. IX — natural transformations (ordinary setting)
-      Abramsky & Jung (1994) S5.2 — CPO-enriched categories
+      Abramsky & Jung (1994) §5.2 — CPO-enriched categories
 *)
 
 From HB Require Import structures.
@@ -65,7 +65,7 @@ From Stdlib Require Import FunctionalExtensionality ProofIrrelevance.
 
 
 (* ================================================================== *)
-(*   S1  Natural transformation record                                 *)
+(*   §1  Natural transformation record                                 *)
 (* ================================================================== *)
 (*
     An enriched natural transformation [alpha : F ==> G] between two
@@ -100,7 +100,7 @@ Arguments nt_naturality {F G} _ _ _ _.
 
 
 (* ================================================================== *)
-(*   S2  Identity and vertical composition                             *)
+(*   §2  Identity and vertical composition                             *)
 (* ================================================================== *)
 (*
     The identity natural transformation on [F]:
@@ -190,7 +190,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   S3  Horizontal composition (whiskering)                           *)
+(*   §3  Horizontal composition (whiskering)                           *)
 (* ================================================================== *)
 (*
     Left whiskering: given [H : lc_functor C] and [alpha : F ==> G],
@@ -276,7 +276,7 @@ Proof. reflexivity. Qed.
 
 
 (* ================================================================== *)
-(*   S4  Pointwise order on natural transformations                    *)
+(*   §4  Pointwise order on natural transformations                    *)
 (* ================================================================== *)
 (*
     Two natural transformations [alpha, beta : F ==> G] are ordered
@@ -358,7 +358,7 @@ Arguments ntch_mono {F G} _ _ _ _.
 
 
 (* ================================================================== *)
-(*   S5  Chains and suprema                                            *)
+(*   §5  Chains and suprema                                            *)
 (* ================================================================== *)
 (*
     A chain of natural transformations [alphas : nat -> nat_trans F G]
@@ -441,7 +441,7 @@ End NatTransChains.
 
 
 (* ================================================================== *)
-(*   S6  Interchange law                                               *)
+(*   §6  Interchange law                                               *)
 (* ================================================================== *)
 (*
     The interchange law for vertical and horizontal composition.

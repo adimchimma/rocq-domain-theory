@@ -18,11 +18,11 @@
 
     Contents
     ========
-    S1  Representable functor Hom(X,-)
+    §1  Representable functor Hom(X,-)
           [repr_functor X]: the covariant hom-functor as an [lc_functor]
           on [CPO.type].
 
-    S2  Enriched Yoneda lemma
+    §2  Enriched Yoneda lemma
           [yoneda_eval]: nat_trans (repr_functor X) F -> lcf_obj F X
             Extract alpha_X(id_X).
           [yoneda_embed]: lcf_obj F X -> nat_trans (repr_functor X) F
@@ -38,7 +38,7 @@
     References:
       Kelly (1982) Ch. 2.4 — enriched Yoneda lemma
       Mac Lane (1998) Ch. III.2 — ordinary Yoneda lemma
-      Abramsky & Jung (1994) S3.2, S5.2 — CPO-enrichment
+      Abramsky & Jung (1994) §3.2, §5.2 — CPO-enrichment
 *)
 
 From HB Require Import structures.
@@ -51,7 +51,7 @@ From Stdlib Require Import FunctionalExtensionality ProofIrrelevance.
 
 
 (* ================================================================== *)
-(*   S1  Representable functor Hom(X,-)                                *)
+(*   §1  Representable functor Hom(X,-)                                *)
 (* ================================================================== *)
 (*
     For a fixed CPO [X], the covariant hom-functor [Hom(X, -)] is the
@@ -151,7 +151,7 @@ Arguments repr_functor X : clear implicits.
 
 
 (* ================================================================== *)
-(*   S2  Enriched Yoneda lemma                                         *)
+(*   §2  Enriched Yoneda lemma                                         *)
 (* ================================================================== *)
 (*
     The enriched Yoneda lemma (Kelly 1982, Ch. 2.4) for CTR-enriched

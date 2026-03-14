@@ -5,17 +5,17 @@
     X ≅ F(X, X).
 
     Contents:
-    - S1: [IsMixedLocallyContinuous] HB mixin and [MixedLCFunctor] structure
-    - S2: Packaged [cont_fun] accessors and equational rewrites
-    - S3: Derived properties (joint monotonicity, joint-sup theorem)
-    - S4: EP-pair lifting (A&J Proposition 5.2.6)
-    - S5: Approximation sequence
-    - S6: Abstract [BilimitData] record and existence axiom
-    - S7: Consequences (D_inf, ROLL/UNROLL, deflation chain, isomorphism)
+    - §1: [IsMixedLocallyContinuous] HB mixin and [MixedLCFunctor] structure
+    - §2: Packaged [cont_fun] accessors and equational rewrites
+    - §3: Derived properties (joint monotonicity, joint-sup theorem)
+    - §4: EP-pair lifting (A&J Proposition 5.2.6)
+    - §5: Approximation sequence
+    - §6: Abstract [BilimitData] record and existence axiom
+    - §7: Consequences (D_inf, ROLL/UNROLL, deflation chain, isomorphism)
 
     References:
-      Abramsky & Jung (1994) S5.2-5.3
-      Benton-Kennedy-Varming (2009) S4
+      Abramsky & Jung (1994) §5.2-5.3
+      Benton-Kennedy-Varming (2009) §4
       design-decisions.md DD-005
 *)
 
@@ -28,7 +28,7 @@ From Stdlib Require Import PeanoNat.
 
 
 (* ================================================================== *)
-(*  S1  IsMixedLocallyContinuous                                      *)
+(*  §1  IsMixedLocallyContinuous                                      *)
 (* ================================================================== *)
 
 HB.mixin Record IsMixedLocallyContinuous (Obj : Type)
@@ -91,7 +91,7 @@ Definition mf_mr {C : MixedLCFunctor.type} {A1 A2 B1 B2 : C}
 
 
 (* ================================================================== *)
-(*  S2  Packaged cont_fun accessors                                   *)
+(*  §2  Packaged cont_fun accessors                                   *)
 (* ================================================================== *)
 
 Section MFMorContFun.
@@ -125,7 +125,7 @@ End MFMorContFun.
 
 
 (* ================================================================== *)
-(*  S3  Derived properties                                            *)
+(*  §3  Derived properties                                            *)
 (* ================================================================== *)
 
 Section MFDerived.
@@ -191,7 +191,7 @@ End MFDerived.
 
 
 (* ================================================================== *)
-(*  S4  EP-pair lifting  (A&J Proposition 5.2.6)                      *)
+(*  §4  EP-pair lifting  (A&J Proposition 5.2.6)                      *)
 (* ================================================================== *)
 
 Section EPLift.
@@ -251,7 +251,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*  S5  Approximation sequence                                        *)
+(*  §5  Approximation sequence                                        *)
 (* ================================================================== *)
 
 Section ApproxSeq.
@@ -295,7 +295,7 @@ End ApproxSeq.
 
 
 (* ================================================================== *)
-(*  S6  Abstract bilimit record and existence axiom                   *)
+(*  §6  Abstract bilimit record and existence axiom                   *)
 (* ================================================================== *)
 
 Record BilimitData {C : MixedLCFunctor.type}
@@ -353,7 +353,7 @@ Axiom bilimit_exists :
 
 
 (* ================================================================== *)
-(*  S7  Consequences of BilimitData                                   *)
+(*  §7  Consequences of BilimitData                                   *)
 (* ================================================================== *)
 
 Section BilimitCorollaries.
