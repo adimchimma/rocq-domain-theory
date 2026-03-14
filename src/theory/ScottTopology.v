@@ -56,7 +56,7 @@ From Stdlib Require Import Classical.
 
 
 (* ================================================================== *)
-(** §1  Way-below relation                                             *)
+(* §1  Way-below relation                                             *)
 (* ================================================================== *)
 (*
     [x ≪ y] (read: "x is way-below y", or "x is a finite approximation to y")
@@ -199,7 +199,7 @@ Qed.
 
 
 (* ================================================================== *)
-(*   Scott topology                                                   *)
+(* §2  Scott topology                                                   *)
 (* ================================================================== *)
 (*
     A subset [U : D → Prop] is _Scott-open_ when:
