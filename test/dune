@@ -1,1 +1,7 @@
-(dirs)
+(coq.theory
+ (name DomainTheory.Test)
+ (synopsis "Test suite for the rocq-domain-theory library")
+ (theories DomainTheory.Structures DomainTheory.Theory DomainTheory.Instances
+           DomainTheory.Quantum DomainTheory.Lang)
+ (modules LiftTests FixedPointTests ProductTests SumTests
+          FunctionSpaceTests EnrichedTests PCFTests))

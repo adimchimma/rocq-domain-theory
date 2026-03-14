@@ -1,6 +1,0 @@
-(coq.theory
- (name phase0_inverse_limit)
- (package rocq-domain-theory)
- (synopsis "Inverse limit construction and recursive domain equations")
- (modules BiFunctor EmbeddingProjection InverseLimit RecursiveDomains)
-)

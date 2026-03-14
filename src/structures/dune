@@ -1,0 +1,5 @@
+(coq.theory
+ (name DomainTheory.Structures)
+ (synopsis "Phase 0: order structures, CPOs, and enriched category interfaces")
+ (theories Stdlib elpi elpi_elpi HB)
+ (modules Order CPO Morphisms Enriched))

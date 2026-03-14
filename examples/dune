@@ -1,1 +1,6 @@
-(dirs)
+(coq.theory
+ (name DomainTheory.Examples)
+ (synopsis "Examples demonstrating the rocq-domain-theory library")
+ (theories DomainTheory.Structures DomainTheory.Theory DomainTheory.Instances
+           DomainTheory.Quantum DomainTheory.Lang)
+ (modules basic_cpos recursive_domain enriched_usage pcf_examples))
