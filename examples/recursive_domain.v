@@ -13,11 +13,11 @@
         D_inf  ~=  [D_inf ->c D_inf]_bot
 
     Contents:
-    - S1  Abstract bilimit -- ROLL/UNROLL isomorphism in any
+    - §1  Abstract bilimit -- ROLL/UNROLL isomorphism in any
           MixedLCFunctor
-    - S2  Concrete functor -- CPO.type with FL_obj
-    - S3  Approximation tower -- the sequence D0, F(D0,D0), ...
-    - S4  Properties -- deflation chain, sup = id
+    - §2  Concrete functor -- CPO.type with FL_obj
+    - §3  Approximation tower -- the sequence D0, F(D0,D0), ...
+    - §4  Properties -- deflation chain, sup = id
 *)
 
 From HB Require Import structures.
@@ -28,7 +28,7 @@ From DomainTheory.Instances Require Import Discrete Function FunLift.
 
 
 (* ================================================================== *)
-(*  S1  Abstract bilimit: ROLL / UNROLL isomorphism                   *)
+(*  §1  Abstract bilimit: ROLL / UNROLL isomorphism                   *)
 (* ================================================================== *)
 (*
     Given any [MixedLCFunctor] F on a CPO-enriched category C, a
@@ -40,7 +40,7 @@ From DomainTheory.Instances Require Import Discrete Function FunLift.
     - [UNROLL]  : D_inf -> F(D_inf, D_inf)
     - [ROLL o UNROLL = id]  and  [UNROLL o ROLL = id]
 
-    All definitions live in [DomainEquations.v S7].
+    All definitions live in [DomainEquations.v §7].
 *)
 
 Section AbstractBilimit.
@@ -66,7 +66,7 @@ End AbstractBilimit.
 
 
 (* ================================================================== *)
-(*  S2  Concrete functor: lifted function-space on CPO.type           *)
+(*  §2  Concrete functor: lifted function-space on CPO.type           *)
 (* ================================================================== *)
 (*
     The file [instances/FunLift.v] registers CPO.type as a
@@ -110,7 +110,7 @@ End ConcreteSetup.
 
 
 (* ================================================================== *)
-(*  S3  Approximation tower                                           *)
+(*  §3  Approximation tower                                           *)
 (* ================================================================== *)
 (*
     The bilimit machinery builds the approximation sequence:
@@ -147,7 +147,7 @@ End Tower.
 
 
 (* ================================================================== *)
-(*  S4  Deflation chain and completeness                              *)
+(*  §4  Deflation chain and completeness                              *)
 (* ================================================================== *)
 (*
     The cone projections compose with embeddings to form a chain of

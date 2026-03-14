@@ -5,13 +5,13 @@
     Kleene fixed-point theorem on a function space.
 
     Contents:
-    - S1  Unit PointedCPO — the trivial one-point domain
-    - S2  nat_inf (N U {infty}) — a pointed CPO
-    - S3  Discrete bool — the flat boolean domain
-    - S4  Product CPOs — pointwise order on pairs
-    - S5  Lifted nat — adding a fresh bottom via option
-    - S6  Function spaces — continuous endomorphisms of nat_inf
-    - S7  The Kleene fixed-point theorem — computing fixp on nat_inf
+    - §1  Unit PointedCPO — the trivial one-point domain
+    - §2  nat_inf (N U {infty}) — a pointed CPO
+    - §3  Discrete bool — the flat boolean domain
+    - §4  Product CPOs — pointwise order on pairs
+    - §5  Lifted nat — adding a fresh bottom via option
+    - §6  Function spaces — continuous endomorphisms of nat_inf
+    - §7  The Kleene fixed-point theorem — computing fixp on nat_inf
 *)
 
 From HB Require Import structures.
@@ -23,7 +23,7 @@ From Stdlib Require Import Lia.
 
 
 (* ================================================================== *)
-(*  S1  Unit PointedCPO                                               *)
+(*  §1  Unit PointedCPO                                               *)
 (* ================================================================== *)
 (*
     [unit] carries the trivial order (x <= y := True).  It has exactly
@@ -52,7 +52,7 @@ End UnitExamples.
 
 
 (* ================================================================== *)
-(*  S2  nat_inf — N U {infty} as a PointedCPO                        *)
+(*  §2  nat_inf — N U {infty} as a PointedCPO                        *)
 (* ================================================================== *)
 (*
     [nat_inf] extends [nat] with a point at infinity.  Elements are
@@ -93,7 +93,7 @@ End NatInfExamples.
 
 
 (* ================================================================== *)
-(*  S3  Discrete bool — the flat boolean domain                       *)
+(*  §3  Discrete bool — the flat boolean domain                       *)
 (* ================================================================== *)
 (*
     [bool] under the discrete (equality) order is a CPO.  Two values
@@ -122,7 +122,7 @@ End DiscreteBoolExamples.
 
 
 (* ================================================================== *)
-(*  S4  Product CPOs                                                  *)
+(*  §4  Product CPOs                                                  *)
 (* ================================================================== *)
 (*
     The product of two CPOs [D * E] carries the pointwise order:
@@ -167,7 +167,7 @@ End ProductExamples.
 
 
 (* ================================================================== *)
-(*  S5  Lifted nat — adding a fresh bottom via option                 *)
+(*  §5  Lifted nat — adding a fresh bottom via option                 *)
 (* ================================================================== *)
 (*
     The flat lift [<D>_bot] of a CPO [D] is [option D] with ordering:
@@ -214,7 +214,7 @@ End LiftExamples.
 
 
 (* ================================================================== *)
-(*  S6  Function spaces                                               *)
+(*  §6  Function spaces                                               *)
 (* ================================================================== *)
 (*
     The type [D ->c E] of Scott-continuous functions from [D] to [E]
@@ -246,7 +246,7 @@ End FunctionSpaceExamples.
 
 
 (* ================================================================== *)
-(*  S7  The Kleene fixed-point theorem                                *)
+(*  §7  The Kleene fixed-point theorem                                *)
 (* ================================================================== *)
 (*
     For a Scott-continuous endomorphism [f : D ->c D] on a pointed CPO,

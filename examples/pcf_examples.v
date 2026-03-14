@@ -10,11 +10,11 @@
     sequencing.  The semantics uses call-by-value evaluation.
 
     Contents:
-    - S1  Base expressions -- literals, arithmetic, comparison, if
-    - S2  Function application -- identity, constant, double
-    - S3  Denotational semantics -- computing [sem_cexp] for each
-    - S4  Soundness -- relating evaluation to denotation
-    - S5  Adequacy -- convergence iff denotation is defined
+    - §1  Base expressions -- literals, arithmetic, comparison, if
+    - §2  Function application -- identity, constant, double
+    - §3  Denotational semantics -- computing [sem_cexp] for each
+    - §4  Soundness -- relating evaluation to denotation
+    - §5  Adequacy -- convergence iff denotation is defined
 *)
 
 From HB Require Import structures.
@@ -28,7 +28,7 @@ From DomainTheory.Lang Require Import
 
 
 (* ================================================================== *)
-(*  S1  Base expressions                                              *)
+(*  §1  Base expressions                                              *)
 (* ================================================================== *)
 (*
     The simplest PCF programs are closed expressions built from
@@ -60,7 +60,7 @@ Proof. apply e_Fst. Qed.
 
 
 (* ================================================================== *)
-(*  S2  Function application                                          *)
+(*  §2  Function application                                          *)
 (* ================================================================== *)
 (*
     Functions in PCF are introduced by [FIX tau1 tau2 body], which
@@ -98,7 +98,7 @@ Proof. apply e_App. apply e_Op. Qed.
 
 
 (* ================================================================== *)
-(*  S3  Denotational semantics                                        *)
+(*  §3  Denotational semantics                                        *)
 (* ================================================================== *)
 (*
     Every closed expression [e : CExp tau] has a denotation
@@ -130,11 +130,11 @@ Proof. reflexivity. Qed.
 (*  For programs that use [FIX], the denotational semantics involves
     the least fixed-point operator [fixp], which does not reduce by
     computation.  Instead, we obtain denotational results from
-    operational proofs via soundness (see S4 below).  *)
+    operational proofs via soundness (see §4 below).  *)
 
 
 (* ================================================================== *)
-(*  S4  Soundness                                                     *)
+(*  §4  Soundness                                                     *)
 (* ================================================================== *)
 (*
     The soundness theorem relates operational evaluation to denotation:
@@ -158,7 +158,7 @@ Proof. exact (soundness _ _ eval_double). Qed.
 
 
 (* ================================================================== *)
-(*  S5  Adequacy                                                      *)
+(*  §5  Adequacy                                                      *)
 (* ================================================================== *)
 (*
     The adequacy theorem gives the "hard" direction:

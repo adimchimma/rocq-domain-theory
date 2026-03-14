@@ -8,11 +8,11 @@
     in [Function.v]).
 
     Contents:
-    - S1  CPO-enriched category -- hom-objects, composition, identity
-    - S2  Composition continuity -- separate continuity of comp
-    - S3  Locally continuous functor -- the representable Hom(X, -)
-    - S4  Natural transformations -- identity, vertical composition
-    - S5  Embedding-projection pairs -- retraction and deflation
+    - §1  CPO-enriched category -- hom-objects, composition, identity
+    - §2  Composition continuity -- separate continuity of comp
+    - §3  Locally continuous functor -- the representable Hom(X, -)
+    - §4  Natural transformations -- identity, vertical composition
+    - §5  Embedding-projection pairs -- retraction and deflation
 *)
 
 From HB Require Import structures.
@@ -23,7 +23,7 @@ From DomainTheory.Theory Require Import OrderTheory CPOTheory
 
 
 (* ================================================================== *)
-(*  S1  CPO-enriched category                                         *)
+(*  §1  CPO-enriched category                                         *)
 (* ================================================================== *)
 (*
     A CPO-enriched category [C] has:
@@ -65,7 +65,7 @@ End CategoryAxioms.
 
 
 (* ================================================================== *)
-(*  S2  Composition continuity                                        *)
+(*  §2  Composition continuity                                        *)
 (* ================================================================== *)
 (*
     Enriched composition [⊚] is separately continuous in each argument:
@@ -101,7 +101,7 @@ End CompContinuity.
 
 
 (* ================================================================== *)
-(*  S3  Locally continuous functor -- Hom(X, -)                       *)
+(*  §3  Locally continuous functor -- Hom(X, -)                       *)
 (* ================================================================== *)
 (*
     A locally continuous (LC) functor is an endofunctor on a
@@ -145,7 +145,7 @@ End ReprFunctorExamples.
 
 
 (* ================================================================== *)
-(*  S4  Natural transformations                                       *)
+(*  §4  Natural transformations                                       *)
 (* ================================================================== *)
 (*
     A natural transformation [alpha : F => G] between LC functors
@@ -185,7 +185,7 @@ End NatTransExamples.
 
 
 (* ================================================================== *)
-(*  S5  Embedding-projection pairs                                    *)
+(*  §5  Embedding-projection pairs                                    *)
 (* ================================================================== *)
 (*
     An EP-pair [(e, p) : ep_pair A B] in a CPO-enriched category
