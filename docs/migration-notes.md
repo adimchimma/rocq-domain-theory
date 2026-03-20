@@ -496,6 +496,54 @@ Proposition 3.1.5, limit uniqueness).
 
 ---
 
+### `qCPOProperties.v` (**new**, Phase 2)
+
+**Old:** Not present in the original Benton-Kennedy library.
+
+**New:** `quantum/qCPOProperties.v` (~1022 lines). Category-theoretic
+properties of quantum CPOs: bundled continuous maps, identity/constant/
+composition continuity, category laws, cofinal subsequences, hom-set
+CPO-enrichment, and Kleene fixed-point theorem.
+
+Contents:
+- §0: `converges_ext` — convergence transfer for pointwise-equal
+  chains (handles proof-witness mismatch in desc_chain).
+- §1: `q_cont_fun` record — bundled quantum Scott-continuous map with
+  split fields (qcf_fun, qcf_mono, qcf_preserves). See DD-023.
+  Notation `[X →qc Y]`. Bridge lemma `q_cont_fun_scott_continuous`.
+- §2: `q_cont_id` — identity is continuous.
+- §3: `q_cont_const` — constant functions are continuous (KLM 3.2.7).
+- §4: `map_qchain_comp_eq` — composition of mapped chains agrees
+  pointwise. `q_monotone_comp` — composition of monotone maps.
+- §5: `q_cont_comp` — composition preserves continuity (KLM 3.2.6).
+  Notation `g ∘q f`.
+- §6: Category laws — `q_cont_fun_eq` (extensionality via
+  functional_extensionality + proof_irrelevance),
+  `q_cont_comp_id_l`, `q_cont_comp_id_r`, `q_cont_comp_assoc`
+  (KLM Definition 3.2.9).
+- §7: Bottom uniqueness — `q_bottom_le`, `q_bottom_ord_eq`.
+- §8: Cofinal subsequences — `strict_mono`, `cofinal_qchain`,
+  `cofinal_converges` (reindexing preserves convergence).
+- §9: Pointwise quantum ordering on hom-sets — `q_hom_le`,
+  `q_hom_le_refl`, `q_hom_le_trans`, `q_hom_le_antisym_ord`.
+- §10: CPO-enrichment — `hom_qchain`, `qhom_limit`, `qhom_limit_upper`,
+  `qhom_limit_mono`, `qhom_limit_preserves`, `qhom_limit_cont`
+  (KLM Theorem 3.3.5).
+- §11: Kleene fixed point — `q_iter`, `q_kleene_chain`, `qfixp_at`,
+  `qfixp_at_const`, `qfixp_at_is_fixedpoint`, `qfixp_at_least`,
+  `q_admissible`, `qfixp_at_ind` (quantum Scott induction).
+
+Design: Split-field `q_cont_fun` avoids proof-witness mismatch when
+composing `map_qchain` applications. Uses `ProofIrrelevance` and
+`FunctionalExtensionality` for `q_cont_fun_eq`. See DD-023.
+
+32 Qed. 0 Admitted. 0 Axioms.
+
+Reference: KLM (2024) §3.2 (Proposition 3.2.6, Remark 3.2.7,
+Definition 3.2.9), §3.3 (Theorem 3.3.5, CPO-enrichment).
+
+---
+
 ## Axioms: Status in Old vs New Library
 
 The old library accumulated `Axiom` declarations for constructions that

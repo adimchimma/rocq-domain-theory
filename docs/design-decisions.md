@@ -958,4 +958,52 @@ The `qposet` record includes:
 **Affected files:**
 - `src/quantum/QuantumStructure.v` — ~340 lines (§1–§7)
 - `src/quantum/qCPO.v` — ~390 lines (§1–§10)
+- `src/quantum/qCPOProperties.v` — ~1022 lines (§0–§11)
 - `planning/quantum.md` — full design rationale
+
+---
+
+### DD-023 — Split-field `q_cont_fun` record
+
+**Date:** 2026-03-19
+**Scope:** `src/quantum/qCPOProperties.v` §1
+
+**Decision:** The bundled quantum-continuous map record `q_cont_fun`
+splits monotonicity and convergence-preservation into two separate
+record fields:
+
+```
+Record q_cont_fun (X Y : qposet Q) := {
+    qcf_fun   :> X -> Y;
+    qcf_mono  : q_monotone qcf_fun;
+    qcf_preserves : forall W K K_inf, converges K K_inf ->
+        converges (map_qchain qcf_fun qcf_mono K) (fun w => qcf_fun (K_inf w));
+}.
+```
+
+rather than embedding monotonicity inside an existential as in
+`q_scott_continuous` from `qCPO.v`:
+
+```
+Definition q_scott_continuous f :=
+    exists Hm : q_monotone f,
+        forall W K K_inf, converges K K_inf ->
+            converges (map_qchain f Hm K) (fun w => f (K_inf w)).
+```
+
+**Rationale:**
+- `map_qchain` takes the monotonicity proof as an explicit argument.
+  When composing `map_qchain G HG (map_qchain F HF K)`, the inner
+  `HF` must be *the same proof witness* used to build the outer
+  mapped chain. With the existential form, composing two
+  `q_scott_continuous` proofs would require either destructing and
+  re-packaging existentials at every use or relying on proof
+  irrelevance inside non-Prop types. The split-field design avoids
+  this entirely.
+- A bridge lemma `q_cont_fun_scott_continuous` establishes equivalence
+  with the `q_scott_continuous` predicate from `qCPO.v`.
+- Follows the classical pattern: `cont_fun` in `Morphisms.v` has
+  separate `cf_mono` and `cf_cont` fields, not an existential.
+
+**Affected files:**
+- `src/quantum/qCPOProperties.v` — `q_cont_fun`, all §1–§11
