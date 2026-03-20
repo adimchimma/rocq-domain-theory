@@ -895,3 +895,115 @@ rather than `exact` for HB-generated accessor lemmas, and `sem_cexp` /
 - `examples/pcf_examples.v` — 191 lines
 - `examples/recursive_domain.v` — 179 lines
 - `src/instances/FunLift.v` — 298 lines (§3 proofs)
+
+---
+
+## DD-022: Atoms-only representation with axiomatic involutive quantale for quantum CPOs
+
+**Decision:** Quantum sets are represented as plain Rocq `Type`s (atom
+indices) with Q-valued relations `qp_ord : X → X → Q`, where Q is
+axiomatized as an involutive quantale via HB (`InvQuantale`). Quantum
+posets are plain `Record qposet` parametrized by `Q`, not HB structures.
+
+**Rationale:**
+
+KLM's quantum CPO theory separates into two layers:
+
+1. **Order theory** (§3–4, §6, §7.1–7.5): convergence, completeness,
+   Scott continuity, the lift monad, enrichment, the classical embedding.
+   These only need: a quantale Q, types X with Q-valued relations, and
+   axioms on Q. No Hilbert spaces appear.
+
+2. **Concrete constructions** (§2, §5, §7.6–7.7): tensor products,
+   monoidal closure, algebraic compactness. These need the full
+   operator-space architecture (finite-dimensional Hilbert spaces,
+   completely bounded maps, Choi–Jamiołkowski). This infrastructure
+   does not exist in any Rocq library.
+
+The atoms-only approach (Option B+ from `planning/quantum.md`) was
+chosen because:
+
+- **Matches thesis scope.** Layer 1 is achievable; Layer 2 would
+  require building an operator-space library from scratch.
+- **Matches Rocq's strengths.** Abstract algebra via HB, not numerical
+  linear algebra.
+- **Already validated.** `qCPO.v` (390 lines) and `QuantumStructure.v`
+  (340 lines) compile clean with this model.
+- **Consistency justified.** B(H) — bounded operators on any Hilbert
+  space — is a concrete involutive quantale. Its existence justifies
+  the axiom set without requiring its formalization.
+- **Follows KLM directly.** The Section variables in `qCPO.v` are the
+  exact specification that `QuantumStructure.v` provides via HB.
+
+**Specifics of the HB design:**
+
+The quantale Q uses a single `HasQuantaleOps` mixin (six operations:
+`q_top`, `q_bot`, `q_prod`, `q_adj`, `q_meet`, `q_inf`) and a single
+`IsInvQuantale` mixin (14 axioms in five groups: top/bottom, product,
+adjoint, meet, infimum). Q builds on `PartialOrder` from `Order.v`.
+
+Quantum posets are plain `Record qposet` (not HB structures) because:
+- They are parametrized by Q (an HB structure), and HB does not handle
+  structures parametrized by other structures well (R5 in
+  `planning/quantum.md`).
+- The pattern follows `chain`, `mono_fun`, `cont_fun` — data records
+  over existing HB structures.
+
+The `qposet` record includes:
+- `qp_carrier :> Type` — the atom type
+- `qp_ord : X → X → Q` — Q-valued relation
+- `qp_dec_eq` — decidable equality (for the Kronecker delta in antisymmetry)
+- `qp_refl`, `qp_trans`, `qp_antisym` — quantum partial order axioms
+
+**Affected files:**
+- `src/quantum/QuantumStructure.v` — ~340 lines (§1–§7)
+- `src/quantum/qCPO.v` — ~390 lines (§1–§10)
+- `src/quantum/qCPOProperties.v` — ~1022 lines (§0–§11)
+- `planning/quantum.md` — full design rationale
+
+---
+
+### DD-023 — Split-field `q_cont_fun` record
+
+**Date:** 2026-03-19
+**Scope:** `src/quantum/qCPOProperties.v` §1
+
+**Decision:** The bundled quantum-continuous map record `q_cont_fun`
+splits monotonicity and convergence-preservation into two separate
+record fields:
+
+```
+Record q_cont_fun (X Y : qposet Q) := {
+    qcf_fun   :> X -> Y;
+    qcf_mono  : q_monotone qcf_fun;
+    qcf_preserves : forall W K K_inf, converges K K_inf ->
+        converges (map_qchain qcf_fun qcf_mono K) (fun w => qcf_fun (K_inf w));
+}.
+```
+
+rather than embedding monotonicity inside an existential as in
+`q_scott_continuous` from `qCPO.v`:
+
+```
+Definition q_scott_continuous f :=
+    exists Hm : q_monotone f,
+        forall W K K_inf, converges K K_inf ->
+            converges (map_qchain f Hm K) (fun w => f (K_inf w)).
+```
+
+**Rationale:**
+- `map_qchain` takes the monotonicity proof as an explicit argument.
+  When composing `map_qchain G HG (map_qchain F HF K)`, the inner
+  `HF` must be *the same proof witness* used to build the outer
+  mapped chain. With the existential form, composing two
+  `q_scott_continuous` proofs would require either destructing and
+  re-packaging existentials at every use or relying on proof
+  irrelevance inside non-Prop types. The split-field design avoids
+  this entirely.
+- A bridge lemma `q_cont_fun_scott_continuous` establishes equivalence
+  with the `q_scott_continuous` predicate from `qCPO.v`.
+- Follows the classical pattern: `cont_fun` in `Morphisms.v` has
+  separate `cf_mono` and `cf_cont` fields, not an existential.
+
+**Affected files:**
+- `src/quantum/qCPOProperties.v` — `q_cont_fun`, all §1–§11
