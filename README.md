@@ -14,7 +14,7 @@ src/
   theory/       OrderTheory ... DomainEquations         (derived lemmas and constructions)
   instances/    Nat, Discrete, Function, Yoneda, FunLift  (concrete HB instances)
   lang/         PCF_Syntax ... PCF_Adequacy             (PCF language and semantics)
-  quantum/      qCPO, QuantumStructure, ...             (Phase 2 stubs)
+  quantum/      QuantumStructure, qCPO, qCPOProperties  (quantum domain theory)
 test/           LiftTests, FixedPointTests, ...         (property tests)
 examples/       basic_cpos, enriched_usage, pcf_examples, recursive_domain
 docs/           thesis chapters, design decisions
@@ -59,19 +59,19 @@ If VsRocq cannot resolve paths after opening a file, run
   denotational semantics, soundness, and adequacy (via Benton-Kennedy-Varming
   logical relation). Full convergence correspondence: e converges iff its
   denotation is defined.
+- **Quantum domain theory** -- involutive quantales (HB mixin with 15 axioms),
+  quantum partial orders, quantum chains and convergence, quantum CPOs,
+  bundled Scott-continuous maps, quantum Kleene fixed-point theorem, and
+  CPO-enrichment of hom-sets. Based on Kornell, Lindenhovius & Mislove (2024).
 
-~15,000 lines across 36 compiled source files, with 0 Admitted in the main
+~15,700 lines across 35 source files, with 0 Admitted in the main
 development (2 documented obstructions in the supplementary LiftMonad.v,
 1 justified axiom in DomainEquations.v).
 
 ## To be formalized
 
-The quantum extension (Phase 2/3) is in the planning stages. The `src/quantum/`
-and `src/lang/QMiniCore_*.v` files are currently stubs. Planned work includes:
+Planned extensions (stubs in `src/quantum/` and `src/lang/`):
 
-- **Quantum CPOs** -- formalize the qCPO definition from Kornell, Lindenhovius &
-  Mislove (2024): quantum partial orders, quantum chains, and quantum suprema,
-  with HB mixins mirroring the classical CPO hierarchy.
 - **Quantum morphisms** -- completely positive trace-preserving (CPTP) maps as
   morphisms of the qCPO category; identity, composition, and quantum continuity.
 - **Quantum enrichment** -- hom-objects as qCPOs with quantum-continuous
