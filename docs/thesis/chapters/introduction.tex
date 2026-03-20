@@ -7,12 +7,60 @@
 \section{Motivation}
 \label{sec:intro-motivation}
 
-% TODO: Expand from docs/thesis/introduction.md
-% Key points:
-% - Verified quantum programming requires verified semantic foundations
-% - Domain theory provides the mathematical infrastructure for denotational semantics
-% - Existing Coq formalization (BKV 2009) is outdated (Coq 8.2, no HB, no enrichment)
-% - This thesis modernizes and extends it for Rocq 9.0
+Denotational semantics is an approach to formalizing the behaviour and 
+structure of programs by assigning mathematical meaning to the syntax of 
+programming languages. This usually takes the form of interpreting 
+types as domains and terms as continuous functions between them.  
+The mathematical backbone of this enterprise is
+\emph{domain theory}---the study of $\omega$-complete partial orders
+($\omega$-CPOs), Scott-continuous maps, and their fixed points---which
+provides the structures needed to give meaning to recursion and
+partiality \cite{AJ1994}.
+
+A landmark in the mechanisation of these ideas is the \Rocq{}
+(formerly Coq) library of Benton, Kennedy, and Varming
+\cite{BKV2009}, which formalised $\omega$-CPOs, the Kleene
+fixed-point theorem, and the denotational semantics of PCF in Coq~8.2.
+While influential, that library predates modern proof-assistant
+infrastructure: it uses hand-rolled typeclasses, lacks any notion of
+enriched categories, and has not been maintained for over a decade.
+
+Meanwhile with the development of quantum architecture, interest in 
+\emph{quantum programming languages} has motivated a \emph{quantum} 
+generalisation of domain theory.  Kornell, Lindenhovius, and Mislove 
+\cite{KLM2024} replace the classical Boolean-valued order $x \sqsubseteq y$ with a
+quantale-valued order $R(x,y) \in Q$, yielding \emph{quantum CPOs}
+whose hom-sets are themselves CPOs---a form of CPO-enrichment that
+arises naturally from the quantum setting.  Formalising this richer
+structure demands an enriched-category layer that \cite{BKV2009} never
+provided.
+
+This thesis addresses both gaps.  We present a from-scratch
+domain-theory library for \Rocq{} 9.0, built on the Hierarchy Builder
+framework \cite{HB2023}, that
+%
+\begin{enumerate}
+  \item modernises and extends the classical development of
+        \cite{BKV2009} (partial orders through the Kleene theorem,
+        products, sums, function spaces, the lift monad, and a full
+        PCF adequacy proof);
+  \item introduces a CPO-enriched category formalisation (enriched
+        categories, locally continuous functors, natural
+        transformations, and a term-level Yoneda lemma); and
+  \item lays the groundwork for quantum domain theory by formalising
+        involutive quantales, quantum posets, quantum CPOs, and
+        the quantum Kleene fixed-point theorem following \cite{KLM2024}.
+\end{enumerate}
+%
+The enriched-category layer is not merely an afterthought: it is the
+organising principle that connects the classical and quantum theories,
+since both $\CPO$ and $\qCPO$ are instances of CPO-enriched
+categories.
+
+% NOTE: You can cross-reference later chapters like this:
+%   \cref{ch:background}  →  "Chapter 2"
+%   \cref{sec:bg-cpo}     →  "Section 2.1.2"
+% cleveref handles the "Chapter"/"Section" prefix automatically.
 
 % ── Contributions ─────────────────────────────────────────────────
 \section{Contributions}
