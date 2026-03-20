@@ -1,0 +1,56 @@
+% chapters/results.tex
+
+\chapter{Results}
+\label{ch:results}
+
+% ── Library metrics ───────────────────────────────────────────────
+\section{Library Overview}
+\label{sec:res-overview}
+
+% TODO: Table of files, line counts, definitions, lemmas
+% Total: ~15,166 lines, 36 compiled files, 0 Admitted in core
+
+% ── Soundness ─────────────────────────────────────────────────────
+\section{PCF Soundness}
+\label{sec:res-soundness}
+
+% Source: lang/PCF_Soundness.v
+% TODO: Statement and proof sketch of soundness theorem
+% e ⇓ v → ⟦e⟧ γ = Some (⟦v⟧ γ)
+
+% ── Adequacy ──────────────────────────────────────────────────────
+\section{PCF Adequacy}
+\label{sec:res-adequacy}
+
+% Source: lang/PCF_Adequacy.v
+% TODO: The BKV logical relation, fundamental lemma, adequacy theorem
+% ⟦e⟧ tt ≠ None → ∃v, e ⇓ v
+
+\section{Full Abstraction Correspondence}
+\label{sec:res-correspondence}
+
+% TODO: convergence_iff_defined: e ⇓ ↔ ⟦e⟧ tt ≠ None
+
+% ── Enriched category results ─────────────────────────────────────
+\section{Enriched Category Results}
+\label{sec:res-enriched}
+
+\subsection{Yoneda Lemma}
+\label{sec:res-yoneda}
+
+% Source: instances/Yoneda.v
+% TODO: Enriched Yoneda lemma, round-trip laws
+
+\subsection{Recursive Domain Equations}
+\label{sec:res-domain-equations}
+
+% Source: theory/DomainEquations.v, instances/FunLift.v
+% TODO: D ≅ [D →c D]⊥, ROLL/UNROLL isomorphism
+
+% ── Worked examples ───────────────────────────────────────────────
+\section{Worked Examples}
+\label{sec:res-examples}
+
+% Source: examples/*.v
+% TODO: Key examples from basic_cpos.v, pcf_examples.v, recursive_domain.v
+% Include code listings showing PCF factorial, denotational computation, soundness

@@ -1,0 +1,66 @@
+% frontmatter.tex — Title page and abstract
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+{\LARGE\bfseries Modernizing Domain Theory Foundations\\[0.4em]
+for Quantum Programming Languages}
+
+\vspace{2cm}
+
+{\Large Your Name}
+
+\vspace{1cm}
+
+{\large A thesis submitted in partial fulfillment\\
+of the requirements for the degree of\\[0.5em]
+Bachelor of Science}
+
+\vspace{1.5cm}
+
+{\large Department of Computer Science\\
+Your University}
+
+\vspace{1.5cm}
+
+{\large\the\year}
+
+\vfill
+
+{\normalsize Advisor: Your Advisor's Name}
+
+\end{titlepage}
+
+% ── Abstract ──────────────────────────────────────────────────────
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This thesis develops modern, machine-verified foundations for
+programming language semantics using \Rocq{} (formerly Coq).
+We modernize and substantially extend the 2009 domain theory library
+of Benton, Kennedy, and Varming~\cite{BKV2009}, formalizing
+$\omega$-complete partial orders ($\omega$-CPOs), Scott-continuous
+functions, the Kleene fixed-point theorem, and a cartesian closed
+category structure for function spaces.
+Building on this foundation, we formalize CPO-enriched categories,
+locally continuous functors, enriched natural transformations, and a
+recursive domain equation framework.
+As a validation, we implement PCF---a simply typed lambda calculus
+with general recursion---and prove both soundness and adequacy of its
+denotational semantics with respect to a big-step operational semantics.
+Finally, we discuss extensions toward quantum programming language
+semantics via quantum CPOs.
+The entire development comprises over 15{,}000 lines of verified
+\Rocq{} code using the Hierarchy Builder framework.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} domain theory, denotational semantics,
+proof assistant, Rocq, enriched categories, PCF, adequacy,
+quantum CPOs
+
+% ── Acknowledgments ───────────────────────────────────────────────
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+
+% TODO: Write acknowledgments.

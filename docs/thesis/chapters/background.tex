@@ -1,0 +1,84 @@
+% chapters/background.tex
+
+\chapter{Background}
+\label{ch:background}
+
+% ── Domain theory ─────────────────────────────────────────────────
+\section{Domain Theory}
+\label{sec:bg-domain-theory}
+
+% Source files: structures/Order.v, structures/CPO.v
+% Context: OrderTheory, CPOTheory _theory.md files
+
+\subsection{Partial Orders and $\omega$-Chains}
+\label{sec:bg-partial-orders}
+
+% TODO: Preorders, partial orders, ω-chains, monotone functions
+% Key formalization: Order.v (HasLe, IsPreorder, IsPartialOrder, chain)
+
+\subsection{$\omega$-Complete Partial Orders}
+\label{sec:bg-cpo}
+
+% TODO: CPOs, suprema, Scott continuity, pointed CPOs
+% Key formalization: CPO.v (HasSup, IsCPO, HasBottom, IsPointed)
+
+\subsection{Fixed-Point Theory}
+\label{sec:bg-fixedpoints}
+
+% TODO: Kleene fixed-point theorem, Scott induction, fixp_mono
+% Key formalization: theory/FixedPoints.v
+
+\subsection{Scott Topology}
+\label{sec:bg-scott-topology}
+
+% TODO: Way-below relation, Scott-open sets, continuity equivalence
+% Key formalization: theory/ScottTopology.v
+
+% ── Enriched category theory ─────────────────────────────────────
+\section{Enriched Category Theory}
+\label{sec:bg-enriched}
+
+% Source files: structures/Enriched.v, references: Kelly1982, MacLane1998
+
+\subsection{Enriched Categories}
+\label{sec:bg-enriched-cats}
+
+% TODO: V-enriched categories, hom-objects, composition, identity
+% Specialize to V = CPO
+
+\subsection{Enriched Functors and Natural Transformations}
+\label{sec:bg-enriched-functors}
+
+% TODO: Locally continuous functors, enriched nat trans
+
+% ── Denotational semantics ────────────────────────────────────────
+\section{Denotational Semantics}
+\label{sec:bg-denotational}
+
+% References: BKV2009, Plotkin1977
+
+\subsection{PCF: Programming Computable Functions}
+\label{sec:bg-pcf}
+
+% TODO: PCF syntax and operational semantics (informal)
+
+\subsection{Soundness and Adequacy}
+\label{sec:bg-adequacy}
+
+% TODO: What soundness and adequacy mean, why they matter
+
+% ── Proof assistants ──────────────────────────────────────────────
+\section{Proof Assistants and \Rocq{}}
+\label{sec:bg-rocq}
+
+% References: HB2023
+
+\subsection{The \Rocq{} Proof Assistant}
+\label{sec:bg-rocq-assistant}
+
+% TODO: Brief intro to Rocq (CIC, tactics, extraction)
+
+\subsection{Hierarchy Builder}
+\label{sec:bg-hb}
+
+% TODO: HB mixin/structure/instance pattern, why it matters

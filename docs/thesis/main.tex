@@ -1,0 +1,135 @@
+% main.tex — Thesis root document
+% Build: latexmk -pdf main.tex
+% Clean: latexmk -C
+
+\documentclass[12pt, letterpaper, oneside]{report}
+
+% ── Encoding & fonts ──────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+% ── Page geometry ─────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+
+% ── Math ──────────────────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{stmaryrd}          % ⟦ ⟧  semantic brackets
+\usepackage{mathtools}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ── Code listings (Rocq / Coq) ───────────────────────────────────
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{rocqkw}{RGB}{0,100,0}
+\definecolor{rocqcomment}{RGB}{128,128,128}
+\definecolor{rocqstring}{RGB}{163,21,21}
+
+\lstdefinelanguage{Rocq}{
+  morekeywords={Definition, Lemma, Theorem, Proof, Qed, Admitted,
+    Fixpoint, Inductive, Record, Structure, Class, Instance,
+    Section, End, Variable, Variables, Context, Hypothesis,
+    Require, Import, Export, From, Open, Scope,
+    match, with, end, return, let, in, if, then, else,
+    forall, exists, fun, Type, Prop, Set,
+    apply, exact, reflexivity, simpl, unfold, rewrite, intros,
+    destruct, induction, constructor, split, left, right},
+  sensitive=true,
+  morecomment=[s]{(*}{*)},
+  morestring=[b]",
+  literate={→}{{$\to$}}1 {⊑}{{$\sqsubseteq$}}1 {⊔}{{$\bigsqcup$}}1
+           {⊥}{{$\bot$}}1 {⟦}{{$\llbracket$}}1 {⟧}{{$\rrbracket$}}1
+           {ω}{{$\omega$}}1 {λ}{{$\lambda$}}1 {∀}{{$\forall$}}1
+           {∃}{{$\exists$}}1 {≤}{{$\leq$}}1 {≥}{{$\geq$}}1
+           {∘}{{$\circ$}}1 {⇓}{{$\Downarrow$}}1,
+}
+
+\lstset{
+  language=Rocq,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{rocqkw}\bfseries,
+  commentstyle=\color{rocqcomment}\itshape,
+  stringstyle=\color{rocqstring},
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  captionpos=b,
+  aboveskip=1em,
+  belowskip=1em,
+}
+
+% ── Hyperlinks & cross-references ─────────────────────────────────
+\usepackage[hidelinks]{hyperref}
+\usepackage[capitalise, noabbrev]{cleveref}
+
+% ── Bibliography ──────────────────────────────────────────────────
+\usepackage[
+  backend=biber,
+  style=alphabetic,
+  sorting=nyt,
+  maxbibnames=99,
+]{biblatex}
+\addbibresource{references.bib}
+
+% ── Figures ───────────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, cd}
+
+% ── Custom commands ───────────────────────────────────────────────
+% Semantic brackets
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+% CPO notation
+\newcommand{\chain}{\mathsf{chain}}
+\newcommand{\lub}{\bigsqcup}
+\newcommand{\cont}{\mathsf{cont}}
+\newcommand{\fixp}{\mathsf{fix}}
+\newcommand{\Nat}{\mathsf{Nat}}
+\newcommand{\Bool}{\mathsf{Bool}}
+% Category notation
+\newcommand{\Hom}{\mathsf{Hom}}
+\newcommand{\CPO}{\mathbf{CPO}}
+\newcommand{\qCPO}{\mathbf{qCPO}}
+% Rocq / HB
+\newcommand{\Rocq}{\textsc{Rocq}}
+\newcommand{\HB}{\textsc{HB}}
+
+% ══════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Front matter ──────────────────────────────────────────────────
+\input{frontmatter}
+
+\tableofcontents
+\newpage
+
+% ── Chapters ──────────────────────────────────────────────────────
+\input{chapters/introduction}
+\input{chapters/background}
+\input{chapters/methods}
+\input{chapters/results}
+\input{chapters/discussion}
+\input{chapters/conclusion}
+
+% ── Back matter ───────────────────────────────────────────────────
+\printbibliography[heading=bibintoc]
+
+\appendix
+\input{appendices/code-listing}
+
+\end{document}

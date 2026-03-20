@@ -1,0 +1,95 @@
+% chapters/methods.tex
+
+\chapter{Methods}
+\label{ch:methods}
+
+% ── Library architecture ──────────────────────────────────────────
+\section{Library Architecture}
+\label{sec:meth-architecture}
+
+% TODO: src/ layout (structures, theory, instances, lang, quantum)
+% TODO: Dependency graph
+% TODO: Design philosophy: HB-first, plain records for chain/mono_fun/cont_fun
+
+\subsection{The Algebraic Hierarchy}
+\label{sec:meth-hierarchy}
+
+% TODO: HB mixin chain: HasLe → IsPreorder → IsPartialOrder → HasSup → IsCPO → ...
+% Diagram of the hierarchy
+
+\subsection{Design Decisions}
+\label{sec:meth-design-decisions}
+
+% TODO: Key design decisions (from design-decisions.md)
+% DD-001 (no separate Pointed.v), DD-006 (classical lift), DD-009 (intrinsic typing),
+% DD-013 (var_case), DD-016 (HB coercion workarounds)
+
+% ── Constructions ─────────────────────────────────────────────────
+\section{CPO Constructions}
+\label{sec:meth-constructions}
+
+\subsection{Products and Sums}
+\label{sec:meth-products-sums}
+
+% Source: theory/Products.v, theory/Sums.v
+
+\subsection{Lifting}
+\label{sec:meth-lift}
+
+% Source: theory/Lift.v
+% TODO: option D with flat order, ClassicalEpsilon for sup, monad structure
+
+\subsection{Function Spaces}
+\label{sec:meth-function-spaces}
+
+% Source: theory/FunctionSpaces.v
+% TODO: Pointwise order, eval/curry/uncurry, CCC structure, FIXP operator
+
+% ── Enriched category formalization ───────────────────────────────
+\section{CPO-Enriched Categories}
+\label{sec:meth-enriched}
+
+% Source: structures/Enriched.v, theory/EnrichedTheory.v
+
+\subsection{The Enriched Category Structure}
+\label{sec:meth-enriched-structure}
+
+% TODO: IsCPOEnriched mixin, CPOEnrichedCat, self-enrichment in Function.v
+
+\subsection{Locally Continuous Functors}
+\label{sec:meth-lc-functors}
+
+% Source: theory/EnrichedTheory.v (lc_functor record)
+
+\subsection{Natural Transformations}
+\label{sec:meth-nat-trans}
+
+% Source: theory/NatTrans.v
+
+\subsection{Domain Equations}
+\label{sec:meth-domain-equations}
+
+% Source: theory/DomainEquations.v
+% TODO: EP-pairs, bilimits, D_inf/ROLL/UNROLL, the bilimit_exists axiom
+
+% ── PCF formalization ─────────────────────────────────────────────
+\section{PCF Formalization}
+\label{sec:meth-pcf}
+
+\subsection{Syntax and Typing}
+\label{sec:meth-pcf-syntax}
+
+% Source: lang/PCF_Syntax.v
+% TODO: Intrinsic typing, ANF, de Bruijn, var_case
+
+\subsection{Operational Semantics}
+\label{sec:meth-pcf-operational}
+
+% Source: lang/PCF_Operational.v
+% TODO: Big-step CBV evaluation
+
+\subsection{Denotational Semantics}
+\label{sec:meth-pcf-denotational}
+
+% Source: lang/PCF_Denotational.v
+% TODO: sem_ty, sem_val/sem_exp mutual fixpoint, substitution lemma

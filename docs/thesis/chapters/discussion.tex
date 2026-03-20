@@ -1,0 +1,61 @@
+% chapters/discussion.tex
+
+\chapter{Discussion}
+\label{ch:discussion}
+
+% ── Comparison with BKV 2009 ──────────────────────────────────────
+\section{Comparison with Benton--Kennedy--Varming}
+\label{sec:disc-bkv}
+
+% TODO: What was in BKV 2009 vs. what we added
+% - They had: basic CPO, PCF syntax/semantics (Coq 8.2, no HB)
+% - We added: HB hierarchy, enriched categories, nat trans, Yoneda,
+%   domain equations, Scott topology, function space CCC, adequacy proof
+
+% ── Design trade-offs ─────────────────────────────────────────────
+\section{Design Trade-offs}
+\label{sec:disc-tradeoffs}
+
+% TODO: Classical vs. constructive (ClassicalEpsilon in Lift.v, Sums.v)
+% TODO: Plain records vs. HB for cont_fun/mono_fun
+% TODO: The bilimit_exists axiom
+
+% ── The lift monad obstruction ────────────────────────────────────
+\section{The Coinductive Lift Monad}
+\label{sec:disc-lift-monad}
+
+% Source: theory/LiftMonad.v
+% TODO: Why the delay monad does NOT form a CPO
+% The CPO obstruction theorem
+
+% ── Quantum extensions ────────────────────────────────────────────
+\section{Toward Quantum Programming Language Semantics}
+\label{sec:disc-quantum}
+
+% Source: quantum/*.v context files, KLM2024
+
+\subsection{Quantum CPOs}
+\label{sec:disc-qcpo}
+
+% TODO: qCPO definition from Kornell-Lindenhovius-Mislove
+% Comparison with classical CPOs
+
+\subsection{Quantum Channels as Morphisms}
+\label{sec:disc-quantum-morphisms}
+
+% TODO: CPTP maps, quantum continuity
+
+\subsection{Quantum Enrichment}
+\label{sec:disc-quantum-enrichment}
+
+% TODO: qCPO-enriched categories as semantic setting for quantum languages
+
+% ── Limitations ───────────────────────────────────────────────────
+\section{Limitations}
+\label{sec:disc-limitations}
+
+% TODO:
+% - Universe polymorphism not fully audited
+% - bilimit_exists is axiomatized
+% - Quantum portion is exploratory/future work
+% - No extraction to executable code
