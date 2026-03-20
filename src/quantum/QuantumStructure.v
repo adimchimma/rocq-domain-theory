@@ -285,7 +285,7 @@ Section QPosetProperties.
 
 Context {Q : InvQuantale.type} {X : qposet Q}.
 
-(** Left antitonicity of qp_ord:
+(* Left antitonicity of qp_ord:
 
     If x ⊑ y in the quantum order (i.e., q_top ⊑ qp_ord x y),
     then qp_ord(y, z) ⊑ qp_ord(x, z) for all z.
@@ -312,7 +312,7 @@ Proof.
     - apply qp_trans.
 Qed.
 
-(** Right covariance of qp_ord:
+(* Right covariance of qp_ord:
 
     If y ⊑ z in the quantum order (i.e., q_top ⊑ qp_ord y z),
     then qp_ord(x, y) ⊑ qp_ord(x, z) for all x.
