@@ -44,7 +44,7 @@ DomainTheory.Structures
 |-------|-------|--------|
 | 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
 | 1 | Enriched categories, locally continuous functors, PCF adequacy | **Complete**: Structures, EnrichedTheory, NatTrans, DomainEquations, Yoneda, PCF pipeline all done |
-| 2 | Quantum CPO structures (stretch goal) | Not started |
+| 2 | Quantum CPO structures (stretch goal) | **In progress**: QuantumStructure.v (309 lines, L1 complete), qCPO.v (383 lines, L2 complete); qCPOProperties.v (L3), QuantumMorphisms.v (L4), QuantumEnrichment.v (L5) remain stubs |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
 ---
@@ -557,17 +557,24 @@ All compile clean as of 2026-03-13.
 
 ---
 
-## `src/quantum/` — Quantum CPO Structures (Phase 2, stretch)
+## `src/quantum/` — Quantum CPO Structures (Phase 2)
 
-Dune library: `DomainTheory.Quantum`. Depends on `DomainTheory.Instances`.
+Dune library: `DomainTheory.Quantum`. Depends on `DomainTheory.Structures`.
 
-| File | Description |
-|------|-------------|
-| `QuantumStructure.v` | Quantum sets, quantum posets |
-| `qCPO.v` | qCPO definition |
-| `QuantumMorphisms.v` | Scott-continuous quantum morphisms |
-| `qCPOProperties.v` | qCPO is enriched over CPO (KLM §3.3) |
-| `QuantumEnrichment.v` | Quantum enrichment structure |
+Design: Atoms-only representation with axiomatic involutive quantale (Option B+
+from `planning/quantum.md`). See DD-022. Quantum sets = plain Types;
+quantum relations = Q-valued functions where Q is an HB `InvQuantale`.
+No Hilbert spaces or operator algebras.
+
+| File | Phase | Lines | Status | Description |
+|------|-------|-------|--------|-------------|
+| `QuantumStructure.v` | 2 (L1) | 309 | ✓ Done | `desc_chain`, `HasQuantaleOps` + `IsInvQuantale` HB hierarchy, `q_delta`, `qposet` record, `qp_antitone_l` |
+| `qCPO.v` | 2 (L2) | 383 | ✓ Done | `qchain`, `converges`/`converges_eq`, `is_qcpo`/`QCPOData`, `q_monotone`, `map_qchain`, `q_scott_continuous`, `is_pointed_qcpo`, constant chain convergence |
+| `qCPOProperties.v` | 2 (L3) | 9 | Stub | Limit uniqueness, continuous composition, category laws, CPO-enrichment of hom-sets |
+| `QuantumMorphisms.v` | 2 (L4) | 9 | Stub (stretch) | Lift monad (-)⊥, Kleisli category, strict maps |
+| `QuantumEnrichment.v` | 2 (L5) | 9 | Stub (stretch) | Classical embedding '(-) : CPO → qCPO, CPO-enrichment |
+
+References: Kornell, Lindenhovius & Mislove (2024) "Categories of Quantum CPOs".
 
 ---
 
@@ -609,6 +616,13 @@ Order.v
   ├── PCF_Denotational.v ← PCF_Syntax, FunctionSpaces, Lift, FixedPoints, Discrete, Function
   ├── PCF_Soundness.v    ← PCF_Operational, PCF_Denotational
   └── PCF_Adequacy.v     ← PCF_Soundness, Lift, FixedPoints, FunctionSpaces, CPOTheory, Classical
+
+[quantum/]
+  ├── QuantumStructure.v ← Order (PartialOrder)
+  ├── qCPO.v             ← QuantumStructure
+  ├── qCPOProperties.v   ← qCPO, QuantumStructure  (stub)
+  ├── QuantumMorphisms.v ← qCPO, QuantumStructure  (stub)
+  └── QuantumEnrichment.v← qCPO, Enriched          (stub)
 ```
 
 ---
@@ -651,16 +665,23 @@ Order.v
 | `src/lang/QMiniCore_Syntax.v` | 9 | Stub |
 | `src/lang/QMiniCore_Semantics.v` | 9 | Stub |
 | **Lang subtotal** | **3,402** | |
-| `src/quantum/` (5 files) | 45 | All stubs |
+| `src/quantum/QuantumStructure.v` | 309 | ✓ Done |
+| `src/quantum/qCPO.v` | 383 | ✓ Done |
+| `src/quantum/qCPOProperties.v` | 9 | Stub |
+| `src/quantum/QuantumMorphisms.v` | 9 | Stub |
+| `src/quantum/QuantumEnrichment.v` | 9 | Stub |
+| **Quantum subtotal** | **719** | |
 | `test/LiftTests.v` | 295 | ✓ Done |
 | `examples/basic_cpos.v` | 320 | ✓ Done |
 | `examples/enriched_usage.v` | 234 | ✓ Done |
 | `examples/pcf_examples.v` | 191 | ✓ Done |
 | `examples/recursive_domain.v` | 179 | ✓ Done |
 | **Examples subtotal** | **924** | |
-| **Grand total** | **15,166** | |
+| **Grand total** | **15,840** |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
-Actual: ~15,166 lines (exceeds target; includes 924 lines of worked examples).
+Actual: ~15,840 lines (exceeds target; includes 924 lines of worked examples
+and 719 lines of quantum CPO structures).
 
-> **Note:** Line counts as of 2026-03-12.
+> **Note:** Line counts as of 2026-03-19. Quantum files add 674 net lines
+> (QuantumStructure.v 309 + qCPO.v 383 − two stubs at 9 each).

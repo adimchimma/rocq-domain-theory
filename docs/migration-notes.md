@@ -423,6 +423,79 @@ Reference: A&J §5.2–5.3. Benton-Kennedy §4.
 
 ---
 
+### `QuantumStructure.v` (**new**, Phase 2)
+
+**Old:** Not present in the original Benton-Kennedy library.
+
+**New:** `quantum/QuantumStructure.v` (~340 lines). Provides the base
+algebraic structures for quantum domain theory: involutive quantales and
+quantum posets, following Kornell-Lindenhovius-Mislove (2024).
+
+Contents:
+- §1: `desc_chain` — descending ω-chains (dual of `chain` from Order.v),
+  needed for convergence conditions in quantum CPOs.
+- §2: `HasQuantaleOps` HB mixin — six operations: `q_top`, `q_bot`,
+  `q_prod`, `q_adj`, `q_meet`, `q_inf`.
+- §3: `IsInvQuantale` HB mixin — 14 axioms in five groups (top/bottom,
+  product, adjoint, meet, infimum). `InvQuantale` HB structure.
+- §4: Notation — `⊗` for product, `⊓` for meet.
+- §5: `q_delta` — Kronecker delta: Q-valued identity relation using
+  decidable equality. Lemmas `q_delta_refl`, `q_delta_neq`.
+- §6: `qposet` record — Type + Q-valued order + decidable equality +
+  reflexivity + transitivity + antisymmetry axioms. Plain record
+  parametrized by `Q : InvQuantale.type` (not an HB structure). See DD-022.
+- §7: Derived properties — `qp_antitone_l` (left antitonicity of
+  `qp_ord`, used by qCPO.v for descending chains).
+
+Design: Demand-driven axiom set — only operations actually used by
+downstream files (qCPO.v, qCPOProperties.v) are included. The quantale
+builds on `PartialOrder` from `Order.v`. See DD-022.
+
+0 Admitted. 0 Axioms.
+
+Reference: KLM (2024) Definition 2.2.1 (involutive quantale), §2.3
+(quantum sets), Definition 2.6.1 (quantum posets). Weaver (2010)
+Definition 2.4.
+
+---
+
+### `qCPO.v` (**new**, Phase 2)
+
+**Old:** Not present in the original Benton-Kennedy library.
+
+**New:** `quantum/qCPO.v` (~390 lines). Quantum chains, convergence, the
+quantum CPO property, and Scott continuity in the quantum setting.
+
+Contents:
+- §1: `qchain` — ascending quantum chain `K : nat → W → X` with record
+  and `qchain_ascending` predicate.
+- §2: `qord_chain_descending` — ascending K produces descending sequences
+  `n ↦ R(K(n,w), x)` in Q. `qord_desc_chain` packages as `desc_chain`.
+- §3: `converges` / `converges_eq` — convergence relation (Kₙ ↗ K∞)
+  defined as `R(K∞(w), x) = ⋀ₙ R(K(n,w), x)`.
+- §4: `converges_iff_eq` — two-sided ⊑ ↔ equality. `converges_upper` /
+  `converges_upper_top` — limit is an upper bound. `converges_unique` —
+  limit uniqueness (KLM Proposition 3.1.5).
+- §5: `is_qcpo` / `QCPOData` — every ascending quantum chain has a limit.
+- §6: `qchain_const` / `converges_const` — constant chain converges to itself.
+- §7: `q_monotone` — monotonicity w.r.t. quantum orders.
+- §8: `map_qchain` — monotone F applied to a chain yields a chain.
+- §9: `q_scott_continuous` — preserves convergence of quantum chains.
+- §10: `is_q_bottom`, `QBottom`, `is_pointed_qcpo` — pointed quantum CPOs.
+
+Design: Parametrized by `Q : InvQuantale.type`, `X : qposet Q`, and
+`W : Type` (the probe/atom type). W is kept general rather than
+specializing to unit (KLM Proposition 3.2.3 lifts from atomic to general
+W, but the general form is free via parametricity). See DD-022.
+
+0 Admitted. 0 Axioms.
+
+Reference: KLM (2024) §3.1 (Definition 3.1.1, convergence), §3.2
+(Definition 3.2.1, quantum CPO; Definition 3.2.4, Scott continuity;
+Proposition 3.1.5, limit uniqueness).
+
+---
+
 ## Axioms: Status in Old vs New Library
 
 The old library accumulated `Axiom` declarations for constructions that
