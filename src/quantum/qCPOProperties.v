@@ -34,8 +34,8 @@
                            q_scott_continuous, QCPOData, QBottom, etc.
 
     References:
-      KLM §3.2, Proposition 3.2.6  — continuous composition
-      KLM §3.2, Remark 3.2.7       — constant functions are continuous
+      KLM §3.2, Lemma 3.2.8      — continuous composition
+      KLM §3.2, Example 3.2.5      — constant functions are continuous
       KLM §3.2, Definition 3.2.9   — category qCPO
       KLM §3.3, Theorem 3.3.5      — CPO-enrichment of hom-sets
 *)
@@ -201,7 +201,7 @@ Definition q_cont_id (X : qposet Q) : [X →qc X] :=
 (* ================================================================== *)
 (*
     For any c : Y, the constant function (fun _ => c) : X → Y is
-    Scott-continuous.  KLM Remark 3.2.7.
+    Scott-continuous.  KLM Example 3.2.5.
 
     Monotonicity: qp_ord Y c c ≥ q_top ≥ ... is trivially monotone
     since the output doesn't depend on the input.
@@ -287,7 +287,7 @@ End MapQchainComp.
 (*  §5  Composition of continuous maps                                 *)
 (* ================================================================== *)
 (*
-    KLM Proposition 3.2.6 (part):
+    KLM Lemma 3.2.8 (part):
 
     If F : X → Y and G : Y → Z are Scott-continuous, then
     G ∘ F : X → Z is Scott-continuous.

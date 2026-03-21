@@ -35,7 +35,7 @@
       KLM §3.1, Definition 3.1.1 — convergence (Kₙ ↗ K∞)
       KLM §3.2, Definition 3.2.1 — quantum CPO
       KLM §3.2, Definition 3.2.4 — Scott continuity
-      KLM §3.1, Proposition 3.1.5 — limit uniqueness
+      KLM §3.1, Lemma 3.1.2     — limit uniqueness
 *)
 
 From HB Require Import structures.
@@ -190,7 +190,7 @@ Qed.
     Limit uniqueness: if Kₙ ↗ K∞ and Kₙ ↗ K∞', then
     qord(K∞ w, x) = qord(K∞' w, x) for all w, x.
 
-    KLM Proposition 3.1.5. 
+    KLM Lemma 3.1.2. 
 *)
 Lemma converges_unique (K : qchain) (K_inf K_inf' : W -> X) :
     converges K K_inf -> converges K K_inf' ->
