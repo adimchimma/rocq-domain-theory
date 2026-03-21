@@ -37,7 +37,7 @@
                [PCF_Adequacy.v] (logical relation over [⇓])
 
     References:
-      Benton, Kennedy & Varming (2009) §3.1 (typed language, big-step)
+      Benton, Kennedy & Varming (2009) §3 (typed language, big-step)
 *)
 
 From Stdlib Require Import List PeanoNat Bool Program.Equality.
