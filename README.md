@@ -1,8 +1,9 @@
 # Modernizing Domain Theory Foundations for Quantum Programming Languages
 
 A machine-verified domain theory library in Rocq (formerly Coq), developed as an
-undergraduate thesis. Modernizes Benton, Kennedy & Varming's 2009 library,
-formalizes CPO-enriched categories, and proves soundness and adequacy for PCF.
+undergraduate thesis. Modernizes the domain theory approach described by
+Benton, Kennedy & Varming (2009), formalizes CPO-enriched categories, and
+proves soundness and adequacy for PCF.
 
 **Toolchain**: Rocq 9.0, Hierarchy Builder (HB) >= 1.5, Dune 3.20
 
