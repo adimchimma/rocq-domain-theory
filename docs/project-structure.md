@@ -44,7 +44,7 @@ DomainTheory.Structures
 |-------|-------|--------|
 | 0 | Modernize Benton-Kennedy library (CPOs, constructions, fixed points, lift) | **Complete** (structures + core theory + instances) |
 | 1 | Enriched categories, locally continuous functors, PCF adequacy | **Complete**: Structures, EnrichedTheory, NatTrans, DomainEquations, Yoneda, PCF pipeline all done |
-| 2 | Quantum CPO structures (stretch goal) | **In progress**: QuantumStructure.v (309 lines, L1 complete), qCPO.v (383 lines, L2 complete), qCPOProperties.v (1022 lines, L3 complete); QuantumMorphisms.v (L4), QuantumEnrichment.v (L5) remain stubs |
+| 2 | Quantum CPO structures (stretch goal) | **In progress**: QuantumStructure.v (339 lines, L1 complete), qCPO.v (388 lines, L2 complete), qCPOProperties.v (1022 lines, L3 complete); QuantumMorphisms.v (L4), QuantumEnrichment.v (L5) remain stubs |
 | 3 | QMini-Core language prototype (stretch goal) | Not started |
 
 ---
@@ -60,7 +60,7 @@ proofs, no lemmas. Dune library: `DomainTheory.Structures`.
 
 ---
 
-### `Order.v` ✓ (Phase 0) — 187 lines
+### `Order.v` ✓ (Phase 0) — 191 lines
 
 **Imports:** Rocq stdlib, HB only
 
@@ -107,7 +107,7 @@ Reference: A&J Definition 2.1.13. Benton-Kennedy §2.1.
 
 ---
 
-### `Morphisms.v` ✓ (Phase 0) — 224 lines
+### `Morphisms.v` ✓ (Phase 0) — 234 lines
 
 **Imports:** `Order`, `CPO`
 
@@ -127,7 +127,7 @@ Reference: A&J §3.2.2. Benton-Kennedy §2.1 (`fconti` record).
 
 ---
 
-### `Enriched.v` ✓ (Phase 1) — 390 lines
+### `Enriched.v` ✓ (Phase 1) — 378 lines
 
 **Imports:** `Order`, `CPO`, `Morphisms`
 
@@ -193,7 +193,7 @@ All files import from `DomainTheory.Structures`. Dune library:
 
 ---
 
-### `CPOTheory.v` ✓ (Phase 0) — 581 lines
+### `CPOTheory.v` ✓ (Phase 0) — 585 lines
 
 **Imports:** `CPO`, `Morphisms`, `OrderTheory`, `ChainTheory`
 
@@ -256,7 +256,7 @@ Reference: A&J §2.1.3. Benton-Kennedy §2.1 (`fixp`, `FIXP`, `fixp_ind`).
 
 ---
 
-### `Products.v` ✓ (Phase 0) — 533 lines
+### `Products.v` ✓ (Phase 0) — 537 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`
 
@@ -299,7 +299,7 @@ Reference: Benton-Kennedy §2.1.
 
 ---
 
-### `Lift.v` ✓ (Phase 0) — 646 lines
+### `Lift.v` ✓ (Phase 0) — 647 lines
 
 **Imports:** `CPO`, `Morphisms`, `CPOTheory`, `ChainTheory`, `ClassicalEpsilon`
 
@@ -417,7 +417,7 @@ Reference: Kelly (1982) Ch. 1. Mac Lane (1998) Ch. IX. A&J §5.2.
 
 ---
 
-### `FunctionSpaces.v` ✓ (Phase 0) — 878 lines
+### `FunctionSpaces.v` ✓ (Phase 0) — 882 lines
 
 **Imports:** `Order`, `CPO`, `Morphisms`, `OrderTheory`, `ChainTheory`,
 `CPOTheory`, `Products`, `FixedPoints`
@@ -549,11 +549,11 @@ All compile clean as of 2026-03-13.
 
 | File | Lines | Description |
 |------|-------|-------------|
-| `basic_cpos.v` | 320 | Guided tour: unit (S1), nat_inf (S2), discrete bool (S3), products (S4), lift (S5), function spaces (S6), Kleene fixed-point (S7). Demonstrates chains, sups, order, continuity, `fixp`. |
+| `basic_cpos.v` | 347 | Guided tour: unit (S1), nat_inf (S2), discrete bool (S3), products (S4), lift (S5), function spaces (S6), Kleene fixed-point (S7). Demonstrates chains, sups, order, continuity, `fixp`. |
 | `enriched_usage.v` | 234 | CPO-enriched category toolkit: category axioms (S1), composition continuity (S2), representable functor `Hom(X,-)` (S3), natural transformations (S4), EP-pairs (S5). Uses abstract `Context {C : CPOEnrichedCat.type}`. |
-| `pcf_examples.v` | 191 | Full PCF pipeline: base expressions with literals/arithmetic/comparison/if (S1), function application with identity/constant/double via `FIX` (S2), denotational semantics for base cases (S3), soundness (S4), adequacy + convergence_iff_defined (S5). |
+| `pcf_examples.v` | 226 | Full PCF pipeline: base expressions with literals/arithmetic/comparison/if (S1), function application with identity/constant/double via `FIX` (S2), denotational semantics for base cases (S3), soundness (S4), adequacy + convergence_iff_defined (S5). |
 | `recursive_domain.v` | 179 | Bilimit machinery: abstract ROLL/UNROLL isomorphism (S1), concrete lifted function-space functor FL on CPO.type with unit initial EP-pair (S2), approximation tower levels 0/1/2 (S3), deflation chain below id with sup = id completeness (S4). |
-| **Examples subtotal** | **924** | |
+| **Examples subtotal** | **986** | |
 
 ---
 
@@ -568,8 +568,8 @@ No Hilbert spaces or operator algebras.
 
 | File | Phase | Lines | Status | Description |
 |------|-------|-------|--------|-------------|
-| `QuantumStructure.v` | 2 (L1) | 309 | ✓ Done | `desc_chain`, `HasQuantaleOps` + `IsInvQuantale` HB hierarchy, `q_delta`, `qposet` record, `qp_antitone_l` |
-| `qCPO.v` | 2 (L2) | 383 | ✓ Done | `qchain`, `converges`/`converges_eq`, `is_qcpo`/`QCPOData`, `q_monotone`, `map_qchain`, `q_scott_continuous`, `is_pointed_qcpo`, constant chain convergence |
+| `QuantumStructure.v` | 2 (L1) | 339 | ✓ Done | `desc_chain`, `HasQuantaleOps` + `IsInvQuantale` HB hierarchy, `q_delta`, `qposet` record, `qp_antitone_l` |
+| `qCPO.v` | 2 (L2) | 388 | ✓ Done | `qchain`, `converges`/`converges_eq`, `is_qcpo`/`QCPOData`, `q_monotone`, `map_qchain`, `q_scott_continuous`, `is_pointed_qcpo`, constant chain convergence |
 | `qCPOProperties.v` | 2 (L3) | 1,022 | ✓ Done | `q_cont_fun` bundled maps (DD-023), `q_cont_id`/`q_cont_const`/`q_cont_comp`, category laws, cofinal subsequences, `q_hom_le` pointwise order, CPO-enrichment (`qhom_limit_cont`), Kleene fixed point (`qfixp_at`, Scott induction); 32 Qed, 0 Admitted |
 | `QuantumMorphisms.v` | 2 (L4) | 9 | Stub (stretch) | Lift monad (-)⊥, Kleisli category, strict maps |
 | `QuantumEnrichment.v` | 2 (L5) | 9 | Stub (stretch) | Classical embedding '(-) : CPO → qCPO, CPO-enrichment |
@@ -631,25 +631,25 @@ Order.v
 
 | File | Lines | Status |
 |------|-------|--------|
-| `src/structures/Order.v` | 190 | ✓ Done |
-| `src/structures/CPO.v` | 183 | ✓ Done |
-| `src/structures/Morphisms.v` | 224 | ✓ Done |
-| `src/structures/Enriched.v` | 390 | ✓ Done |
-| **Structures subtotal** | **987** | |
+| `src/structures/Order.v` | 191 | ✓ Done |
+| `src/structures/CPO.v` | 182 | ✓ Done |
+| `src/structures/Morphisms.v` | 234 | ✓ Done |
+| `src/structures/Enriched.v` | 378 | ✓ Done |
+| **Structures subtotal** | **985** | |
 | `src/theory/OrderTheory.v` | 494 | ✓ Done |
 | `src/theory/ChainTheory.v` | 515 | ✓ Done |
-| `src/theory/CPOTheory.v` | 581 | ✓ Done |
+| `src/theory/CPOTheory.v` | 585 | ✓ Done |
 | `src/theory/ScottTopology.v` | 519 | ✓ Done |
 | `src/theory/FixedPoints.v` | 525 | ✓ Done |
-| `src/theory/Products.v` | 533 | ✓ Done |
+| `src/theory/Products.v` | 537 | ✓ Done |
 | `src/theory/Sums.v` | 624 | ✓ Done |
-| `src/theory/Lift.v` | 646 | ✓ Done |
+| `src/theory/Lift.v` | 647 | ✓ Done |
 | `src/theory/LiftMonad.v` | 488 | ✓ Done (supplementary) |
-| `src/theory/FunctionSpaces.v` | 878 | ✓ Done |
+| `src/theory/FunctionSpaces.v` | 882 | ✓ Done |
 | `src/theory/EnrichedTheory.v` | 706 | ✓ Done |
 | `src/theory/NatTrans.v` | 518 | ✓ Done |
 | `src/theory/DomainEquations.v` | 446 | ✓ Done (1 Axiom) |
-| **Theory subtotal (complete)** | **7,444** | |
+| **Theory subtotal** | **7,486** | |
 | `src/instances/Nat.v` | 371 | ✓ Done |
 | `src/instances/Discrete.v` | 531 | ✓ Done |
 | `src/instances/Function.v` | 436 | ✓ Done |
@@ -665,23 +665,30 @@ Order.v
 | `src/lang/QMiniCore_Syntax.v` | 9 | Stub |
 | `src/lang/QMiniCore_Semantics.v` | 9 | Stub |
 | **Lang subtotal** | **3,402** | |
-| `src/quantum/QuantumStructure.v` | 309 | ✓ Done |
-| `src/quantum/qCPO.v` | 383 | ✓ Done |
+| `src/quantum/QuantumStructure.v` | 339 | ✓ Done |
+| `src/quantum/qCPO.v` | 388 | ✓ Done |
 | `src/quantum/qCPOProperties.v` | 1,022 | ✓ Done |
 | `src/quantum/QuantumMorphisms.v` | 9 | Stub |
 | `src/quantum/QuantumEnrichment.v` | 9 | Stub |
-| **Quantum subtotal** | **1,732** | |
+| **Quantum subtotal** | **1,767** | |
 | `test/LiftTests.v` | 295 | ✓ Done |
-| `examples/basic_cpos.v` | 320 | ✓ Done |
+| `test/EnrichedTests.v` | 194 | ✓ Done |
+| `test/FixedPointTests.v` | 290 | ✓ Done |
+| `test/FunctionSpaceTests.v` | 193 | ✓ Done |
+| `test/PCFTests.v` | 242 | ✓ Done |
+| `test/ProductTests.v` | 184 | ✓ Done |
+| `test/SumTests.v` | 181 | ✓ Done |
+| **Tests subtotal** | **1,579** | |
+| `examples/basic_cpos.v` | 347 | ✓ Done |
 | `examples/enriched_usage.v` | 234 | ✓ Done |
-| `examples/pcf_examples.v` | 191 | ✓ Done |
+| `examples/pcf_examples.v` | 226 | ✓ Done |
 | `examples/recursive_domain.v` | 179 | ✓ Done |
-| **Examples subtotal** | **924** | |
-| **Grand total** | **16,853** |
+| **Examples subtotal** | **986** | |
+| **Grand total** | **18,289** |
 
 Thesis target for Phase 0+1 total: ~7,000–8,000 lines of specification.
-Actual: ~16,853 lines (exceeds target; includes 924 lines of worked examples
-and 1,732 lines of quantum CPO structures).
+Actual: ~18,289 lines (exceeds target; includes 986 lines of worked examples,
+1,579 lines of tests, and 1,767 lines of quantum CPO structures).
 
-> **Note:** Line counts as of 2026-03-19. Quantum files add 1,687 net lines
-> (QuantumStructure.v 309 + qCPO.v 383 + qCPOProperties.v 1,022 − two stubs at 9 each).
+> **Note:** Line counts as of 2026-03-19. Quantum files add 1,731 net lines
+> (QuantumStructure.v 339 + qCPO.v 388 + qCPOProperties.v 1,022 − two stubs at 9 each).
