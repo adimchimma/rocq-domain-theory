@@ -55,7 +55,7 @@
 
     References:
       Benton, Kennedy & Varming (2009) §2 — function space CPO, [FIXP].
-      Abramsky & Jung (1994) §2.1.3, §3.2 — exponentials in CPO.
+      Abramsky & Jung (1994) §3.2.2, §4 — exponentials in CPO.
 *)
 
 From HB Require Import structures.
@@ -743,7 +743,7 @@ End FunMisc.
     identity [fₙ (fixp fₙ) = fixp fₙ] to show the pre-fixed-point
     inequality.
 
-    Reference: A&J §2.1.3 Proposition 2.1.18; Benton-Kennedy-Varming (2009) [FIXP].
+    Reference: A&J §2.1.6 Theorem 2.1.19; Benton-Kennedy-Varming (2009) [FIXP].
 *)
 
 Section FIXP.

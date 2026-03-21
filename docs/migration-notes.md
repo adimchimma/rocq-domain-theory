@@ -450,7 +450,7 @@ Reference: Kelly (1982), Mac Lane (1998).
 - `theory/ScottTopology.v` (~520 lines): Way-below relation `x ≪ y`,
   Scott-open sets, the Scott topology on CPOs, and basic properties.
 
-Reference: A&J §2.1.1.
+Reference: A&J §2.2 - 2.3.
 
 ---
 

@@ -342,10 +342,12 @@ Arguments bil_unroll           {C D0 ep0}.
 Arguments bil_roll_unroll      {C D0 ep0}.
 Arguments bil_unroll_roll      {C D0 ep0}.
 
-(* Bilimit existence axiom.
+(* 
+   NOTE: Bilimit existence axiom.
    Proof obligation: construct D_inf as the coherent sub-CPO of
    the omega-product CPO Pi_n D_n.  See Benton-Kennedy-Varming (2009) §4 and
-   A&J §3.3.7.  Requires omega-product CPO not yet in this library. *)
+   A&J §3.3.  Requires omega-product CPO not yet in this library. 
+*)
 Axiom bilimit_exists :
   forall {C : MixedLCFunctor.type} (D0 : C)
          (ep0 : ep_pair D0 (MF_obj D0 D0)),
