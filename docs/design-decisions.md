@@ -345,7 +345,7 @@ The `T` prefix (for "typed") was dropped since all terms are typed by
 construction.
 
 **Affected files:**
-- `src/lang/PCF_Syntax.v` — 512 lines
+- `src/lang/PCF_Syntax.v` — 804 lines
 - `src/lang/PCF_Operational.v` — uses `CValue`/`CExp` from PCF_Syntax
 - `src/lang/PCF_Denotational.v` — uses the same syntax
 
@@ -890,9 +890,9 @@ rather than `exact` for HB-generated accessor lemmas, and `sem_cexp` /
    any CPO-enriched category.
 
 **Affected files:**
-- `examples/basic_cpos.v` — 320 lines
+- `examples/basic_cpos.v` — 347 lines
 - `examples/enriched_usage.v` — 234 lines
-- `examples/pcf_examples.v` — 191 lines
+- `examples/pcf_examples.v` — 226 lines
 - `examples/recursive_domain.v` — 179 lines
 - `src/instances/FunLift.v` — 298 lines (§3 proofs)
 
@@ -927,8 +927,8 @@ chosen because:
   require building an operator-space library from scratch.
 - **Matches Rocq's strengths.** Abstract algebra via HB, not numerical
   linear algebra.
-- **Already validated.** `qCPO.v` (390 lines) and `QuantumStructure.v`
-  (340 lines) compile clean with this model.
+- **Already validated.** `qCPO.v` (388 lines) and `QuantumStructure.v`
+  (339 lines) compile clean with this model.
 - **Consistency justified.** B(H) — bounded operators on any Hilbert
   space — is a concrete involutive quantale. Its existence justifies
   the axiom set without requiring its formalization.
@@ -956,8 +956,8 @@ The `qposet` record includes:
 - `qp_refl`, `qp_trans`, `qp_antisym` — quantum partial order axioms
 
 **Affected files:**
-- `src/quantum/QuantumStructure.v` — ~340 lines (§1–§7)
-- `src/quantum/qCPO.v` — ~390 lines (§1–§10)
+- `src/quantum/QuantumStructure.v` — ~339 lines (§1–§7)
+- `src/quantum/qCPO.v` — ~388 lines (§1–§10)
 - `src/quantum/qCPOProperties.v` — ~1022 lines (§0–§11)
 - `planning/quantum.md` — full design rationale
 
