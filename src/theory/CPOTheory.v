@@ -425,7 +425,7 @@ End ContinuityLemmas.
     fixpoint-specific form lives in [FixedPoints.v]; here we establish
     the chain-level theory.
 
-    Reference: A&J §2.2; Benton-Kennedy-Varming (2009) §2.1 [admissible], [fixp_ind].
+    Reference: A&J §2.1.20 & §5.4.2 - 5.4.4; Benton-Kennedy-Varming (2009) §2.1 [admissible], [fixp_ind].
 *)
 
 Definition admissible {D : CPO.type} (P : D -> Prop) : Prop :=
