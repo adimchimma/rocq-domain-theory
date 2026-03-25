@@ -49,8 +49,8 @@ an "inclusion" map $e : D \to E$ and a "retraction" $p : E \to D$: embedding $D$
 with $p$ recovering the best approximation in $D$ of any element of $E$. Formally, $e$ and $p$ must satisfy $p \circ e = id_{D}$ 
 ---the retraction exactly recovers embedded elements---and $e \circ p \sqsubseteq id_{E}$---the composition in the other 
 direction is a deflation, approximating but not exceeding the identity. That second condition is an inequality between 
-morphisms, which only makes sense when morphisms themselves carry an order structure. For the inverse-limit to exist, 
-moreover, composition must interact coherently with that order: given ascending chains of morphisms 
+morphisms, which only makes sense when morphisms themselves carry an order structure. But the order on morphisms is not enough on 
+its own. For the inverse-limit to exist, composition must interact coherently with that order: given ascending chains of morphisms 
 $f_{0} \sqsubseteq f_{1} \sqsubseteq \cdots$ and $g_{0} \sqsubseteq g_{1} \sqsubseteq \cdots$, their compositions must satisfy
 $\sqcup_{n}(f_{n} \circ g_{n}) = (\sqcup_{n} \: f_{n}) \circ (\sqcup_{n} \: g_{n})$. This \emph{joint continuity of composition}
 ---whose very statement requires hom-sets to be ordered and composition to preserve those orders---is precisely the structure of a 
@@ -75,7 +75,7 @@ branch to take is always a classical computation on classical information. \emph
 quantum states---is a strictly more expressive paradigm. The canonical example is the \textit{quantum switch} \cite{CDPV2013}: 
 given operations $A$ and $B$ and a control qubit in state $\alpha|0\rangle + \beta|1\rangle$, apply $A$ then $B$ on the $|0\rangle$
 branch and $B$ then $A$ on the $|1\rangle$ branch, without measuring the qubit. The result operates coherently on a superposition of
-causal orders, a process with no classical analogue, whose indefinite causal order has recently been verified experimentally%
+causal orders, a process with no classical analogue, whose indefinite causal order has recently been verified experimentally
 \footnote{Richter et al.\ \cite{RichterEtAl2025} report the first device-independent verification protocol: their photonic 
 quantum-switch experiment violates a Bell-like causal inequality by 18 standard deviations, demonstrating correlations 
 incompatible with any definite ordering of events.}. Classical domain theory cannot model this: its order structure $x \sqsubseteq y$ is 
