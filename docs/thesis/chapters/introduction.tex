@@ -119,12 +119,61 @@ enriched toolkit for quantum domains as an immediate corollary. The detailed con
 \section{Contributions}
 \label{sec:intro-contributions}
 
-% TODO: List the main contributions:
-% 1. Modernized domain theory library (~15,000 lines, Rocq 9.0 + HB)
-% 2. CPO-enriched category formalization (enriched cats, LC functors, nat trans, Yoneda)
-% 3. Recursive domain equations via EP-pairs and bilimits
-% 4. Full PCF adequacy proof (soundness + adequacy via logical relation)
-% 5. Discussion of quantum extensions (qCPO framework)
+The contributions of this thesis are as follows.
+
+\begin{enumerate}
+
+\item \textbf{A modernized classical domain theory library.}
+  We develop approximately 15{,}000 lines of \Rocq{} 9.0, built on the Hierarchy Builder framework 
+  \cite{HB2023}. The library provides an HB hierarchy from preorders through pointed $\omega$-$\CPO$s, 
+  with concrete instances for products, sums, function spaces, and the lift monad. We prove the 
+  \emph{Kleene fixed-point theorem} and register the fixed-point operator $\fixp$ as a Scott-continuous 
+  map on the function space $[D \to_{c} D] \to_{c} D$, making it available as a first-class object in 
+  further constructions. We also formalize the Scott topology and prove the equivalence between the 
+  computational and topological notions of continuity. Every classical construction in \cite{BKV2009} 
+  is reproduced, and the HB infrastructure reduces defining a new CPO instance to a single declaration.
+
+\item \textbf{A $\CPO$-enriched category formalization.}
+  We formalize $\CPO$-enriched categories---categories whose hom-sets are $\CPO$s and whose composition 
+  is jointly Scott-continuous---together with locally continuous functors and enriched natural 
+  transformations. For natural transformations we prove vertical composition, left and right whiskering, 
+  and the existence of pointwise suprema for chains of natural transformations. This layer is entirely 
+  original: \cite{BKV2009} had no enriched-categorical structure, and to our knowledge no prior \Rocq{} 
+  library formalizes $\CPO$-enrichment.
+
+\item \textbf{Recursive domain equations via EP-pairs and bilimits.}
+  Building on the enriched layer, we formalize \textit{embedding-projection pairs}, their composition 
+  and deflation properties, and \textit{mixed-variance locally continuous bifunctors}. We construct the 
+  approximating sequence for a recursive domain equation $D \cong F(D, D)$ and define the 
+  \texttt{BilimitData} specification that packages a solution: a limit object together with 
+  \texttt{ROLL} and \texttt{UNROLL} isomorphisms satisfying the required coherence conditions. 
+  The construction isolates a single axiom---the existence of the bilimit---whose proof obligation 
+  is explicit and whose consequences (the full isomorphism and the supremum-of-deflations identity) 
+  are derived formally.
+
+\item \textbf{A complete PCF$_v$ adequacy proof.}
+  We give a full denotational semantics for PCF$_v$---a call-by-value variant of PCF with natural 
+  numbers, booleans, products, and general recursion---and prove both soundness and computational 
+  adequacy. The syntax uses intrinsically typed de~Bruijn indices with a computational case-analysis 
+  combinator (\texttt{var\_case}) that avoids the \texttt{JMeq} axiom, ensuring that substitution 
+  lemmas hold definitionally. Adequacy is established via a type-indexed logical relation: we prove 
+  that every well-typed term satisfies the relation (the fundamental lemma), and derive as a corollary 
+  that a closed expression converges operationally if and only if its denotation is defined. 
+  The proof follows the structure of \cite{BKV2009} but is carried out entirely within the 
+  HB-based CPO hierarchy, demonstrating that the modernized infrastructure supports a 
+  complete language formalization.
+
+\item \textbf{Quantum $\CPO$ formalization and the enrichment correspondence.}
+  Following Kornell, Lindenhovius, and Mislove \cite{KLM2024}, we formalize involutive quantales, 
+  quantum posets, and quantum $\CPO$s, including the quantum Kleene fixed-point theorem. We then 
+  establish that the quantum Scott-continuous maps $[X \to_{q} Y]$ between quantum $\CPO$s form a 
+  classical $\CPO$ under the pointwise quantum order. This is the thesis's central structural claim: 
+  both $\CPO$ and $\qCPO$ satisfy the axioms of a $\CPO$-enriched category, and consequently the 
+  entire enriched framework developed in contributions (2) and (3)---locally continuous functors, 
+  natural transformations, and the machinery for recursive domain equations---applies to quantum 
+  domains without modification.
+
+\end{enumerate}
 
 
 % ── Thesis outline ────────────────────────────────────────────────
