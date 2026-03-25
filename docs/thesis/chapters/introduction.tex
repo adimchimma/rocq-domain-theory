@@ -7,165 +7,108 @@
 \section{Motivation}
 \label{sec:intro-motivation}
 
-The operational behavior of a program — what it computes on given inputs — can be studied directly by running it. 
+The operational behavior of a program---what it computes on given inputs---can be studied directly by running it. 
 But understanding what a program means, in a sense precise enough to support mathematical proof, requires 
 something more: a compositional interpretation of the program's syntax in terms of mathematical objects. 
-\emph{Denotational semantics} provides this interpretation, assigning to each program a mathematical entity — 
-its denotation — in a way that respects the structure of the language. For simple programs, denotations 
+\emph{Denotational semantics} provides this interpretation, assigning to each program a mathematical entity---
+its denotation---in a way that respects the structure of the language. For simple programs, denotations 
 are straightforward. For programs with recursion and recursive types, however, the construction of a suitable 
 mathematical universe is itself a deep problem.
 
-Consider the recursive definition: let f be the function satisfying f(x) = 1 + f(x). Read as a program, 
-this is a definition by self-reference — f is defined in terms of itself. Read as a mathematical equation, 
-it has no solution for any x. The program does not compute any result; it diverges for every input. Yet it is a 
-syntactically valid, typeable program, so a complete mathematical theory of programming languages must assign to 
-it a precise meaning. The answer \emph{domain theory} gives is elegant: interpret $f$ as the \textit{least fixed point} 
-of the operator $\Phi(g)(x) = 1 + g(x)$, computed as the supremum of the sequence $\bot, \Phi(\bot), \Phi^{2}(\bot), ...$
-in a mathematical structure -- an $\omega$-complete partial order -- where the order is on the amount of information
-conveyed by the program, and $\bot$, being the least element, represents "no information". The operator $\Phi$ is
-\emph{Scott-continuous}: it preserves the order structure in a way that guarantees this sequence has a supremum, and that
-the supremum is the least fixed point. For our example program, that least fixed point is $\bot$ itself, 
-correctly capturing the notion of divergence. This result - that every Scott-continuous function on a \emph{pointed} 
-$\omega$-\emph{CPO} has a least fixed point, given explicitly as the supremum of its iteration sequence from $\bot$ --
-is the \emph{Kleene fixed-point theorem}, and it is the mathematical engine behind the denotational semantics of 
-recursive programs.
+Consider the recursive definition $f(x) = 1 + f(x)$. As a program, this defines $f$ by self-reference: $f$ calls 
+itself on every input, computing nothing---it diverges. But the program's defining equation is also 
+a mathematical equation with no solution. The definition is nonetheless a well-formed program in any language 
+supporting general recursion---so a complete mathematical semantics must assign it a precise meaning. The answer \emph{domain theory} 
+gives is elegant: interpret $f$ as the \textit{least fixed point} of the operator $\Phi(g)(x) = 1 + g(x)$, 
+computed as the supremum of the sequence $\bot, \Phi(\bot), \Phi^{2}(\bot), \ldots$ in a mathematical structure---an 
+$\omega$-complete partial order---where the order is on the amount of information conveyed by the program, and $\bot$, 
+being the least element, represents "no information". The operator $\Phi$ is \emph{Scott-continuous}: it preserves the 
+order structure in a way that guarantees this sequence has a supremum, and that the supremum is the least fixed point. 
+For our example program, that least fixed point is $\bot$ itself, correctly capturing the notion of divergence. This 
+result---that every Scott-continuous function on a \emph{pointed} $\omega$-\emph{CPO} has a least fixed point, given 
+explicitly as the supremum of its iteration sequence from $\bot$---is the \emph{Kleene fixed-point theorem}, and it 
+is the mathematical engine behind the denotational semantics of recursive programs.
 
 Recursive programs, however, are only half of the story. Programming languages also admit recursive \textit{types}:
-equations such as $D \cong [D \rightarrow D]$, which ask for a mathematical domain isomorphic to its own \textit{continuous}
-function space. This equation is not exotic -- it is exactly what is needed to model the untyped lambda calculus, where
+equations such as $D \cong [D \to D]$, which ask for a mathematical domain isomorphic to its own \textit{continuous}
+function space. This equation is not exotic---it is exactly what is needed to model the untyped lambda calculus, where
 any term may be applied to any other. No set-theoretic model satisfies it
-\footnote{For any set $S$ with more than one element, $\left|[S \rightarrow S]\right| = |S|^{|S|} > |S|$ by Cantor's theorem, 
-so no set $S$ can satisfy $S \cong [S \to S]$.}, but domain theory does, through a more
+\footnote{For any set $S$ with more than one element, $\left|[S \to S]\right| = |S|^{|S|} > |S|$ by Cantor's theorem, 
+so no set $S$ can satisfy $S \cong [S \to S]$.},
+but domain theory does, through a more
 sophisticated construction: an inverse limit of an approximating sequence of 
 domains connected by structure-preserving maps. Where the Kleene theorem works \textit{inside} a single domain, solving
 recursive type equations requires working \textit{across families} of domains. This shift demands that the morphisms 
-connecting those families carry their own mathematical structure — specifically, an order — and this is precisely what 
+connecting those families carry their own mathematical structure---specifically, an order---and this is precisely what 
 enriched category theory provides. This is the passage from domain theory to enriched domain theory, and it is the central 
 organizing principle of this thesis.
 
-The enriched perspective is not merely convenient -- it is logically necessary. The inverse-limit construction requires
+The enriched perspective is not merely convenient---it is logically necessary. The inverse-limit construction requires
 \textit{embedding-projection} pairs between domains. Informally, such a pair between domains $D$ and $E$ consists of
-an "inclusion" map $e : D \rightarrow E$ and a "retraction" $p : E \rightarrow D$: embedding $D$ inside the larger $E$, 
+an "inclusion" map $e : D \to E$ and a "retraction" $p : E \to D$: embedding $D$ inside the larger $E$, 
 with $p$ recovering the best approximation in $D$ of any element of $E$. Formally, $e$ and $p$ must satisfy $p \circ e = id_{D}$ 
--- the retraction exactly recovers embedded elements -- and $e \circ p \sqsubseteq id_{E}$ -- the composition in the other 
+---the retraction exactly recovers embedded elements---and $e \circ p \sqsubseteq id_{E}$---the composition in the other 
 direction is a deflation, approximating but not exceeding the identity. That second condition is an inequality between 
 morphisms, which only makes sense when morphisms themselves carry an order structure. For the inverse-limit to exist, 
 moreover, composition must interact coherently with that order: given ascending chains of morphisms 
 $f_{0} \sqsubseteq f_{1} \sqsubseteq \cdots$ and $g_{0} \sqsubseteq g_{1} \sqsubseteq \cdots$, their compositions must satisfy
-$\sqcup_{n}(f_{n} \circ g_{n}) = (\sqcup_{n} \: f_{n}) \circ (\sqcup_{n} \: g_{n})$. This \textit{joint continuity of composition}
--- whose very statement requires hom-sets to be ordered and composition to preserve those orders -- is precisely the structure of a 
+$\sqcup_{n}(f_{n} \circ g_{n}) = (\sqcup_{n} \: f_{n}) \circ (\sqcup_{n} \: g_{n})$. This \emph{joint continuity of composition}
+---whose very statement requires hom-sets to be ordered and composition to preserve those orders---is precisely the structure of a 
 \textit{CPO-enriched category}: a category in which every hom-set is a $\CPO$ and composition is Scott-continuous in each argument. This
 is the minimal abstraction in which recursive domain equations can be coherently formulated. We develop this theory formally in 
-Chapter 2.
+\cref{ch:background}.
 
 The foundational mechanisation of these ideas is Benton, Kennedy, and Varming's \Rocq{} library \cite{BKV2009}, which formalized
-$\omega$-$\CPO$s, the Kleene fixed-point theorem, and gave a complete denotational semantics for PCF$_v$ -- a call-by-value language
-with product types, booleans, and general recursion -- including full soundness and computational adequacy. For its stated purpose,
+$\omega$-$\CPO$s, the Kleene fixed-point theorem, and gave a complete denotational semantics for PCF$_v$---a call-by-value language with product types, booleans, and general recursion ---including full soundness and computational adequacy. For its stated purpose,
 this library was complete. Two subsequent developments, however, create the need for a more expressive foundation. First, richer
-type systems -- including those with recursive types modeled by equations of the form $D \cong F(D, D)$ -- require the $\CPO$-enriched 
+type systems---including those with recursive types modeled by equations of the form $D \cong F(D, D)$---require the $\CPO$-enriched 
 layer that PCF$_v$ adequacy alone does not demand; the mathematical tools needed simply lay outside the scope of \cite{BKV2009}. Second,
 the emergence of quantum programming languages with quantum control flow requires generalizing the order structure of domain theory
 in a direction the library was never designed to support. Beyond these theoretical extensions, there is also a practical dimension: 
-the Hierarchy Builder framework \cite{HB2023} -- now the standard approach for hierarchical mathematical libraries in Rocq -- postdates 
+the Hierarchy Builder framework \cite{HB2023}---now the standard approach for hierarchical mathematical libraries in Rocq---postdates 
 \cite{BKV2009} entirely, and the hand-assembled infrastructure of that era makes extending the library difficult in practice. 
 This thesis takes \cite{BKV2009} as its classical foundation and extends it in both directions.
 
-The choice to develop this theory as a mechanized library reflects the particular demands of the subject. \emph{Proof assistants} reject
-informal argument: every definition must be fully specified and every proof must close under \emph{kernel} verification. In a subject 
-as technically intricate as domain theory -- where subtle conditions on order, continuity, and chain stability interact throughout
--- this discipline is not merely convenient but epistemically significant. Mechanisation also enables a qualitatively different form 
-of reuse: once $\qCPO$ is registered as a \textbf{CPOEnrichedCat} instance, \Rocq{}'s elaborator automatically locates and applies every 
-enriched theorem to quantum domain-contexts, with the kernel verifying that all hypotheses are satisfied. Unlike citing a paper theorem, 
-this carries machine-checked evidence that every implicit hypothesis is satisfied and no condition has been silently assumed. Finally, 
-the Hierarchy Builder framework makes the deep dependency structure of domain theory -- where each algebraic layer extends the last -- 
-manageable in a way that hand-assembled infrastructure cannot sustain at scale.
-
-Quantum programs introduce a further and independent motivation for enriched domain theory. Most existing quantum languages --
-Proto-Quipper, Quipper, and their relatives -- support only \textit{classical control flow} over quantum data: the decision of which 
-branch to take is always a classical computation on classical information. \emph{Quantum control flow} -- branching on unmeasured
-quantum states -- is a strictly more expressive paradigm. The canonical example is the \textit{quantum switch} \cite{CDPV2013}: 
+Quantum programs introduce a further and independent motivation for enriched domain theory. Most existing quantum languages---
+Proto-Quipper, Quipper, and their relatives---support only \textit{classical control flow} over quantum data: the decision of which 
+branch to take is always a classical computation on classical information. \emph{Quantum control flow}---branching on unmeasured
+quantum states---is a strictly more expressive paradigm. The canonical example is the \textit{quantum switch} \cite{CDPV2013}: 
 given operations $A$ and $B$ and a control qubit in state $\alpha|0\rangle + \beta|1\rangle$, apply $A$ then $B$ on the $|0\rangle$
 branch and $B$ then $A$ on the $|1\rangle$ branch, without measuring the qubit. The result operates coherently on a superposition of
-causal orders, a process with no classical analogue and one that has since been realized experimentally across multiple physical
-platforms [placeholder citation]. Classical domain theory cannot model this: its order structure $x \sqsubseteq y$ is Boolean-valued -- 
-a proposition that is simply true or false -- and cannot itself carry quantum information or exist in superposition. Modeling 
-quantum-coherent ordering requires a richer structure. The natural replacement is a \emph{quantale-valued} order $R(x, y) \in Q$, 
-where $Q$ is an \textit{involutive quantale} -- a noncommutative lattice whose elements carry quantum information, defined precisely 
-in \cref{sec:disc-qcpo}. This yeilds \emph{quantum CPOs} ($\qCPO$s), introduced by Kornell, Lindenhovius, and Mislove \cite{KLM2024}, who 
+causal orders, a process with no classical analogue, whose indefinite causal order has recently been verified experimentally%
+\footnote{Richter et al.\ \cite{RichterEtAl2025} report the first device-independent verification protocol: their photonic 
+quantum-switch experiment violates a Bell-like causal inequality by 18 standard deviations, demonstrating correlations 
+incompatible with any definite ordering of events.}. Classical domain theory cannot model this: its order structure $x \sqsubseteq y$ is 
+Boolean-valued---a proposition that is simply true or false---and cannot itself carry quantum information or exist in superposition. 
+Modeling quantum-coherent ordering requires a richer structure. The natural replacement is a \emph{quantale-valued} order $R(x, y) \in Q$, 
+where $Q$ is an \textit{involutive quantale}---a noncommutative lattice whose elements carry quantum information, defined precisely 
+in \cref{sec:disc-qcpo}. This yields \emph{quantum CPOs} ($\qCPO$s), introduced by Kornell, Lindenhovius, and Mislove \cite{KLM2024}, who 
 show that the resulting category is algebraically compact in the relevant sense: recursive type equations have canonical solutions, 
-providing the semantic foundations needed for quantum type systems with recursion. What makes this generalization particularly significant 
-for this thesis is a structural observation: given quantum $\CPO$s $X$ and $Y$, the set of quantum Scott continuous maps 
-$[X \rightarrow_{q} Y]$ carries a pointwise quantum order that is itself a $\CPO$: $\qCPO$s, in other words, have hom-sets that are 
-themselves $\CPO$s -- precisely the definition of a $\CPO$-enriched category. As a result, the same abstract enriched framework developed 
-for classical recursive types applies to quantum domains without modification.
+providing the semantic foundations needed for quantum type systems with recursion. The crucial observation for this thesis is structural. 
+Given quantum $\CPO$s $X$ and $Y$, the quantum Scott-continuous maps $[X \to_{q} Y]$ form a $\CPO$ under the pointwise quantum order. 
+That is, $\qCPO$ hom-sets are themselves $\CPO$s---precisely the definition of a $\CPO$-enriched category. The same 
+abstract enriched framework developed for classical recursive types therefore applies to quantum domains without 
+modification.
 
-This thesis presents a unified, Modern Rocq library formalizing this perspective, taking \cite{BKV2009} as its classical starting point 
-and building outward. On the classical side, we modernize and substantially extend the original development: the full order-theoretic
-and $\CPO$-theoretic foundations, the Kleen fixed-point theorem with its internalized form \textbf{FIXP} as a scott-continuous operator 
-on the function-space $\CPO$, teh lift monad with a fully proved suprememum  construction, and a complete PCF$_v$ adequacy theorem via
-a type-index logical relation. The enriched layer formalizes $\CPO$-enriched categories, locally continuous functors, enriched natural
-transformations, and the complete framework for mixed-variance recursive domain equations -- mixed-variance locally continuous 
-bifunctors, EP-pair lifting, the approximating sequence $D_0, F(D_0, D_0), F^2(D_0, D_0), ...$ with its ep-chain structure, and a 
-precise record specification, \textbf{BilimitData}, of what constitutes a bilimit solution. All consequences of a bilimit -- including 
-the isomorphism $D_{\infty} \cong F(D_{\infty}, D_{\infty})$ with explicit \textbf{ROLL} and \textbf{UNROLL} morphisms and the 
-convergence of the deflation chain to teh identity -- are derived from a single axiom asserting bilimit existence. That axiom's sole 
-proof obligation is the construction of an $\omega$-product $\CPO$, a standard result whose formalization we leave to future work. The 
-BilimitData record precisely characterizes what that formalization must establish, making the remaining proof obligation explicit. 
-On the quantum side, we formalize involutive quantales, quantum posets, and quantum $\CPO$s, and register $\qCPO$ as a 
-\textbf{CPOEnrichedCat} instance -- obtaining EP-pairs, locally continuous functors, and the recursive domain equation framework 
-for quantum domains as immediate corrollaries of the general enriched theory.
+The choice to develop this theory as a mechanized library reflects the particular demands of the subject. \emph{Proof assistants} reject
+informal argument: every definition must be fully specified and every proof must close under \emph{kernel} verification. In a subject 
+as technically intricate as domain theory---where subtle conditions on order, continuity, and chain stability interact throughout
+---this discipline is not merely convenient but epistemically significant. Mechanisation also enables a qualitatively different form 
+of reuse: once $\qCPO$ is registered as a \textbf{CPOEnrichedCat} instance, \Rocq{}'s elaborator automatically locates and applies every 
+enriched theorem to quantum domain contexts, with machine-checked evidence that every implicit hypotheses is satisfied and no condition
+has been silently assumed -- unlike citing a paper theorem. Finally, the Hierarchy Builder framework makes the deep dependency structure 
+of domain theory---where each algebraic layer extends the last---manageable in a way that hand-assembled infrastructure cannot sustain 
+at scale.
+
+This thesis presents a unified, modern \Rocq{} library formalizing this perspective, taking \cite{BKV2009} as its classical 
+starting point and building outward. The library comprises three layers: a modernized classical development (partial orders through the 
+Kleene fixed-point theorem, the lift monad, and a complete PCF$_v$ adequacy proof), a $\CPO$-enriched category formalization 
+(enriched categories, locally continuous functors, natural transformations, and the framework for recursive domain equations via 
+EP-pairs and bilimits), and a quantum extension that registers $\qCPO$ as a \textbf{CPOEnrichedCat} instance---obtaining the full 
+enriched toolkit for quantum domains as an immediate corollary. The detailed contributions are enumerated in 
+\cref{sec:intro-contributions}.
 
 % TODO: add note defining fixpoint operator
-
-% Denotational semantics is an approach to formalizing the behaviour and 
-% structure of programs by assigning mathematical meaning to the syntax of 
-% programming languages. This usually takes the form of interpreting 
-% types as domains and terms as continuous functions between them.  
-% The mathematical backbone of this enterprise is
-% \emph{domain theory}---the study of $\omega$-complete partial orders
-% ($\omega$-CPOs), Scott-continuous maps, and their fixed points---which
-% provides the structures needed to give meaning to recursion and
-% partiality \cite{AJ1994}.
-
-% A landmark in the mechanisation of these ideas is the \Rocq{}
-% (formerly Coq) library of Benton, Kennedy, and Varming
-% \cite{BKV2009}, which formalised $\omega$-CPOs, the Kleene
-% fixed-point theorem, and the denotational semantics of PCF in Coq~8.2.
-% While influential, that library predates modern proof-assistant
-% infrastructure: it uses hand-rolled typeclasses, lacks any notion of
-% enriched categories, and has not been maintained for over a decade.
-
-% Meanwhile with the development of quantum architecture, interest in 
-% \emph{quantum programming languages} has motivated a \emph{quantum} 
-% generalisation of domain theory.  Kornell, Lindenhovius, and Mislove 
-% \cite{KLM2024} replace the classical Boolean-valued order $x \sqsubseteq y$ with a
-% quantale-valued order $R(x,y) \in Q$, yielding \emph{quantum CPOs}
-% whose hom-sets are themselves CPOs---a form of CPO-enrichment that
-% arises naturally from the quantum setting.  Formalising this richer
-% structure demands an enriched-category layer that \cite{BKV2009} never
-% provided.
-
-% This thesis addresses both gaps.  We present a from-scratch
-% domain-theory library for \Rocq{} 9.0, built on the Hierarchy Builder
-% framework \cite{HB2023}, that
-% %
-% \begin{enumerate}
-%   \item modernises and extends the classical development of
-%         \cite{BKV2009} (partial orders through the Kleene theorem,
-%         products, sums, function spaces, the lift monad, and a full
-%         PCF adequacy proof);
-%   \item introduces a CPO-enriched category formalisation (enriched
-%         categories, locally continuous functors, natural
-%         transformations, and a term-level Yoneda lemma); and
-%   \item lays the groundwork for quantum domain theory by formalising
-%         involutive quantales, quantum posets, quantum CPOs, and
-%         the quantum Kleene fixed-point theorem following \cite{KLM2024}.
-% \end{enumerate}
-% %
-% The enriched-category layer is not merely an afterthought: it is the
-% organising principle that connects the classical and quantum theories,
-% since both $\CPO$ and $\qCPO$ are instances of CPO-enriched
-% categories.
 
 % NOTE: You can cross-reference later chapters like this:
 %   \cref{ch:background}  →  "Chapter 2"
@@ -182,6 +125,7 @@ for quantum domains as immediate corrollaries of the general enriched theory.
 % 3. Recursive domain equations via EP-pairs and bilimits
 % 4. Full PCF adequacy proof (soundness + adequacy via logical relation)
 % 5. Discussion of quantum extensions (qCPO framework)
+
 
 % ── Thesis outline ────────────────────────────────────────────────
 \section{Thesis Outline}
