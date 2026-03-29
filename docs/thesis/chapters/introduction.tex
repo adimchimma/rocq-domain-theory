@@ -16,9 +16,9 @@ its denotation---in a way that respects the structure of the language. For simpl
 are straightforward. For programs with recursion and recursive types, however, the construction of a suitable 
 mathematical universe is itself a deep problem.
 
-Consider the recursive definition $f(x) = 1 + f(x)$. As a program, this defines $f$ by self-reference: $f$ calls 
-itself on every input, computing nothing---it diverges. But the program's defining equation is also 
-a mathematical equation with no solution. The definition is nonetheless a well-formed program in any language 
+Consider the recursive definition: $f(x) = 1 + f(x)$. As a program, this defines $f$ by self-reference: $f$ calls 
+itself on every input, computing nothing---it diverges. But the program's definition, within this framework of constructing denotations for programs, 
+is also an mathematical equation with no solution. Nevertheless, the program is well-formed in any language 
 supporting general recursion---so a complete mathematical semantics must assign it a precise meaning. The answer \emph{domain theory} 
 gives is elegant: interpret $f$ as the \textit{least fixed point} of the operator $\Phi(g)(x) = 1 + g(x)$, 
 computed as the supremum of the sequence $\bot, \Phi(\bot), \Phi^{2}(\bot), \ldots$ in a mathematical structure---an 
@@ -70,9 +70,9 @@ the Hierarchy Builder framework \cite{HB2023}---now the standard approach for hi
 \cite{BKV2009} entirely, and the hand-assembled infrastructure of that era makes extending the library difficult in practice. 
 This thesis takes \cite{BKV2009} as its classical foundation and extends it in both directions.
 
-Quantum programs introduce a further and independent motivation for enriched domain theory. Most existing quantum languages---
+The second direction, being quantum programming languages, attempts to capture the phenomenon their semantics requires that classical domain theory cannot provide. Most existing quantum languages---
 Proto-Quipper, Quipper, and their relatives---support only \textit{classical control flow} over quantum data: the decision of which 
-branch to take is always a classical computation on classical information. \emph{Quantum control flow}---branching on unmeasured
+branch to take is always a classical computation on classical information. However, \emph{Quantum control flow}---branching on unmeasured
 quantum states---is a strictly more expressive paradigm. The canonical example is the \textit{quantum switch} \cite{CDPV2013}: 
 given operations $A$ and $B$ and a control qubit in state $\alpha|0\rangle + \beta|1\rangle$, apply $A$ then $B$ on the $|0\rangle$
 branch and $B$ then $A$ on the $|1\rangle$ branch, without measuring the qubit. The result operates coherently on a superposition of
@@ -95,9 +95,9 @@ The choice to develop this theory as a mechanized library reflects the particula
 informal argument: every definition must be fully specified and every proof must close under \emph{kernel} verification. In a subject 
 as technically intricate as domain theory---where subtle conditions on order, continuity, and chain stability interact throughout
 ---this discipline is not merely convenient but epistemically significant. Mechanisation also enables a qualitatively different form 
-of reuse: once $\qCPO$ is registered as a \textbf{CPOEnrichedCat} instance, \Rocq{}'s elaborator automatically locates and applies every 
+of reuse: once $\qCPO$ is registered as a \textbf{CPOEnrichedCat} instance, \Rocq{}'s elaborator automatically locates and applies every
 enriched theorem to quantum domain contexts, with machine-checked evidence that every implicit hypotheses is satisfied and no condition
-has been silently assumed -- unlike citing a paper theorem. Finally, the Hierarchy Builder framework makes the deep dependency structure 
+has been silently assumed --- unlike citing a paper theorem. Finally, the Hierarchy Builder framework makes the deep dependency structure 
 of domain theory---where each algebraic layer extends the last---manageable in a way that hand-assembled infrastructure cannot sustain 
 at scale.
 
@@ -105,11 +105,10 @@ This thesis presents a unified, modern \Rocq{} library formalizing this perspect
 starting point and building outward. The library comprises three layers: a modernized classical development (partial orders through the 
 Kleene fixed-point theorem, the lift monad, and a complete PCF$_v$ adequacy proof), a $\CPO$-enriched category formalization 
 (enriched categories, locally continuous functors, natural transformations, and the framework for recursive domain equations via 
-EP-pairs and bilimits), and a quantum extension that registers $\qCPO$ as a \textbf{CPOEnrichedCat} instance---obtaining the full 
-enriched toolkit for quantum domains as an immediate corollary. The detailed contributions are enumerated in 
+EP-pairs and bilimits), and a quantum extension that demonstrates $\qCPO$ satisfies the axioms of a 
+\textbf{CPOEnrichedCat}---making the full enriched toolkit applicable to quantum domains. The detailed contributions are enumerated in 
 \cref{sec:intro-contributions}.
 
-% TODO: add note defining fixpoint operator
 
 % NOTE: You can cross-reference later chapters like this:
 %   \cref{ch:background}  →  "Chapter 2"
@@ -138,9 +137,11 @@ The contributions of this thesis are as follows.
   We formalize $\CPO$-enriched categories---categories whose hom-sets are $\CPO$s and whose composition 
   is jointly Scott-continuous---together with locally continuous functors and enriched natural 
   transformations. For natural transformations we prove vertical composition, left and right whiskering, 
-  and the existence of pointwise suprema for chains of natural transformations. This layer is entirely 
-  original: \cite{BKV2009} had no enriched-categorical structure, and to our knowledge no prior \Rocq{} 
-  library formalizes $\CPO$-enrichment.
+  and the existence of pointwise suprema for chains of natural transformations. As a validation, we prove 
+  an enriched Yoneda lemma, establishing a $\CPO$ isomorphism between natural transformations out of a 
+  representable functor and the representing object. This layer is entirely original: \cite{BKV2009} had no 
+  enriched-categorical structure, and while recent work has formalized general V-enrichment in a univalent 
+  setting \cite{VanDerWeide2024}, no prior library targets $\CPO$-enrichment for domain-theoretic applications.
 
 \item \textbf{Recursive domain equations via EP-pairs and bilimits.}
   Building on the enriched layer, we formalize \textit{embedding-projection pairs}, their composition 
