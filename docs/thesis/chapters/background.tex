@@ -2511,14 +2511,247 @@ requires more refined models such as game semantics.
 \section{Proof Assistants and \Rocq{}}
 \label{sec:bg-rocq}
 
-% References: HB2023
+The preceding sections developed domain theory, enriched category theory,
+and the denotational semantics of PCF\textsubscript{v} as pen-and-paper
+mathematics.  The central contribution of this thesis is a
+\emph{mechanized} development of these results: every definition is
+formally specified and every proof is machine-checked.  This section
+introduces the proof assistant in which the library is built and the
+framework used to organize its algebraic hierarchy.
 
 \subsection{The \Rocq{} Proof Assistant}
 \label{sec:bg-rocq-assistant}
 
-% TODO: Brief intro to Rocq (CIC, tactics, extraction)
+A \emph{proof assistant} (also called an \emph{interactive theorem
+prover}) is a software system in which a user writes mathematical
+definitions and proofs in a formal language, and a small, trusted
+program---the \emph{kernel}---checks that every deductive step is valid.
+The kernel implements a fixed set of inference rules; it accepts a proof
+only when the entire argument can be reduced to a sequence of these
+rules.  Because the kernel is small (typically a few thousand lines of
+code) and performs no heuristic reasoning, its correctness can be
+audited independently of the much larger system that surrounds it.  The
+result is a strong guarantee: any theorem that \Rocq{} accepts has been
+verified against a well-understood logical foundation, regardless of how
+the proof was constructed.
+
+\Rocq{} (historically known as Coq) is a proof assistant whose logical
+foundation is the \emph{Calculus of Inductive Constructions}
+(CIC)~\cite{BertotCasteran2004}, a dependent type theory in the
+tradition of Martin-L\"{o}f.  CIC serves simultaneously as a programming
+language and a logic: the same formal language is used to define
+mathematical objects, state theorems about them, and construct proofs of
+those theorems.  We describe below the features of CIC and \Rocq{} that
+the reader will need in subsequent chapters; a comprehensive treatment
+can be found in~\cite{BertotCasteran2004}.
+
+\subsubsection*{Types, terms, and the Curry--Howard correspondence.}
+
+A constructive proof of an implication $A \Rightarrow B$ is, in
+essence, a method that transforms any proof of~$A$ into a proof
+of~$B$---it is a function from proofs of~$A$ to proofs of~$B$.
+Similarly, a constructive proof of a conjunction $A \land B$ is a pair:
+a proof of~$A$ together with a proof of~$B$.  The
+\emph{Curry--Howard correspondence} makes this analogy precise:
+propositions are identified with types, and proofs are identified with
+terms (programs) inhabiting those types.  Under this identification, the
+implication $A \Rightarrow B$ corresponds to the function type $A \to B$,
+the conjunction $A \land B$ corresponds to the product type $A \times B$,
+and the universal quantification $\forall x : A,\, P(x)$ corresponds to
+a dependent function type $\prod_{x : A} P(x)$---a function that, given
+any element~$x$ of~$A$, produces a proof of~$P(x)$.
+
+CIC is built on this correspondence: there is no separate logical
+language layered on top of a programming language.  Instead, every
+proposition is literally a type, and every proof is literally a
+term that the kernel type-checks.  This is why the same language
+used to define data (natural numbers, lists, trees) also serves to
+state and prove theorems about that data.
+
+\subsubsection*{Dependent types.}
+
+The key feature that distinguishes CIC from the simply-typed lambda
+calculus is \emph{dependent types}: types that are parameterised by
+values.  For instance, one can define the type $\mathrm{Vec}(A, n)$ of
+lists of exactly~$n$ elements drawn from~$A$.  The type itself records
+the length, so the type system statically tracks dimensional constraints
+that would otherwise require runtime checks or informal convention.  In
+the context of this thesis, dependent types are used pervasively: for
+example, the type of a well-typed PCF\textsubscript{v} value is indexed
+by both its typing context~$\Gamma$ and its type~$\tau$
+(\cref{sec:bg-pcf-syntax}), so that ill-typed terms are not merely
+rejected but are \emph{inexpressible}.
+
+\subsubsection*{Inductive types.}
+
+CIC provides \emph{inductive type} declarations as the primary mechanism
+for introducing new data types and propositions.  An inductive type is
+specified by a list of \emph{constructors}, each of which describes one
+way to build an element of the type.  For example, the natural numbers
+are defined by two constructors: a zero constructor and a successor
+constructor that takes an existing natural number.  Propositions are
+defined analogously: the proposition ``$n$ is even'' might have a
+constructor witnessing that $0$ is even and a constructor witnessing that
+if $n$ is even then $n + 2$ is even.  Each inductive type comes equipped
+with a \emph{recursion principle} and an \emph{induction principle},
+generated automatically, which allow one to define functions out of the
+type and prove properties about it.  The evaluation rules, typing
+judgements, and logical relations encountered in earlier sections
+(\cref{sec:bg-pcf-syntax,sec:bg-adequacy}) are all naturally expressed
+as inductive types in \Rocq{}.
+
+\subsubsection*{Gallina and Ltac.}
+
+\Rocq{} separates its \emph{specification language}, called
+\emph{Gallina}, from its \emph{tactic language}, called \emph{Ltac}.
+Gallina is the core functional programming language in which definitions,
+theorems, and proof terms are ultimately expressed---it is the language
+that the kernel checks.  Ltac is a meta-language for \emph{constructing}
+Gallina terms interactively: the user issues tactic commands (such as
+``apply this lemma,'' ``perform induction on this variable,'' or
+``simplify the goal'') and \Rocq{} incrementally builds the underlying
+proof term.  The final proof term produced by tactics is verified by the
+kernel in exactly the same way as a term written directly in Gallina.
+This separation is the source of \Rocq{}'s trustworthiness: the tactic
+language, the user interface, and any external automation may be
+arbitrarily complex or even buggy, but every proof term they produce must
+still pass the kernel's independent check.  The trusted computing base
+is therefore the kernel alone.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners=3pt, minimum width=2.4cm,
+                minimum height=0.9cm, align=center, font=\small},
+    arr/.style={-Stealth, thick}
+]
+    \node[box]               (user)   at (0,0)   {User\\(Ltac)};
+    \node[box]               (term)   at (4.5,0) {Proof term\\(Gallina)};
+    \node[box, fill=gray!15] (kernel) at (9,0)   {Kernel};
+
+    \draw[arr] (user)   -- node[above, font=\footnotesize]{constructs} (term);
+    \draw[arr] (term)   -- node[above, font=\footnotesize]{checked by} (kernel);
+\end{tikzpicture}
+\caption{The Ltac--Gallina--kernel pipeline in \Rocq{}.  Tactic commands
+  construct a proof term in Gallina; the kernel type-checks it
+  independently.  The trusted computing base is the kernel alone.}
+\label{fig:ltac-gallina}
+\end{figure}
+
+\subsubsection*{Constructivity and classical extensions.}
+
+CIC is \emph{constructive} by default: the law of excluded middle
+($P \lor \lnot P$ for every proposition~$P$) and the axiom of choice are
+not built into the logic.  This means that, for instance, proving the
+existence of an object requires exhibiting a witness, not merely deriving
+a contradiction from its non-existence.  However, classical axioms can be
+\emph{added} to \Rocq{} as consistent extensions of CIC without
+compromising soundness---one simply loses the computational content of
+the affected proofs.  The library developed in this thesis makes use of
+two such extensions, whose specific roles are discussed in
+\cref{ch:methods}: classical indefinite description (for constructing
+suprema in the lift monad) and functional extensionality (for reasoning
+about equality of continuous functions).
 
 \subsection{Hierarchy Builder}
 \label{sec:bg-hb}
 
-% TODO: HB mixin/structure/instance pattern, why it matters
+Mathematical practice organises concepts into hierarchies: a group is a
+monoid with inverses, a ring is an abelian group with a multiplication,
+and so on.  Formalizing such hierarchies in a dependently typed proof
+assistant is surprisingly difficult.  The core challenge is the
+\emph{diamond problem}: when a structure~$S$ inherits from two
+intermediate structures~$A$ and~$B$ that share a common
+ancestor~$C$, the system must ensure that the two copies of~$C$'s data
+agree.  In a proof assistant, this manifests as a coherence problem among
+coercions, canonical projections, and type-class instances that quickly
+becomes unmanageable as the hierarchy grows.
+
+Early approaches in \Rocq{} required the library author to hand-manage
+\emph{canonical structures} (a mechanism by which \Rocq{}'s unifier
+automatically infers algebraic data from the type of a term) or
+\emph{type classes} (a mechanism inspired by Haskell that uses
+backtracking proof search to resolve instances).  Both approaches work
+for small hierarchies but scale poorly: adding a new node to a hierarchy
+of~$n$ structures can require $O(n^2)$ boilerplate declarations, and a
+single misplaced coercion can silently break unification across the
+entire library.
+
+\emph{Hierarchy Builder} (\HB{})~\cite{HB2023} solves this problem by
+introducing a disciplined abstraction layer with three central concepts:
+%
+\begin{description}
+  \item[Mixin.] A \emph{mixin} is a bundle of operations and axioms that
+    describes one layer of algebraic structure.  For example, a mixin
+    might declare a binary relation~$\le$ and an axiom asserting
+    reflexivity.  Mixins are the only component the user writes
+    directly.
+
+  \item[Structure.] A \emph{structure} is a cumulative collection of
+    mixins.  \HB{} synthesises structure types automatically from the
+    mixin dependency graph: if mixin~$M_2$ depends on mixin~$M_1$, then
+    any structure containing~$M_2$ automatically includes~$M_1$.  \HB{}
+    also generates the coercions between structures, so that, for
+    example, every pointed $\omega$-CPO can be used wherever a partial
+    order is expected---without the user declaring any coercion.
+
+  \item[Instance.] An \emph{instance} is a proof that a particular type
+    satisfies the axioms of a structure.  The user provides mixin
+    instances (the operations and proofs for each layer), and \HB{}
+    assembles them into the appropriate structure, registers the result
+    with \Rocq{}'s canonical structure mechanism, and makes it available
+    for automatic inference.
+\end{description}
+%
+The benefit is that the user's responsibilities are local---write one
+mixin declaration per algebraic layer and one instance proof per concrete
+model---while \HB{} handles the global concerns of coercion coherence,
+subtyping paths, and canonical instance resolution.
+\Cref{fig:hb-workflow} illustrates this division of labour.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners=3pt, minimum width=2.6cm,
+                minimum height=0.9cm, align=center, font=\small},
+    gen/.style={box, fill=gray!15},
+    arr/.style={-Stealth, thick},
+    lbl/.style={font=\footnotesize, midway}
+]
+    % User-written
+    \node[box] (mixin)    at (0,0)    {Mixins};
+    \node[box] (instance) at (0,-1.8) {Instances};
+
+    % HB generates
+    \node[gen] (struct)   at (5,0)    {Structures};
+    \node[gen] (coerce)   at (5,-1.8) {Coercions};
+    \node[gen] (canon)    at (5,-3.6) {Canonical\\projections};
+
+    % Arrows
+    \draw[arr] (mixin)    -- node[lbl, above]{\HB{} generates} (struct);
+    \draw[arr] (mixin)    -- (coerce);
+    \draw[arr] (instance) -- (canon);
+    \draw[arr] (instance) -- (coerce);
+
+    % Annotations
+    \node[font=\footnotesize, above=6pt] at (0,0.45)   {\textit{user writes}};
+    \node[font=\footnotesize, above=6pt] at (5,0.45)   {\textit{\HB{} synthesises}};
+\end{tikzpicture}
+\caption{The Hierarchy Builder workflow.  The user declares mixins
+  (bundles of axioms) and instances (proofs that a concrete type
+  satisfies those axioms).  \HB{} automatically synthesises structure
+  types, coercions between structures, and canonical projections for
+  instance resolution.}
+\label{fig:hb-workflow}
+\end{figure}
+
+In this thesis, the entire algebraic hierarchy is declared via \HB{}: the
+chain of structures from preorders through partial orders, $\omega$-CPOs,
+pointed CPOs, and CPO-enriched categories, as well as all concrete
+instances (product CPOs, function spaces, the lift monad, discrete
+orders, and so on).  The practical consequence is that when a type is
+registered as, say, a pointed $\omega$-CPO, every theorem about partial
+orders, $\omega$-chains, and least upper bounds becomes automatically
+available for that type, with no additional declarations required by the
+library user.  The specific hierarchy and the design decisions behind it
+are described in \cref{ch:methods}.
