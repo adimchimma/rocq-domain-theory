@@ -393,6 +393,32 @@ in the flat domain). The supremum is $\bot$ itself, correctly capturing
 divergence.
 \end{example}
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[arr/.style={-Stealth, thick}]
+    \fill (0,0)   circle (2pt) node (n0)   {};
+    \fill (2.2,0) circle (2pt) node (n1)   {};
+    \fill (4.6,0) circle (2pt) node (n2)   {};
+    \fill (8.2,0) circle (2pt) node (nfix) {};
+
+    \node[below=5pt, font=\small] at (n0)   {$\bot$};
+    \node[below=5pt, font=\small] at (n1)   {$f(\bot)$};
+    \node[below=5pt, font=\small] at (n2)   {$f^2(\bot)$};
+    \node[below=5pt, font=\small] at (nfix) {$\fixp(f)$};
+    \node[above=5pt, font=\small] at (nfix) {$= \lub_n f^n(\bot)$};
+
+    \draw[arr] (n0) -- node[above, font=\scriptsize]{$\sqsubseteq$} (n1);
+    \draw[arr] (n1) -- node[above, font=\scriptsize]{$\sqsubseteq$} (n2);
+    \draw[arr] (n2) -- (6.1,0);
+    \node at (6.4,0) {$\cdots$};
+    \draw[arr, dashed] (6.7,0) -- (nfix);
+\end{tikzpicture}
+\caption{The Kleene chain of a Scott-continuous $f : D \to_c D$ on a
+  pointed CPO.  Each iterate $f^n(\bot)$ is a finer approximation;
+  their supremum is the least fixed point $\fixp(f)$.}
+\label{fig:kleene-chain}
+\end{figure}
+
 The Kleene theorem provides the fixed point. To \emph{reason} about fixed
 points, we need an induction principle.
 
@@ -792,6 +818,33 @@ Both directions of the proof are constructive (no appeal to classical
 logic is necessary), a point we return to when discussing the
 formalisation in \cref{ch:methods}.
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[arr/.style={-Stealth, thick}]
+    % Domain D (left)
+    \draw (0,0) ellipse (1.8cm and 1.4cm);
+    \node[above=1.5cm] at (0,0) {$D$};
+    \fill[gray!25] (-0.2,0) ellipse (0.9cm and 0.72cm);
+    \draw          (-0.2,0) ellipse (0.9cm and 0.72cm);
+    \node[font=\small] at (-0.2,0) {$f^{-1}(U)$};
+
+    % Domain E (right)
+    \draw (5.5,0) ellipse (1.8cm and 1.4cm);
+    \node[above=1.5cm] at (5.5,0) {$E$};
+    \fill[gray!25] (5.8,0) ellipse (0.9cm and 0.72cm);
+    \draw          (5.8,0) ellipse (0.9cm and 0.72cm);
+    \node[font=\small] at (5.8,0) {$U$};
+
+    % Arrows
+    \draw[arr]         (1.9, 0.4) -- node[above, font=\small]{$f$} (3.6, 0.4);
+    \draw[arr, dashed] (3.6,-0.4) -- node[below, font=\footnotesize]{$f^{-1}$} (1.9,-0.4);
+\end{tikzpicture}
+\caption{Scott-continuity as a topological property: $f : D \to E$
+  is Scott-continuous if and only if $f^{-1}(U)$ is Scott-open in~$D$
+  for every Scott-open $U \subseteq E$.}
+\label{fig:scott-continuity}
+\end{figure}
+
 % ── Enriched category theory ─────────────────────────────────────
 \section{Enriched Category Theory}
 \label{sec:bg-enriched}
@@ -844,43 +897,40 @@ $f \in \mathcal{C}(A, B)$) and associativity
 
 
 \begin{remark}[Diagrammatic Form]
-The identity and associativity laws can be expressed as commutative diagrams:
-% ============================================
-% 1. LEFT IDENTITY: id ∘ f = f
-% ============================================
+The identity and associativity laws can be expressed as commutative diagrams.
 \begin{figure}[h]
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
 \centering
 \begin{tikzcd}[column sep=large, row sep=large]
 A \arrow[r, "f"] \arrow[dr, "f"'] & B \arrow[d, "\mathrm{id}_B"] \\
 & B
 \end{tikzcd}
-\caption{Left Identity Law: $\mathrm{id}_B \circ f = f$}
-\end{figure}
-
-% ============================================
-% 2. RIGHT IDENTITY: f ∘ id = f
-% ============================================
-\begin{figure}[h]
+\caption{Left identity}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[b]{0.3\textwidth}
 \centering
 \begin{tikzcd}[column sep=large, row sep=large]
 A \arrow[r, "\mathrm{id}_A"] \arrow[dr, "f"'] & A \arrow[d, "f"] \\
 & B
 \end{tikzcd}
-\caption{Right Identity Law: $f \circ \mathrm{id}_A = f$}
-\end{figure}
-
-% ============================================
-% 3. ASSOCIATIVITY: (h ∘ g) ∘ f = h ∘ (g ∘ f)
-% ============================================
-\begin{figure}[h]
+\caption{Right identity}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[b]{0.3\textwidth}
 \centering
-\begin{tikzcd}[column sep=huge, row sep=large]
+\begin{tikzcd}[column sep=large, row sep=large]
 A \arrow[r, "f"] \arrow[d, swap, "g \circ f"]
   & B \arrow[d, "h \circ g"] \\
 C \arrow[r, swap, "h"]
   & D
 \end{tikzcd}
-\caption{Associativity Law: $(h \circ g) \circ f = h \circ (g \circ f)$}
+\caption{Associativity}
+\end{subfigure}
+\caption{The category laws as commutative diagrams: (a)~$\mathrm{id}_B \circ f = f$,
+  (b)~$f \circ \mathrm{id}_A = f$, (c)~$(h \circ g) \circ f = h \circ (g \circ f)$.}
+\label{fig:category-laws}
 \end{figure}
 \end{remark}
 
@@ -1043,6 +1093,30 @@ $e \circ p \sqsubseteq \mathrm{id}_E$.
 Ep-pairs are the morphisms of choice for building the expanding
 sequences that underlie recursive domain equations
 (\cref{sec:bg-enriched-functors}).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[arr/.style={-Stealth, thick}]
+    \node[draw, ellipse, minimum width=1.4cm, minimum height=2.0cm] (D) at (0,0)   {};
+    \node[font=\normalsize] at (D) {$D$};
+
+    \node[draw, ellipse, minimum width=1.4cm, minimum height=2.8cm] (E) at (4.5,0) {};
+    \node[font=\normalsize] at (E) {$E$};
+
+    \draw[arr, bend left=25]  (D) to node[midway, above, font=\small]{$e$} (E);
+    \draw[arr, bend left=25]  (E) to node[midway, below, font=\small]{$p$} (D);
+
+    \node[align=center, font=\small] at (2.25,-2.2) {
+        $p \circ e = \mathrm{id}_D$ \quad (exact round-trip)\\[4pt]
+        $e \circ p \sqsubseteq \mathrm{id}_E$ \quad (retraction)
+    };
+\end{tikzpicture}
+\caption{An embedding--projection pair $(e, p) : D \to E$.  The larger oval
+  represents $E$; the smaller represents~$D$.  The round-trip
+  $p \circ e$ through $D$ is exact, while the round-trip $e \circ p$
+  through $E$ may lose information ($e \circ p \sqsubseteq \mathrm{id}_E$).}
+\label{fig:ep-pair}
+\end{figure}
 
 \subsection{Enriched Functors and Natural Transformations}
 \label{sec:bg-enriched-functors}
@@ -2069,7 +2143,30 @@ if the denotation is defined, the expression must converge to a related
 value.  This formulation, due to BKV, simplifies the traditional
 approach of Plotkin~\cite{Plotkin1977}, which uses an implication
 $d \neq \bot \implies \ldots$ and requires more delicate reasoning about
-chains.
+chains.  \Cref{fig:logical-relation-lift} illustrates the structure.
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}[column sep=4em, row sep=3.5em]
+\sem{\tau}
+  \arrow[r, "\mathcal{R}^v_\tau", dashed]
+  \arrow[d, "\eta"']
+& \mathsf{CValue}\;\tau
+  \arrow[d, "\mathsf{val}"]
+\\
+\sem{\tau}_\bot
+  \arrow[r, "\mathcal{R}^e_\tau"', dashed]
+& \mathsf{CExp}\;\tau
+\end{tikzcd}
+\caption{The logical relation as a lifted correspondence.  The value
+  relation~$\mathcal{R}^v_\tau$ connects semantic values to syntactic
+  values; the expression relation~$\mathcal{R}^e_\tau$ connects lifted
+  semantic values to closed expressions.  Applying $\eta$ on the left
+  and $\mathsf{val}$ on the right embeds the value level into the
+  expression level, and $\mathcal{R}^e_\tau$ extends
+  $\mathcal{R}^v_\tau$ by sending~$\bot$ to~$\top$.}
+\label{fig:logical-relation-lift}
+\end{figure}
 
 \begin{definition}[Environment relation]
 \label{def:rel-env}
