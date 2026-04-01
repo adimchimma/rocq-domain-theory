@@ -261,6 +261,26 @@ the overhead of setoid-rewriting infrastructure at the structure level.
 If a concrete instance used a coarser extensional equality, the laws
 would need to be restated in the relevant theory file.
 
+\paragraph{Plain records instead of universe polymorphism (DD-019).}
+Registering HB instances for functors and natural transformations on
+\texttt{CPOEnrichedCat.type} triggers Rocq universe inconsistencies:
+the quantification over all objects~$X : \mathcal{C}$ in a natural
+transformation forces the carrier universe of the functor to be at
+least as large as the universe of~$\mathcal{C}$, conflicting with HB's
+constraint that structure carriers inhabit a fixed universe level.
+Rocq's \texttt{Set Universe Polymorphism} could in principle resolve
+this by parameterising each definition over its universe level, but
+adopting it would require pervasive annotations across the entire HB
+hierarchy---every structure, mixin, and instance in the library would
+need explicit universe declarations---for no practical benefit beyond
+the enriched layer.  Instead, the library represents locally continuous
+functors (\texttt{lc\_functor}) and natural transformations
+(\texttt{nat\_trans}) as plain Rocq records outside HB, sidestepping the
+universe machinery entirely.  A conversion function
+\texttt{lc\_functor\_of\_hb} bridges from an HB
+\texttt{LocallyContinuousFunctor} instance to the plain record
+when needed.
+
 \paragraph{Instance ordering for \texttt{PointedCPO} (DD-008).}
 When registering a concrete type as a \texttt{PointedCPO}, the three HB
 instances---\texttt{HasBottom}, \texttt{IsCPO}, \texttt{IsPointed}---must
@@ -690,7 +710,9 @@ in the enriched category.  Second, identity, composition, and
 whiskering of functors produce new \texttt{lc\_functor} values; with HB
 structures each composition would require a new instance registration,
 whereas plain records compose directly.  A conversion function
-\texttt{lc\_functor\_of\_hb} bridges the two representations.
+\texttt{lc\_functor\_of\_hb} bridges the two representations;
+the rationale and the decision not to use universe polymorphism are
+discussed in \cref{sec:meth-design-decisions} (DD-019).
 
 Identity and composition of locally continuous functors are defined on
 \texttt{lc\_functor}: \texttt{id\_lc\_functor} packages the identity
