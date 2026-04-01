@@ -8,43 +8,543 @@
 \section{Library Architecture}
 \label{sec:meth-architecture}
 
-% TODO: src/ layout (structures, theory, instances, lang, quantum)
-% TODO: Dependency graph
-% TODO: Design philosophy: HB-first, plain records for chain/mono_fun/cont_fun
+The library is organised into five directories, each compiled as a separate
+Rocq theory by the Dune build system.  The dependency graph is strictly
+layered: each directory may import from the directories above it but never
+in the reverse direction.
 
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  dir/.style={draw, rounded corners, minimum width=3.6cm, minimum height=0.9cm,
+              font=\sffamily\small, fill=gray!8},
+  arr/.style={-{Stealth[length=6pt]}, thick},
+  plan/.style={-{Stealth[length=6pt]}, thick, dashed, gray},
+  node distance=1.3cm and 2.4cm,
+]
+  \node[dir] (str) {\texttt{structures/}};
+  \node[dir, below=of str] (thy) {\texttt{theory/}};
+  \node[dir, below=of thy] (inst) {\texttt{instances/}};
+  \node[dir, below left=of inst] (lang) {\texttt{lang/}};
+  \node[dir, below right=of inst] (qua) {\texttt{quantum/}};
+
+  \draw[arr] (thy) -- (str);
+  \draw[arr] (inst) -- (thy);
+  \draw[arr] (lang) -- (inst);
+  \draw[arr] (qua) -- (inst);
+  \draw[plan] (lang) -- node[below, font=\scriptsize\itshape, text=gray]
+    {planned} (qua);
+\end{tikzpicture}
+\caption{Directory dependency tree.  Solid arrows denote actual imports;
+  the dashed arrow marks a dependency that the Dune build files pre-declare
+  for the planned \texttt{QMiniCore} quantum language but that no current
+  source file uses.  Dependencies are transitive: \texttt{lang/} may
+  import from any directory above it.}
+\label{fig:dep-graph}
+\end{figure}
+
+The five layers serve distinct roles:
+\begin{itemize}
+  \item \texttt{structures/}\enspace contains the HB mixin and structure
+    declarations that define the algebraic hierarchy---partial orders,
+    $\omega$-CPOs, pointed CPOs, and CPO-enriched categories.  These files
+    declare \emph{what} the structures are but prove nothing beyond the most
+    immediate consequences of the axioms.
+
+  \item \texttt{theory/}\enspace contains derived mathematics: the
+    chain-stabilisation lemmas, fixed-point theory, the Scott topology, the
+    CPO constructions (products, sums, lifting, function spaces), enriched
+    natural transformations, and the domain-equation machinery.
+
+  \item \texttt{instances/}\enspace registers concrete models as HB
+    instances.  In particular, \texttt{Function.v} registers the function-space
+    CPO $[D \to_c E]$ as an instance of \texttt{CPOEnrichedCat}---the
+    self-enrichment of \textbf{CPO}---and \texttt{FunLift.v} registers the
+    mixed-variance bifunctor $D \mapsto [D \to_c D_\bot]$ as a
+    \texttt{MixedLCFunctor} instance.
+
+  \item \texttt{quantum/}\enspace formalises the quantum domain theory of
+    Kornell, Lindenhovius, and Mislove: involutive quantales, quantum posets,
+    quantum CPOs, and quantum-continuous morphisms.
+
+  \item \texttt{lang/}\enspace formalises the PCF$_v$ language---its syntax,
+    operational semantics, denotational semantics, soundness, and adequacy---and
+    will host the quantum language \texttt{QMiniCore} when it is specified.
+\end{itemize}
+
+This layering enforces a clean separation of concerns.  A file in
+\texttt{structures/} cannot depend on a proof in \texttt{theory/}; a file
+in \texttt{theory/} cannot depend on a concrete instance.  Several of the
+design decisions discussed in \cref{sec:meth-design-decisions} are
+direct consequences of maintaining this discipline---in particular, the
+separate-continuity axioms for enriched composition (\cref{sec:meth-enriched-structure})
+exist precisely to avoid a circular dependency between \texttt{structures/}
+and \texttt{theory/}.
+
+
+% ── The algebraic hierarchy ───────────────────────────────────────
 \subsection{The Algebraic Hierarchy}
 \label{sec:meth-hierarchy}
 
-% TODO: HB mixin chain: HasLe → IsPreorder → IsPartialOrder → HasSup → IsCPO → ...
-% Diagram of the hierarchy
+The library's type hierarchy is declared using Hierarchy Builder.  As
+described in \cref{sec:bg-hb}, HB synthesises bundled structures,
+coercion paths, and canonical projections from user-written mixins.
+The hierarchy splits into two tracks: an \emph{order track} for domain
+theory and an \emph{enriched track} for enriched category theory.
 
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  mixin/.style={draw, rounded corners=3pt, minimum width=2.4cm,
+                minimum height=0.7cm, font=\small\ttfamily, fill=blue!6},
+  struct/.style={draw, rounded corners=3pt, minimum width=2.4cm,
+                 minimum height=0.7cm, font=\small\sffamily\bfseries, fill=orange!10},
+  arr/.style={-{Stealth[length=5pt]}, semithick},
+  node distance=0.85cm and 1.8cm,
+]
+  % ── Order track ──
+  \node[mixin] (hasle) {HasLe};
+  \node[mixin, below=of hasle] (ispre) {IsPreorder};
+  \node[mixin, below=of ispre] (ispo) {IsPartialOrder};
+  \node[mixin, below=of ispo] (hassup) {HasSup};
+  \node[mixin, below=of hassup] (iscpo) {IsCPO};
+
+  % Pointed branch
+  \node[mixin, below left=1.0cm and 1.6cm of iscpo] (hasbot) {HasBottom};
+  \node[mixin, below=of hasbot] (isptd) {IsPointed};
+
+  % Bundled structures (right)
+  \node[struct, right=3.2cm of ispre] (pre) {Preorder};
+  \node[struct, right=3.2cm of ispo] (po) {PartialOrder};
+  \node[struct, right=3.2cm of iscpo] (cpo) {CPO};
+  \node[struct, right=3.2cm of isptd] (pcpo) {PointedCPO};
+
+  % ── Enriched track ──
+  \node[mixin, below right=1.0cm and 1.6cm of iscpo] (hashom) {HasHom};
+  \node[mixin, below=of hashom] (hasid) {HasId};
+  \node[mixin, below=of hasid] (iscpoe) {IsCPOEnriched};
+
+  \node[struct, right=3.2cm of iscpoe] (cpoecat) {CPOEnrichedCat};
+
+  % ── Arrows (order track) ──
+  \draw[arr] (ispre) -- (hasle);
+  \draw[arr] (ispo) -- (ispre);
+  \draw[arr] (hassup) -- (ispo);
+  \draw[arr] (iscpo) -- (hassup);
+  \draw[arr] (hasbot) -- (iscpo);
+  \draw[arr] (isptd) -- (hasbot);
+
+  % ── Arrows (enriched track) ──
+  \draw[arr] (hashom) -- (iscpo);
+  \draw[arr] (hasid) -- (hashom);
+  \draw[arr] (iscpoe) -- (hasid);
+
+  % ── Arrows to bundled structures ──
+  \draw[arr, dashed, gray] (ispre) -- (pre);
+  \draw[arr, dashed, gray] (ispo) -- (po);
+  \draw[arr, dashed, gray] (iscpo) -- (cpo);
+  \draw[arr, dashed, gray] (isptd) -- (pcpo);
+  \draw[arr, dashed, gray] (iscpoe) -- (cpoecat);
+\end{tikzpicture}
+\caption{The HB mixin hierarchy.  Blue boxes are mixins (bundles of data
+  or axioms); orange boxes are the bundled structures that HB synthesises.
+  Solid arrows indicate mixin dependencies; dashed arrows indicate which
+  mixins contribute to each structure.}
+\label{fig:mixin-hierarchy}
+\end{figure}
+
+The order track begins with \texttt{HasLe}, which attaches a binary
+relation~$\sqsubseteq$ to a type.  Successive mixins add reflexivity
+and transitivity (\texttt{IsPreorder}), antisymmetry
+(\texttt{IsPartialOrder}), a supremum function (\texttt{HasSup}), and the
+least-upper-bound axioms (\texttt{IsCPO}).  A parallel branch adds a
+bottom element (\texttt{HasBottom}) and its axiom (\texttt{IsPointed}).
+Each of these follows the \emph{two-mixin idiom}: one mixin provides the
+data (a function or an element) and a second mixin provides the
+specification (the axioms that the data must satisfy).  For example:
+
+\begin{lstlisting}[caption={The two-mixin idiom for $\omega$-CPOs.},
+                    label={lst:iscpo}]
+HB.mixin Record HasSup T of PartialOrder T :=
+  { sup : chain T → T }.
+
+HB.mixin Record IsCPO T of HasSup T & PartialOrder T := {
+  sup_upper : ∀ (c : chain T) (n : nat), c.[n] ⊑ ⊔ c;
+  sup_least : ∀ (c : chain T) (x : T),
+                (∀ n, c.[n] ⊑ x) → ⊔ c ⊑ x;
+}.
+\end{lstlisting}
+
+\noindent
+This separation is idiomatic in HB-based libraries: the data mixin can
+be instantiated mechanically (often by providing a single function), while
+the axiom mixin is where the mathematical content lives.  HB then
+synthesises the bundled structure \texttt{CPO} from the accumulated mixins,
+together with coercion paths that allow any \texttt{CPO.type} to be used
+wherever a \texttt{PartialOrder.type} or \texttt{Preorder.type} is expected.
+
+The enriched track extends the hierarchy into enriched category theory.
+\texttt{HasHom} equips a type of objects with a family of hom-CPOs,
+\texttt{HasId} adds identity morphisms, and \texttt{IsCPOEnriched} adds
+composition together with its categorical laws and Scott-continuity axioms.
+This track is discussed in detail in \cref{sec:meth-enriched}.
+
+\paragraph{Plain records.}
+Not every type in the library is an HB structure.  The types
+$\omega$-chains, monotone functions, and Scott-continuous functions are
+defined as plain \texttt{Record}s parameterised over HB-structured
+carriers:
+
+\begin{lstlisting}[caption={The \texttt{cont\_fun} record.},
+                    label={lst:contfun}]
+Record cont_fun (D E : CPO.type) : Type := {
+  cf_mono :> mono_fun D E;
+  cf_cont : continuous cf_mono;
+}.
+\end{lstlisting}
+
+\noindent
+A \texttt{cont\_fun} bundles a monotone function with a proof of
+Scott-continuity.  The coercion \lstinline{:>} on \texttt{cf\_mono}
+allows a continuous function to be used wherever a monotone function or
+a plain function is expected, via the chain
+$\texttt{cont\_fun} \to \texttt{mono\_fun} \to (D \to E)$.
+These types are not declared as HB structures because they are
+\emph{parameterised} by their domain and codomain types, whereas HB
+structures are indexed by a single carrier.  Migrating them would require
+converting every constructor call site (over fifty across twelve files)
+for minimal practical gain, since the existing identity and composition
+combinators (\texttt{cont\_id}, \texttt{cont\_comp}) already provide the
+categorical infrastructure needed.
+
+
+% ── Design decisions ──────────────────────────────────────────────
 \subsection{Design Decisions}
 \label{sec:meth-design-decisions}
 
-% TODO: Key design decisions (from design-decisions.md)
-% DD-001 (no separate Pointed.v), DD-006 (classical lift), DD-009 (intrinsic typing),
-% DD-013 (var_case), DD-016 (HB coercion workarounds)
+Several non-obvious architectural choices arose during the modernisation
+of the Benton--Kennedy library for Rocq~9.0 and HB.  This section records
+the decisions that affect the global structure of the library; further
+decisions specific to individual modules are discussed where they arise
+(e.g., the separate-continuity axioms in \cref{sec:meth-enriched-structure},
+the \texttt{var\_case} combinator in \cref{sec:meth-pcf-syntax}).
+
+\paragraph{Organise by dependency, not by concept (DD-001).}
+An earlier version of the codebase had a separate \texttt{Pointed.v}
+file, following a one-file-per-concept organisation in which pointed
+CPOs, bottom elements, and strict functions each had their own module.
+During the HB restructuring, this was replaced by a dependency-driven
+layout: \texttt{HasBottom} and \texttt{IsPointed} live in
+\texttt{CPO.v} (because \texttt{IsPointed} depends on \texttt{CPO~T}),
+and \texttt{strict\_fun} lives in \texttt{Morphisms.v} (because it
+depends on \texttt{cont\_fun}).  This follows the MathComp convention:
+each definition is placed in the file determined by its hard
+dependencies, not by an idealised conceptual grouping.
+
+\paragraph{Monotonicity before continuity in mixins (DD-003).}
+In every mixin where both monotonicity and Scott-continuity are required
+(e.g., \texttt{IsCPOEnriched}, \texttt{IsLocallyContinuous}), monotonicity
+fields are declared \emph{before} continuity fields.  The \texttt{continuous}
+predicate takes a \texttt{mono\_fun} as its argument, so a continuity
+field that refers to \texttt{Build\_mono\_fun~\ldots~comp\_mono\_l}
+requires \texttt{comp\_mono\_l} to already be in scope.  If the order
+is reversed, the mixin fails to elaborate.  This is a Rocq--HB
+implementation constraint, not a mathematical preference.
+
+\paragraph{Leibniz equality for categorical laws (DD-004).}
+The categorical laws in \texttt{IsCPOEnriched}---identity, associativity,
+and the unit laws---use Leibniz equality~($=$) rather than a setoid
+relation~($\approx$).  The hom-CPOs in our framework are
+\texttt{CPO.type} values, and equality on their elements is Leibniz
+equality by default.  This keeps the laws definitionally simple and avoids
+the overhead of setoid-rewriting infrastructure at the structure level.
+If a concrete instance used a coarser extensional equality, the laws
+would need to be restated in the relevant theory file.
+
+\paragraph{Instance ordering for \texttt{PointedCPO} (DD-008).}
+When registering a concrete type as a \texttt{PointedCPO}, the three HB
+instances---\texttt{HasBottom}, \texttt{IsCPO}, \texttt{IsPointed}---must
+be registered in exactly this order.  HB checks the full diamond of mixin
+dependencies at each registration: \texttt{HasBottom} requires
+\texttt{HasLe} (which is a prerequisite of \texttt{IsCPO}), and
+\texttt{IsPointed} requires both \texttt{CPO} and \texttt{HasBottom}.
+Registering in the wrong order causes a \emph{silent} elaboration failure:
+the instance simply does not register, with no error message.  This was
+the source of a bug in an early draft of \texttt{Lift.v} and is now a
+documented invariant.
 
 % ── Constructions ─────────────────────────────────────────────────
 \section{CPO Constructions}
 \label{sec:meth-constructions}
 
+With the algebraic hierarchy in place, the library proceeds to the
+standard domain-theoretic toolkit: products, sums, lifting, and function
+spaces.  Each construction equips a new type with HB instances, making
+it available as a first-class CPO for all downstream development.  The
+mathematical definitions were given in \cref{ch:background}; this
+section focuses on how they are realised in Rocq and the engineering
+choices that arise.
+
+
+% ·· Products and Sums ····················································
 \subsection{Products and Sums}
 \label{sec:meth-products-sums}
 
-% Source: theory/Products.v, theory/Sums.v
+% Source: theory/Products.v (~535 lines), theory/Sums.v (~625 lines)
 
+\paragraph{Products.}
+The product CPO $D \times E$ uses Rocq's built-in \texttt{prod} type
+with the componentwise order:
+$(d_1, e_1) \sqsubseteq (d_2, e_2)$ iff
+$d_1 \sqsubseteq d_2$ and $e_1 \sqsubseteq e_2$.
+The supremum of a chain~$c$ is thus defined componentwise:
+$\bigsqcup c = (\bigsqcup \pi_1(c),\; \bigsqcup \pi_2(c))$,
+where $\pi_1(c)$ and $\pi_2(c)$ are the chains obtained by applying
+the (monotone) projections pointwise.  The file registers HB instances
+for \texttt{PartialOrder}, \texttt{CPO}, and---when $D$ and $E$ are
+pointed---\texttt{PointedCPO} on \texttt{D~*~E}, with
+$\bot_{D \times E} = (\bot_D, \bot_E)$.
+
+The projections $\pi_1$, $\pi_2$ and the pairing combinator
+$\langle f_1, f_2 \rangle$ are packaged as \texttt{cont\_fun} values.
+The full universal property of categorical products is then proved:
+$\beta$-reduction ($\pi_i \circ \langle f_1, f_2 \rangle = f_i$),
+$\eta$-expansion ($h = \langle \pi_1 \circ h,\; \pi_2 \circ h \rangle$),
+uniqueness, functoriality ($\langle f \circ k,\; g \circ k \rangle
+= \langle f, g \rangle \circ k$), and the identity law
+($\langle \pi_1, \pi_2 \rangle = \mathrm{id}$).
+Continuity of the projections holds by definitional computation: the
+proof term is \texttt{reflexivity}.
+
+\paragraph{Sums.}
+The separated sum $D + E$ uses Rocq's built-in \texttt{sum} type.
+Two elements are comparable only when they belong to the same summand:
+\begin{lstlisting}[caption={The separated sum order.},
+                    label={lst:sumle}]
+Definition sum_le (x y : D + E) : Prop :=
+  match x, y with
+  | inl a, inl a' => a ⊑ a'
+  | inr b, inr b' => b ⊑ b'
+  | _,     _      => False
+  end.
+\end{lstlisting}
+
+\noindent
+Because the order never allows crossing from \texttt{inl} to
+\texttt{inr}, every $\omega$-chain in $D + E$ is
+\emph{summand-stable from index~0}: if $c_0 = \texttt{inl}\;d$ then
+$c_n = \texttt{inl}\;a_n$ for all~$n$.  The proof is a one-step
+argument by monotonicity---if $c_n$ were in the other summand, we would
+have $c_0 \sqsubseteq c_n$ crossing summands, which is~\texttt{False}.
+No classical axiom is needed.
+
+Stability lets us define the supremum by matching on $c_0$: extract the
+inner chain in the relevant summand, take its supremum, and re-inject.
+Extraction uses a total function with a default value for the
+``wrong'' summand, avoiding dependent types in the chain machinery.
+
+The injections $\iota_1$, $\iota_2$ and the copairing
+$[f, g]$ (\texttt{sum\_case}) are proved continuous.  The full universal
+property of coproducts holds:
+$\beta$-reduction ($[f, g] \circ \iota_i = f_i$),
+$\eta$-expansion ($h = [h \circ \iota_1,\; h \circ \iota_2]$),
+uniqueness, and the fusion law
+$h \circ [f, g] = [h \circ f,\; h \circ g]$.
+
+An important structural observation: the separated sum is \emph{not}
+pointed even when $D$ and $E$ are, because
+$\texttt{inl}\;\bot_D$ and $\texttt{inr}\;\bot_E$ are incomparable.
+To obtain a pointed coproduct, one applies the lift: $(D + E)_\bot$.
+
+
+% ·· Lifting ··············································
 \subsection{Lifting}
 \label{sec:meth-lift}
 
-% Source: theory/Lift.v
-% TODO: option D with flat order, ClassicalEpsilon for sup, monad structure
+% Source: theory/Lift.v (~635 lines)
 
+The lift construction~$D_\bot$ adjoins a fresh bottom element to any
+CPO, modeling potential non-termination.  The carrier is Rocq's
+\texttt{option~D}, with the flat extension of the order:
+$\texttt{None} \sqsubseteq x$ for all~$x$,
+\;$\texttt{Some}\;d \sqsubseteq \texttt{Some}\;d'$ iff
+$d \sqsubseteq d'$,
+\;and $\texttt{Some}\;d \sqsubseteq \texttt{None}$ is~\texttt{False}.
+
+\paragraph{Chain stability and the supremum.}
+Chains in $D_\bot$ enjoy a stability property analogous to the sum case:
+once a chain reaches \texttt{Some}, it can never return to
+\texttt{None}.  This observation drives the supremum construction:
+
+\begin{lstlisting}[caption={The lift supremum.},
+                    label={lst:liftsup}]
+Definition lift_sup (c : chain (option D)) : option D :=
+  match excluded_middle_informative (exists n, c.[n] <> None) with
+  | right _   => None
+  | left  Hex =>
+    let '(exist _ N HN) :=
+        constructive_indefinite_description _ Hex in
+    let d0 := extract_some (c.[N]) HN in
+    Some (⊔ D_chain N d0 c HN)
+  end.
+\end{lstlisting}
+
+\noindent
+If every element of the chain is \texttt{None}, the supremum is
+\texttt{None}.  Otherwise, \texttt{constructive\_indefinite\_description}
+(from the \texttt{ClassicalEpsilon} axiom) extracts a witness
+index~$N$ at which $c_N \neq \texttt{None}$.  From~$N$ onward, the
+chain lives entirely in~\texttt{Some}, so we extract the inner
+$D$-values into a chain on~$D$, take its supremum, and wrap the result
+in~\texttt{Some}.
+
+This is the only use of \texttt{ClassicalEpsilon} in the core library
+outside of \texttt{ScottTopology.v}.  It provides
+\texttt{excluded\_middle\_informative} (decidable excluded middle on
+\texttt{Prop}) together with \texttt{constructive\_indefinite\_description}
+(witness extraction from existentials).  The factored computation lemma
+\texttt{lift\_sup\_some\_eq}---stating that for any witness~$N$ and
+default value~$d_0$, $\bigsqcup c = \texttt{Some}(\bigsqcup
+D_{\mathrm{chain}})$---serves as the central tool for both the
+\texttt{ret} and \texttt{kleisli} continuity proofs.
+
+\paragraph{Monadic structure.}
+The lift carries a monad structure in the Kleisli
+formulation~(\cref{def:lift}):
+%
+\begin{align*}
+  \mathit{ret}(d) &= \texttt{Some}(d) \\
+  \mathit{kleisli}(f)(\texttt{None}) &= \texttt{None} \\
+  \mathit{kleisli}(f)(\texttt{Some}\;d) &= f(d)
+\end{align*}
+%
+Both are packaged as \texttt{cont\_fun} values.  Continuity of
+\texttt{ret} follows because the mapped chain
+$n \mapsto \texttt{Some}(c_n)$ is always in~\texttt{Some}, so
+\texttt{lift\_sup\_some\_eq} applies with $N = 0$.  Continuity of
+\texttt{kleisli}~$f$ splits into two cases: if the input chain is
+everywhere~\texttt{None}, both sides are~\texttt{None}; otherwise,
+\texttt{lift\_sup\_some\_eq} reduces the problem to the continuity
+of~$f$ on the extracted $D$-chain, with an index-shift argument
+aligning the mapped chains.
+
+The three monad laws---left unit, right unit, and associativity---all
+reduce to \texttt{cont\_fun\_ext} followed by case analysis on
+\texttt{option~D}; each branch closes by \texttt{reflexivity}.
+The trade-off between this classical, extensional lift and the
+coinductive delay monad---which was used in the original
+Benton--Kennedy--Varming library~\cite{BKV2009}---is discussed in
+\cref{ch:discussion}.
+
+
+% ·· Function Spaces ·····································
 \subsection{Function Spaces}
 \label{sec:meth-function-spaces}
 
-% Source: theory/FunctionSpaces.v
-% TODO: Pointwise order, eval/curry/uncurry, CCC structure, FIXP operator
+% Source: theory/FunctionSpaces.v (~878 lines)
+
+The constructions so far---products, sums, and the lift---give us the
+basic type constructors and the means to model partiality.  What they do
+not yet provide is a way to interpret \emph{function types}: to give
+meaning to $\tau_1 \to \tau_2$ we need the collection of continuous maps
+$[\sem{\tau_1} \to_c \sem{\tau_2}_\bot]$ to be an $\omega$-CPO in its
+own right.  This is the function-space construction, and the fact that
+it produces a well-behaved exponential object is what makes $\CPO$
+cartesian closed (\cref{sec:bg-ccc}).  The formalisation in
+\texttt{FunctionSpaces.v} establishes this structure.
+
+The function space $[D \to_c E]$ is the type of Scott-continuous
+functions from~$D$ to~$E$, ordered pointwise:
+$f \sqsubseteq g$ iff $f(x) \sqsubseteq g(x)$ for all~$x$.
+The supremum of a chain of continuous functions is again taken pointwise:
+$(\bigsqcup_n f_n)(x) = \bigsqcup_n f_n(x)$.  Proving that this
+pointwise supremum is itself Scott-continuous is the central obligation;
+it requires a double-indexed argument showing that the family of chains
+$\{n \mapsto f_n(c_k)\}_{k}$ is coherent.  When $E$ is pointed, the
+constant-$\bot$ function serves as the bottom element, yielding a
+\texttt{PointedCPO} instance.
+
+\paragraph{Cartesian closed structure.}
+The three continuous maps that witness cartesian closedness
+(\cref{prop:cpo-ccc}) are formalised as follows:
+\begin{itemize}
+  \item $\mathit{eval} : [D \to_c E] \times D \to E$, defined by
+    $\mathit{eval}(f, d) = f(d)$.  Continuity requires a diagonal
+    argument: for chains $f_n$ and $d_n$, we have
+    $f_n(d_k) \sqsubseteq f_{\max(n,k)}(d_{\max(n,k)}) = \mathit{eval}(f_{\max(n,k)}, d_{\max(n,k)})$.
+  \item $\mathit{curry}(f) : C \to [D \to_c E]$, defined by
+    $\mathit{curry}(f)(c)(d) = f(c, d)$.
+  \item $\mathit{uncurry}(g) : C \times D \to E$, defined as
+    $\mathit{eval} \circ (g \times \mathrm{id})$.
+\end{itemize}
+The exponential adjunction
+$[C \times D \to_c E] \cong [C \to_c [D \to_c E]]$
+is witnessed by \texttt{curry\_uncurry} and \texttt{uncurry\_curry},
+both of which hold by \texttt{reflexivity} on the underlying function
+equality.  The eval-curry equation from
+\cref{fig:exponential-transpose} is likewise definitional:
+
+\begin{lstlisting}[
+  caption={Exponential adjunction and the eval-curry law
+    (\texttt{FunctionSpaces.v}).  Every proof reduces to function
+    extensionality followed by \texttt{reflexivity}, showing that the
+    CCC structure is \emph{computational}: the isomorphism holds by
+    $\iota\beta$-reduction alone.},
+  label={lst:exp-adjunction}
+]
+Lemma curry_uncurry (f : [C →c [D →c E]]) :
+  cont_curry (cont_uncurry f) = f.
+Proof.
+  apply cont_fun_ext; intros c.
+  apply cont_fun_ext; intros d.
+  reflexivity.
+Qed.
+
+Lemma uncurry_curry (f : [C * D →c E]) :
+  cont_uncurry (cont_curry f) = f.
+Proof.
+  apply cont_fun_ext; intros [c d].
+  reflexivity.
+Qed.
+
+Lemma eval_curry (f : [C * D →c E]) :
+  cont_comp cont_eval
+    (cont_prod_map (cont_curry f) (cont_id D)) = f.
+Proof.
+  apply cont_fun_ext; intros [c d].
+  reflexivity.
+Qed.
+\end{lstlisting}
+
+\paragraph{The continuous fixed-point operator.}
+Background \cref{sec:bg-fixedpoints} constructs the least fixed point
+$\fixp(f) = \bigsqcup_n f^n(\bot)$ for a single continuous
+endomorphism.  To interpret the \textbf{fix} combinator of PCF$_v$
+compositionally, however, we need $\fixp$ to be a \emph{morphism} in
+$\CPO$---an element of the exponential object
+$[[D \to_c D] \to_c D]$---so that it can be composed with the other
+semantic maps via the CCC structure of \cref{sec:bg-ccc}.
+
+The formalisation packages this as
+$\mathrm{FIXP} : [[D \to_c D] \to_c D]$.
+The key continuity obligation is showing that
+$\bigsqcup_n \mathrm{fixp}(f_n)$ is a pre-fixed point of
+$\bigsqcup_n f_n$.  A secondary complication is that $\fixp$ requires
+a \emph{pointed} CPO (for the base element~$\bot$), while the
+function-space construction produces an ordinary CPO; coercion lemmas
+bridge the gap between \texttt{PointedCPO.type} and
+\texttt{CPO.type}.
+
+\texttt{FIXP} satisfies the expected interface: the computation rule
+$\mathrm{FIXP}(f) = f(\mathrm{FIXP}(f))$
+(\texttt{FIXP\_is\_fixedpoint}), the minimality property
+$f(x) \sqsubseteq x \Rightarrow \mathrm{FIXP}(f) \sqsubseteq x$
+(\texttt{FIXP\_least}), and fixed-point induction
+(\texttt{FIXP\_ind}).  The last of these is the main proof tool for the
+adequacy theorem in \cref{ch:results}: to show that a property~$P$
+holds of~$\mathrm{FIXP}(f)$, it suffices to show that $P$ is
+admissible (\cref{def:admissible}), that $P(\bot)$ holds, and that $P$
+is preserved by~$f$.
 
 % ── Enriched category formalization ───────────────────────────────
 \section{CPO-Enriched Categories}
@@ -52,45 +552,561 @@
 
 % Source: structures/Enriched.v, theory/EnrichedTheory.v
 
+The CPO constructions of \cref{sec:meth-constructions} give us products,
+sums, lifting, and function spaces, all as $\omega$-CPOs with the
+expected universal properties.  These constructions are the raw
+material of a denotational semantics, but using them compositionally
+requires a categorical framework: one in which composition,
+functorial actions, and natural transformations are all well-behaved
+with respect to the CPO structure.  That framework is CPO-enrichment
+(\cref{sec:bg-enriched}).  This section describes how the enriched
+categorical layer is formalised.
+
+% ·· The enriched category structure ························
 \subsection{The Enriched Category Structure}
 \label{sec:meth-enriched-structure}
 
-% TODO: IsCPOEnriched mixin, CPOEnrichedCat, self-enrichment in Function.v
+% Source: structures/Enriched.v (~388 lines)
 
+The enriched categorical structure is declared in \texttt{Enriched.v}
+using the same two-mixin HB idiom as the CPO hierarchy.  The data is
+introduced in three stages:
+
+\begin{enumerate}
+  \item \texttt{HasHom}~equips a type \texttt{Obj} of objects with a
+    family of hom-CPOs: for every pair \texttt{A~B~:~Obj}, the term
+    \texttt{hom~A~B} has type \texttt{CPO.type}.
+  \item \texttt{HasId}~provides an identity morphism
+    \texttt{id\_mor~A~:~hom~A~A} for each object.
+  \item \texttt{IsCPOEnriched}~bundles composition, its continuity
+    witnesses, and the categorical laws into a single mixin.
+\end{enumerate}
+
+\begin{lstlisting}[
+  caption={The \texttt{IsCPOEnriched} mixin (\texttt{Enriched.v}).
+    Composition is declared inside the mixin rather than in a separate
+    \texttt{HasComp} mixin because HB's global projection for
+    \texttt{comp} requires canonical-structure resolution on the
+    carrier type, which is unavailable at the mixin stage.},
+  label={lst:iscpoenriched}
+]
+HB.mixin Record IsCPOEnriched Obj
+    of HasHom Obj & HasId Obj := {
+  comp : forall {A B C : Obj},
+    hom B C -> hom A B -> hom A C;
+  comp_mono_l : forall {A B C} (f : hom B C),
+    monotone (hom A B) (hom A C) (fun g => comp f g);
+  comp_mono_r : forall {A B C} (g : hom A B),
+    monotone (hom B C) (hom A C) (fun f => comp f g);
+  comp_cont_l : forall {A B C} (f : hom B C),
+    continuous (Build_mono_fun _ (comp_mono_l f));
+  comp_cont_r : forall {A B C} (g : hom A B),
+    continuous (Build_mono_fun _ (comp_mono_r g));
+  comp_id_l : forall {A B} (f : hom A B),
+    comp (id_mor B) f = f;
+  comp_id_r : forall {A B} (f : hom A B),
+    comp f (id_mor A) = f;
+  comp_assoc : forall {A B C D}
+    (h : hom C D) (g : hom B C) (f : hom A B),
+    comp (comp h g) f = comp h (comp g f);
+}.
+\end{lstlisting}
+
+Two aspects of this mixin deserve comment.
+
+\paragraph{Separate continuity (DD-002).}
+\Cref{def:cpo-enriched-cat} asks that composition be
+Scott-continuous in each argument separately; by
+\cref{prop:joint-continuity} (Abramsky--Jung Lemma~3.2.6), this is
+equivalent to joint continuity of the binary operation.  The separate
+form is chosen because the joint form would require the product CPO
+$\texttt{hom}\;A\;B \times \texttt{hom}\;B\;C$,  which is defined in
+\texttt{Products.v}.  Importing it at the structures stage would create
+a dependency cycle:
+\[
+  \texttt{Enriched.v} \to \texttt{Products.v} \to \texttt{CPOTheory.v}
+    \to \texttt{Enriched.v}.
+\]
+Separate continuity breaks the cycle entirely.
+The joint form is derived as a theorem in \texttt{EnrichedTheory.v}
+once \texttt{Products.v} is available.
+
+\paragraph{Monotonicity before continuity (DD-003).}
+The \texttt{comp\_mono\_l}/\texttt{comp\_mono\_r} fields appear before
+\texttt{comp\_cont\_l}/\texttt{comp\_cont\_r} because the
+\texttt{continuous} predicate takes a \texttt{mono\_fun} argument;
+placing the monotonicity witnesses first ensures they are in scope when
+the continuity fields are elaborated.
+
+\paragraph{Self-enrichment.}
+The canonical example is \textbf{CPO} itself: taking
+$\texttt{hom}\;D\;E = [D \to_c E]$ (the function-space CPO of
+\cref{prop:function-space}), $\texttt{id\_mor} = \texttt{cont\_id}$,
+and $\texttt{comp} = \texttt{cont\_comp}$, the separate-continuity
+conditions reduce to the fact that post- and pre-composition with a
+fixed continuous function are themselves continuous.  This instance
+is registered in \texttt{Function.v}.
+
+% ·· Locally continuous functors ····························
 \subsection{Locally Continuous Functors}
 \label{sec:meth-lc-functors}
 
-% Source: theory/EnrichedTheory.v (lc_functor record)
+% Source: theory/EnrichedTheory.v (~706 lines)
 
+A locally continuous endofunctor (\cref{def:lc-functor}) acts
+continuously on each hom-CPO.  While the HB hierarchy declares
+\texttt{IsLocallyContinuous} as a mixin (bundled into
+\texttt{LocallyContinuousFunctor}), the main theory uses a
+\emph{plain record} instead:
+
+\begin{lstlisting}[
+  caption={The \texttt{lc\_functor} record
+    (\texttt{EnrichedTheory.v}).  A plain Rocq record rather than an HB
+    structure; see text for the rationale.},
+  label={lst:lcfunctor}
+]
+Record lc_functor (C : CPOEnrichedCat.type) := {
+  lcf_obj  : C -> C;
+  lcf_mor  : forall (A B : C),
+    hom A B -> hom (lcf_obj A) (lcf_obj B);
+  lcf_mono : forall (A B : C),
+    monotone _ _ (lcf_mor A B);
+  lcf_cont : forall (A B : C),
+    continuous (Build_mono_fun _ (lcf_mono A B));
+  lcf_id   : forall (A : C),
+    lcf_mor A A (id_mor A) = id_mor (lcf_obj A);
+  lcf_comp : forall (A B D : C)
+    (f : hom B D) (g : hom A B),
+    lcf_mor A D (comp f g) =
+      comp (lcf_mor B D f) (lcf_mor A B g);
+}.
+\end{lstlisting}
+
+The decision to use a plain record rather than an HB structure (DD-018)
+is driven by two constraints.  First, registering HB instances for
+functors on \texttt{CPOEnrichedCat.type} triggers universe
+inconsistencies when natural transformations quantify over all objects
+in the enriched category.  Second, identity, composition, and
+whiskering of functors produce new \texttt{lc\_functor} values; with HB
+structures each composition would require a new instance registration,
+whereas plain records compose directly.  A conversion function
+\texttt{lc\_functor\_of\_hb} bridges the two representations.
+
+Identity and composition of locally continuous functors are defined on
+\texttt{lc\_functor}: \texttt{id\_lc\_functor} packages the identity
+endofunctor, and \texttt{comp\_lc\_functor} composes two LC functors,
+with the expected associativity and unit laws.
+
+\paragraph{Joint continuity of composition.}
+A key derived result is that composition---axiomatised as separately
+continuous---is jointly continuous on the product hom-CPO.  The proof
+proceeds in two stages.  Stage~A works in a product-free setting: given
+chains $(g_n)$ in $\texttt{hom}\;B\;D$ and $(f_n)$ in
+$\texttt{hom}\;A\;B$, the diagonal chain $n \mapsto g_n \circ f_n$
+satisfies $\bigsqcup_n (g_n \circ f_n) = (\bigsqcup_n g_n)
+\circ (\bigsqcup_n f_n)$, proved via the separate-continuity rewrite
+lemmas and the $\max(n,m)$ diagonal bound.  Stage~B wraps this as a
+\texttt{cont\_fun} on the product hom-CPO using the product CPO
+projections.  The two-stage split is necessary because a direct proof
+over the product type causes irreconcilable HB coercion failures
+between \texttt{CPO.sort} and \texttt{CPOEnrichedCat.sort}.
+
+\paragraph{HB coercion workarounds (DD-016).}
+The coercion difficulties in the joint-continuity proof are symptomatic
+of a broader issue: HB-synthesised coercion paths
+(e.g.\ \texttt{CPOEnrichedCat.sort} $\to$ \texttt{CPO.sort}) resolve
+ambiguously when the elaborator encounters intermediate terms with
+under-determined types.  \texttt{EnrichedTheory.v} employs five
+systematic workarounds:
+\begin{itemize}
+  \item \texttt{etransitivity} instead of \texttt{le\_trans with X},
+    deferring the intermediate term to a unification variable;
+  \item explicit \texttt{@}-qualified projections
+    (e.g.\ \texttt{@comp\_assoc C A B C' D});
+  \item \texttt{unshelve econstructor} for one-field-at-a-time record
+    construction;
+  \item \texttt{Arguments \{C\}} directives to keep the enriched
+    category implicit; and
+  \item \texttt{cbn [mf\_fun]} followed by \texttt{cbv beta} to expose
+    term structure hidden by nested coercions before \texttt{rewrite}.
+\end{itemize}
+These workarounds are required only when compiling from source
+(\texttt{dune build}); pre-compiled \texttt{.vo} files resolve the
+coercions correctly.  The broader implications of these friction
+points are discussed in \cref{ch:discussion}.
+
+% ·· Natural transformations ································
 \subsection{Natural Transformations}
 \label{sec:meth-nat-trans}
 
-% Source: theory/NatTrans.v
+% Source: theory/NatTrans.v (~518 lines)
 
+Enriched natural transformations (\cref{def:enriched-nat-trans}) between
+locally continuous functors are formalised as a plain record
+\texttt{nat\_trans~F~G} over two \texttt{lc\_functor} values, carrying
+a family of components $\alpha_A \in \texttt{hom}\;(F\,A)\;(G\,A)$ and
+a naturality proof.  As with \texttt{lc\_functor}, the plain-record
+approach (DD-018) avoids universe conflicts and simplifies composition.
+
+\texttt{NatTrans.v} establishes the algebraic structure of
+natural transformations:
+\begin{itemize}
+  \item \textbf{Identity and vertical composition.}
+    The identity natural transformation has components
+    $(\mathrm{id}_F)_A = \texttt{id\_mor}\;(F\,A)$; the vertical
+    composite $(\beta \cdot \alpha)_A = \beta_A \circ \alpha_A$ is
+    constructed by pasting naturality squares
+    (\cref{prop:vcomp}).  Associativity and unit laws follow from the
+    categorical laws of the base enriched category.
+  \item \textbf{Horizontal composition (whiskering).}
+    Left whiskering $(H * \alpha)_A = H_{FA,GA}(\alpha_A)$ applies a
+    functor to each component; right whiskering
+    $(\alpha * H)_A = \alpha_{HA}$ reindexes along a functor.
+    The interchange law
+    $H * (\beta \cdot \alpha) = (H * \beta) \cdot (H * \alpha)$
+    follows from the functoriality of~$H$.
+  \item \textbf{Pointwise CPO structure.}
+    The pointwise order
+    $\alpha \sqsubseteq \beta \iff \forall A.\;
+    \alpha_A \sqsubseteq \beta_A$ makes the collection of
+    natural transformations $F \Rightarrow G$ into an $\omega$-CPO
+    (\cref{prop:nat-trans-cpo}).
+    The supremum $(\bigsqcup_n \alpha^{(n)})_A =
+    \bigsqcup_n \alpha^{(n)}_A$ satisfies naturality by the
+    three-step argument: expand via left separate continuity, apply
+    componentwise naturality, and collapse via right separate
+    continuity.  Antisymmetry of the pointwise order uses
+    \texttt{FunctionalExtensionality} and
+    \texttt{ProofIrrelevance}.
+\end{itemize}
+
+% ·· Domain equations ·······································
 \subsection{Domain Equations}
 \label{sec:meth-domain-equations}
 
-% Source: theory/DomainEquations.v
-% TODO: EP-pairs, bilimits, D_inf/ROLL/UNROLL, the bilimit_exists axiom
+% Source: theory/DomainEquations.v (~446 lines)
+
+Recursive domain equations---type-level fixed points of the form
+$D \cong F(D, D)$ for a mixed-variance bifunctor~$F$---require
+all of the enriched categorical machinery developed so far.
+\Cref{sec:bg-bilimits} presents the mathematical theory:
+\cref{def:mixed-bifunctor} defines mixed-variance bifunctors,
+\cref{def:bilimit} defines bilimits, and
+\cref{thm:smyth-plotkin} guarantees their existence.
+Here we describe the formalisation.
+
+\paragraph{The mixed-variance bifunctor mixin.}
+The data of a mixed-variance bifunctor is recorded in
+\texttt{HasMixedEndo} (\texttt{Enriched.v}): an object action
+\texttt{MF\_obj} and a morphism action \texttt{MF\_mor} that is
+contravariant in its first argument and covariant in its second.
+The axioms---identity, composition, separate monotonicity, and
+separate continuity---are deferred to a second mixin
+\texttt{IsMixedLocallyContinuous} in \texttt{DomainEquations.v}
+(DD-005), following the same cycle-avoidance strategy as DD-002.
+
+From the six separate axioms, the derived properties are straightforward:
+joint monotonicity of \texttt{MF\_mor}
+and the joint-supremum identity
+$F(\bigsqcup_n f_n,\; \bigsqcup_n g_n) = \bigsqcup_n F(f_n, g_n)$,
+proved via the same $\max(n,m)$ diagonal argument used for composition
+in \cref{sec:meth-lc-functors}.
+
+\paragraph{EP-pair lifting.}
+Given an ep-pair $(e, p) : D \to E$
+(\cref{def:ep-pair}), the bifunctor lifts it to an ep-pair
+$F(D,D) \to F(E,E)$ with embedding $F(p, e)$ and projection $F(e, p)$.
+The contravariant argument receives the projection (reversing
+direction), and the covariant argument receives the embedding.  The
+retraction and deflation laws follow from the functoriality
+and monotonicity axioms.
+
+\paragraph{The approximation sequence.}
+Starting from an initial object~$D_0$ and an ep-pair
+$D_0 \hookrightarrow F(D_0, D_0)$, repeated application of the
+bifunctor builds an expanding sequence
+\[
+  D_0 \xrightarrow{e_0} F(D_0, D_0) \xrightarrow{e_1}
+    F^2(D_0, D_0) \xrightarrow{e_2} \cdots
+\]
+where each step is an ep-pair.  This is packaged as an
+\texttt{ep\_chain} record.
+
+\paragraph{The bilimit and its existence (DD-017).}
+The \texttt{BilimitData} record mechanises \cref{def:bilimit}: it
+specifies a bilimit object~$D_\infty$;
+cone ep-pairs $D_n \hookrightarrow D_\infty$ for each approximant
+(\cref{def:ep-cone}),
+with compatibility conditions ensuring the cone commutes with the
+approximation sequence; a proof that
+$\mathrm{id}_{D_\infty} = \bigsqcup_n (e^\infty_n \circ p^\infty_n)$
+(the bilimit condition \eqref{eq:bilimit-identity}); and the
+ROLL/UNROLL isomorphism of \cref{thm:smyth-plotkin}.
+
+The existence of such a bilimit is asserted as an axiom:
+\begin{quote}
+\texttt{Axiom bilimit\_exists :}\\
+\quad\texttt{forall \{C : MixedLCFunctor.type\} (D0 : C)}\\
+\quad\quad\texttt{(ep0 : ep\_pair D0 (MF\_obj D0 D0)),}\\
+\quad\quad\texttt{BilimitData D0 ep0.}
+\end{quote}
+Constructing the bilimit requires the $\omega$-product CPO
+$\prod_n D_n$---the product of countably many CPOs---which is not yet
+in the library.  Rather than axiomatise the bilimit's
+\emph{properties} ad hoc, the library axiomatises its
+\emph{existence} via a fully specified record; all consequences (the
+ROLL/UNROLL isomorphism, the deflation chain, and the identity
+$\texttt{id}_{D_\infty} = \bigsqcup_n (e_n \circ p_n)$) are then proved
+from the record fields with no further axioms.  A worked
+example---the recursive domain $D \cong [D \to_c D]_\bot$---is
+presented in \cref{sec:res-domain-equations}.
 
 % ── PCF formalization ─────────────────────────────────────────────
 \section{PCF Formalization}
 \label{sec:meth-pcf}
 
+The PCF$_v$ formalisation is inherited from the original
+Benton--Kennedy--Varming development~\cite{BKV2009} and updated to
+the current Rocq/HB infrastructure; the differences are catalogued in
+\cref{sec:disc-bkv}.  It exercises the library's CPO constructions
+(products, lifting, function spaces, the Kleene fixed-point operator)
+in a concrete setting: three files totalling 2303 lines implement
+syntax (\texttt{PCF\_Syntax.v}, 804 lines), big-step evaluation
+(\texttt{PCF\_Operational.v}, 332 lines), and denotational semantics
+(\texttt{PCF\_Denotational.v}, 1167 lines).
+This section describes the key design choices that distinguish the
+mechanised development from the mathematical presentation in
+\cref{sec:bg-denotational}; the reader should refer to that section
+for the definitions of types, terms, evaluation rules, and the
+denotational interpretation.
+
+% ·· Syntax and typing ······································
 \subsection{Syntax and Typing}
 \label{sec:meth-pcf-syntax}
 
-% Source: lang/PCF_Syntax.v
-% TODO: Intrinsic typing, ANF, de Bruijn, var_case
+% Source: lang/PCF_Syntax.v (804 lines)
 
+\paragraph{Intrinsic typing and ANF (DD-009).}
+Following Benton, Kennedy, and Varming~\cite{BKV2009}, all syntactic
+objects are \emph{intrinsically typed}: \texttt{Value~:~Env~$\to$~Ty~$\to$~Type}
+and \texttt{Exp~:~Env~$\to$~Ty~$\to$~Type} are mutually inductive
+families indexed by a typing environment $\Gamma$ and a type $\tau$.
+Every constructor preserves the typing invariant, so there are no
+separate typing judgements, no well-formedness side-conditions, and no
+need to prove that two typing derivations of the same term are equal.
+Variables are typed de~Bruijn indices (\texttt{Var~$\Gamma$~$\tau$}),
+with constructors \texttt{ZVAR} (index~$0$) and \texttt{SVAR}
+(successor index).  The term grammar is in administrative normal form
+(\cref{def:pcfv-terms}): function arguments must be values, and
+intermediate computations are sequenced by \texttt{LET}.
+
+Compared with the original Benton--Kennedy names, we drop the
+\texttt{T} prefix (since all terms are typed by construction) and rename
+\texttt{TINT} to \texttt{NLIT} and \texttt{TBOOL} to \texttt{BLIT}
+to reflect the underlying Rocq types; a complete naming comparison
+appears in \cref{sec:disc-bkv}.
+
+\paragraph{The \texttt{var\_case} combinator (DD-013).}
+Several definitions need to case-split a variable
+\texttt{Var~($\tau$~::~$\Gamma$)~$\sigma$} into the head position
+(\texttt{ZVAR}, where $\sigma = \tau$) and the tail (\texttt{SVAR~x},
+where $x$~:~\texttt{Var~$\Gamma$~$\sigma$}).  A na\"ive dependent
+\texttt{match} introduces the opaque axiom \texttt{JMeq\_eq} from
+\texttt{Program.Equality}, which blocks kernel reduction and causes
+\texttt{reflexivity} to fail on computation rules.  The
+\texttt{var\_case} combinator avoids this by using a dependent match
+whose return type is itself a function:
+
+\begin{lstlisting}[
+  caption={The \texttt{var\_case} combinator (\texttt{PCF\_Syntax.v}).
+    The return clause produces a \emph{function} of \texttt{hz} and
+    \texttt{hs}, so that type equalities are resolved by
+    $\iota$-reduction rather than equality transport.},
+  label={lst:varcase}
+]
+Definition var_case {Γ τ} {P : Ty → Type}
+    (hz : P τ) (hs : forall σ, Var Γ σ → P σ)
+    : forall σ, Var (τ :: Γ) σ → P σ :=
+  fun σ (x : Var (τ :: Γ) σ) =>
+    match x in Var ctx σ' return
+          match ctx with
+          | []        => P σ'
+          | τ₀ :: Γ₀ =>
+              P τ₀ → (forall σ, Var Γ₀ σ → P σ) → P σ'
+          end
+    with
+    | ZVAR   => fun z _  => z
+    | SVAR y => fun _ s  => s _ y
+    end hz hs.
+\end{lstlisting}
+
+The key insight is that the match returns a \emph{function} that
+receives \texttt{hz} and \texttt{hs} as arguments after the match,
+sidestepping the need for an equality cast inside either branch.
+As a result, \texttt{var\_case~hz~hs~ZVAR} reduces to \texttt{hz}
+and \texttt{var\_case~hz~hs~(SVAR~y)} reduces to \texttt{hs~\_~y}
+by pure $\iota$+$\beta$-reduction---no axioms involved.
+
+This combinator is used in four places: \texttt{ren\_ext} (renaming
+extension), \texttt{subst\_ext} (substitution extension),
+\texttt{single\_subst}, and \texttt{double\_subst}.  In each case,
+the computation rules hold \emph{definitionally}---for example,
+\texttt{single\_subst~v~$\tau$~ZVAR~$\equiv$~v}---which is
+essential for the soundness proof, where evaluation rules must
+compose cleanly with substitution lemmas.
+
+\paragraph{Renaming bootstrap (DD-009).}
+Substitutions (\texttt{Subst~$\Gamma$~$\Gamma'$} $=$
+$\forall\,\tau$, \texttt{Var~$\Gamma$~$\tau$} $\to$
+\texttt{Value~$\Gamma'$~$\tau$}$\,$) require weakening: extending
+a substitution under a binder must shift each value by one de~Bruijn
+level.  Following McBride's technique, renamings
+(\texttt{Ren~$\Gamma$~$\Gamma'$} $=$
+$\forall\,\tau$, \texttt{Var~$\Gamma$~$\tau$} $\to$
+\texttt{Var~$\Gamma'$~$\tau$}$\,$) are defined first, and the
+weakening operation \texttt{wkVal} is defined by applying the
+canonical renaming \texttt{ren\_wk} that shifts every index by one.
+This avoids a complex dependent shift operator on values.
+
+% ·· Operational semantics ··································
 \subsection{Operational Semantics}
 \label{sec:meth-pcf-operational}
 
-% Source: lang/PCF_Operational.v
-% TODO: Big-step CBV evaluation
+% Source: lang/PCF_Operational.v (332 lines)
 
+\paragraph{Big-step CBV evaluation (DD-010).}
+The operational semantics is a big-step evaluation relation
+\texttt{Eval~:~CExp~$\tau$~$\to$~CValue~$\tau$~$\to$~Prop}
+(notation $e \Downarrow v$) on closed terms, where
+\texttt{CExp~$\tau$} $=$ \texttt{Exp~[]~$\tau$} and
+\texttt{CValue~$\tau$} $=$ \texttt{Value~[]~$\tau$}.
+The nine evaluation rules (\cref{sec:bg-pcf-syntax}) are
+transcribed directly; the two rules that involve substitution use the
+operations from \texttt{PCF\_Syntax.v}:
+\begin{itemize}
+  \item \textsc{E-Let}: evaluates $e_1 \Downarrow v_1$, then
+    \texttt{singleSubstExp~$v_1$~$e_2$}~$\Downarrow v_2$.
+  \item \textsc{E-App}: for
+    $\texttt{APP}~(\texttt{FIX}~\tau_1~\tau_2~\mathit{body})~v_{\mathrm{arg}}$,
+    evaluates
+    \texttt{doubleSubstExp~$v_{\mathrm{arg}}$~(FIX~$\tau_1$~$\tau_2$~$\mathit{body}$)~$\mathit{body}$},
+    which substitutes the argument for index~$0$ and the recursive
+    self-reference for index~$1$.
+\end{itemize}
+
+Big-step evaluation is chosen over small-step reduction because the
+soundness theorem takes the natural form
+$e \Downarrow v \implies \llbracket e \rrbracket = \eta(\llbracket v \rrbracket)$
+(\cref{thm:soundness}), matching the structure of the denotational
+semantics directly.  With intrinsic typing, there are no stuck
+states: every closed value is already in normal form (the only closed
+value of function type is \texttt{FIX}), so no
+progress or preservation theorems are needed.
+
+The file also derives \texttt{eval\_deterministic}: if
+$e \Downarrow v_1$ and $e \Downarrow v_2$ then $v_1 = v_2$, proved
+by double induction on the two derivations.
+
+% ·· Denotational semantics ·································
 \subsection{Denotational Semantics}
 \label{sec:meth-pcf-denotational}
 
-% Source: lang/PCF_Denotational.v
-% TODO: sem_ty, sem_val/sem_exp mutual fixpoint, substitution lemma
+% Source: lang/PCF_Denotational.v (1167 lines)
+
+The denotational semantics maps types to CPOs, values to continuous
+maps, and expressions to continuous maps into the lifted codomain,
+following the mathematical presentation of \cref{sec:bg-pcf-denotational}.
+The Rocq formalisation differs from the on-paper version in three
+significant ways: the denotation functions are point-free, the renaming
+lemma bootstraps the substitution lemma, and the \texttt{FIX} case
+uses a single combinator application.
+
+\paragraph{Point-free mutual fixpoint (DD-011).}
+Two approaches were considered for packaging the denotation:
+
+\begin{enumerate}
+  \item \textbf{Three-pass}: define raw functions
+    \texttt{sem\_val\_fn}/\texttt{sem\_exp\_fn}, prove monotonicity,
+    prove continuity, then package as \texttt{cont\_fun}.  Every
+    syntactic case must be handled three times.
+  \item \textbf{Single-pass}: each case is a point-free pipeline of
+    library combinators (\texttt{cont\_comp}, \texttt{cont\_pair},
+    \texttt{cont\_curry}, \texttt{FIXP}, \texttt{kleislir},
+    \texttt{ret}, etc.) that are already packaged as
+    \texttt{cont\_fun}.  The mutual fixpoint directly produces
+    \texttt{cont\_fun} values with no extra proof obligations.
+\end{enumerate}
+
+The single-pass approach was chosen.  For example:
+\begin{itemize}
+  \item \texttt{VAR~x} denotes \texttt{sem\_var~x}, the iterated
+    projection $\pi_2^k \circ \pi_1$ corresponding to the de~Bruijn
+    index.
+  \item \texttt{LET~$e_1$~$e_2$} denotes
+    \texttt{kleislir(sem\_exp~$e_2$~$\circ$~swap)~$\circ$~$\langle$id,
+    sem\_exp~$e_1$$\rangle$}: pair the environment with the result
+    of~$e_1$ (which may be $\bot$), then thread through the Kleisli
+    extension of~$e_2$.
+  \item \texttt{FIX~$\tau_1$~$\tau_2$~$\mathit{body}$} denotes
+    \texttt{FIXP~$\circ$~flip(curry(flip(curry(sem\_exp~$\mathit{body}$))))},
+    applying the continuous fixed-point operator
+    (\cref{thm:kleene}) after currying the body's two-argument
+    interpretation.
+\end{itemize}
+
+The downside of the point-free style is that \texttt{simpl} unfolds
+all combinator internals, producing goals with deeply nested
+projections and coercions.  The proofs in \texttt{PCF\_Denotational.v}
+use \texttt{change} rather than \texttt{simpl} to control unfolding,
+and selectively make definitions \texttt{Opaque} during the
+renaming and substitution mutual proofs.
+
+\paragraph{Renaming route to the substitution lemma (DD-012).}
+The substitution lemma
+($\llbracket e[\sigma] \rrbracket\;\gamma =
+ \llbracket e \rrbracket\;(\llbracket \sigma \rrbracket\;\gamma)$)
+is the critical interface between syntax and semantics: it is the tool
+that allows the soundness proof to reduce the \textsc{E-Let} and
+\textsc{E-App} cases to the induction hypotheses.  The proof follows
+the bootstrapping strategy of \cref{eq:sem-subst-ext}, translated into
+the Rocq setting as a chain of mutual lemmas:
+\[
+  \texttt{sem\_ren\_ext}
+    \;\to\; \texttt{sem\_val\_ren}
+    \;\to\; \texttt{sem\_ren\_wk}
+    \;\to\; \texttt{sem\_subst\_ext}
+    \;\to\; \texttt{sem\_val\_subst}.
+\]
+The renaming lemma (\texttt{sem\_val\_ren}/\texttt{sem\_exp\_ren})
+is proved first by mutual induction on terms; it is needed to
+establish that syntactic weakening (\texttt{wkVal~v}) corresponds to
+dropping the outermost environment component
+($\llbracket \texttt{wkVal}\;v \rrbracket\;(d,\gamma)
+= \llbracket v \rrbracket\;\gamma$).  This \texttt{sem\_ren\_wk}
+lemma is then used to prove the substitution extension lemma
+\texttt{sem\_subst\_ext}, which in turn powers the binder cases
+(\texttt{FIX}, \texttt{LET}) of the full substitution lemma.
+
+The end-user interface consists of two corollaries:
+\begin{itemize}
+  \item \texttt{sem\_single\_subst}: relates \texttt{singleSubstExp} to
+    extending the semantic environment by one value.
+  \item \texttt{sem\_double\_subst}: relates \texttt{doubleSubstExp} to
+    extending by two values (argument and self-reference).
+\end{itemize}
+These are the only substitution lemmas needed by the soundness and
+adequacy proofs in \cref{ch:results}.
+
+\medskip
+
+With the syntax, operational semantics, and denotational semantics in
+place, the remaining task is to show that the two agree.
+Soundness~(\cref{sec:res-soundness}) proceeds by structural induction
+on the big-step evaluation derivation, following DD-014; each rule
+reduces to an application of the substitution corollaries above.
+Adequacy~(\cref{sec:res-adequacy}) is more involved: it constructs a
+type-indexed logical relation between domain elements and closed terms,
+and the \texttt{FIX} case appeals to \texttt{fixp\_ind}
+(\cref{thm:kleene}) to establish the admissibility of the
+relation---the strategy introduced by Pitts and inherited from
+Benton, Kennedy, and Varming (DD-015).
