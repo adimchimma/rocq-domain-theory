@@ -1110,6 +1110,123 @@ sequences that underlie recursive domain equations
 \label{fig:ep-pair}
 \end{figure}
 
+% ·· Cartesian closed structure ····························
+\subsection{Cartesian Closed Structure}
+\label{sec:bg-ccc}
+
+In a denotational semantics for a higher-order language, every type must
+denote an object in the semantic category.  For base types this is
+straightforward: natural numbers are interpreted as the flat CPO
+$\mathbb{N}_\bot$, and Booleans as $\mathbb{B}_\bot$.  The challenge
+arises with \emph{function types}: the interpretation of
+$\tau_1 \to \tau_2$ must be an object~$[D_1 \Rightarrow D_2]$ in the
+same category, equipped with maps that internalise function application
+and $\lambda$-abstraction.  The categorical structure that guarantees
+this is \emph{cartesian closedness}.
+
+\begin{definition}[Cartesian closed category]
+\label{def:ccc}
+A category~$\mathcal{C}$ is \emph{cartesian closed} (a CCC) if it has:
+\begin{enumerate}
+  \item a \emph{terminal object}~$1$,
+  \item a \emph{binary product}~$A \times B$ for every pair of
+        objects~$A, B$, and
+  \item for every object~$B$, an \emph{exponential
+        object}~$[B \Rightarrow C]$ for each object~$C$: an
+        object together with a morphism
+        \[
+            \mathit{eval}_{B,C} : [B \Rightarrow C] \times B
+              \;\longrightarrow\; C
+        \]
+        satisfying the following universal property: for every morphism
+        $f : A \times B \to C$ there exists a \emph{unique} morphism
+        $\widetilde{f} : A \to [B \Rightarrow C]$ such that
+        \[
+            \mathit{eval}_{B,C} \circ (\widetilde{f} \times \mathrm{id}_B)
+              = f.
+        \]
+\end{enumerate}
+\end{definition}
+
+The map~$\widetilde{f}$ is called the \emph{exponential transpose} or
+\emph{curry} of~$f$; its inverse---recovering~$f$ from a
+higher-order map---is \emph{uncurry}.  The universal property therefore
+establishes a natural bijection
+\[
+    \mathcal{C}(A \times B,\; C)
+      \;\cong\;
+    \mathcal{C}(A,\; [B \Rightarrow C])
+\]
+for all objects $A$, $B$, $C$.  This bijection is exactly the
+\emph{exponential adjunction}: the product functor $- \times B$ is left
+adjoint to the exponential functor $[B \Rightarrow -]$.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzcd}[column sep=3.2cm, row sep=2.0cm]
+  A \times B
+    \arrow[r, "f"]
+    \arrow[d, "\widetilde{f} \times \mathrm{id}_B"']
+  & C \\
+  {[B \Rightarrow C]} \times B
+    \arrow[ur, "\mathit{eval}_{B,C}"']
+\end{tikzcd}
+\caption{The exponential transpose: for every $f : A \times B \to C$,
+  there exists a unique $\widetilde{f} : A \to [B \Rightarrow C]$
+  making the triangle commute, i.e.\
+  $\mathit{eval}_{B,C} \circ (\widetilde{f} \times \mathrm{id}_B) = f$.}
+\label{fig:exponential-transpose}
+\end{figure}
+
+\begin{proposition}[$\CPO$ is cartesian closed]
+\label{prop:cpo-ccc}
+The category $\CPO$ is cartesian closed. Concretely:
+\begin{enumerate}
+  \item The \emph{terminal object} is the one-element CPO~$\{*\}$.
+  \item The \emph{product} $D \times E$ is the set-theoretic product
+    with the componentwise order (\cref{sec:bg-cpo}).
+  \item The \emph{exponential object} $[D \to_c E]$ is the
+    function-space CPO of~\cref{prop:function-space}, with:
+    \begin{itemize}
+      \item $\mathit{eval}(f, d) = f(d)$, the
+            \emph{evaluation map} that applies a continuous function
+            to its argument, and
+      \item $\mathit{curry}(f)(c)(d) = f(c, d)$, the exponential
+            transpose that turns a two-argument continuous map into a
+            higher-order one.
+    \end{itemize}
+\end{enumerate}
+The evaluation map is Scott-continuous; its continuity requires a
+diagonal argument, since one must relate the suprema of two independent
+chains (one of functions, one of arguments).
+\end{proposition}
+
+\paragraph{Cartesian closedness and computation.}
+The CCC structure of $\CPO$ is what makes higher-order denotational
+semantics compositional.  Each syntactic construct of a typed
+$\lambda$-calculus has a direct semantic counterpart:
+\begin{itemize}
+  \item \textbf{Function types} $\tau_1 \to \tau_2$ are interpreted as
+        exponential objects $[\sem{\tau_1} \to_c \sem{\tau_2}_\bot]$,
+        which are themselves CPOs.
+  \item \textbf{Application}~$e_1\;e_2$ is modelled by the evaluation
+        map: $\sem{e_1\;e_2} = \mathit{eval}(\sem{e_1}, \sem{e_2})$.
+  \item \textbf{Abstraction}~$\lambda x.\, e$ is modelled by currying:
+        $\sem{\lambda x.\, e} = \mathit{curry}(\sem{e})$.
+  \item \textbf{$\beta$-reduction} corresponds to the equation
+        $\mathit{eval} \circ (\mathit{curry}(f) \times \mathrm{id}) = f$
+        (\cref{fig:exponential-transpose}), which holds by definition
+        of the transpose.
+\end{itemize}
+The adjunction guarantees that these correspondences are natural and
+compose correctly: substitution is functorial, and the
+$\beta$- and $\eta$-laws of the $\lambda$-calculus hold in every CCC.
+This connection between cartesian closed categories and typed
+$\lambda$-calculi was established by Lambek and
+Scott~\cite{LambekScott1986} and is the deep reason that domain theory
+provides a sound semantic framework for functional programming
+languages.
+
 \subsection{Enriched Functors and Natural Transformations}
 \label{sec:bg-enriched-functors}
 
