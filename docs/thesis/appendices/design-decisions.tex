@@ -1,0 +1,372 @@
+\chapter{Design Decision Log}
+\label{app:design-decisions}
+
+This appendix catalogues the non-obvious architectural choices made
+during the modernisation of the Benton--Kennedy domain-theory library for
+Rocq~9.0.  Each entry records the decision, the alternatives considered,
+and the rationale that drove the final choice.  Entries are numbered
+sequentially in the order they were taken; cross-references to the
+relevant source files and thesis sections are given where appropriate.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-001: No separate \texttt{Pointed.v}}
+
+\textbf{Decision.}
+\texttt{HasBottom}, \texttt{IsPointed}, and \texttt{PointedCPO} live in
+\texttt{CPO.v}; \texttt{strict\_fun} lives in \texttt{Morphisms.v}.
+No \texttt{Pointed.v} file is created.
+
+\textbf{Rationale.}
+An earlier iteration had a one-line re-export shim that bounced users
+from \texttt{Pointed.v} back to \texttt{CPO.v}.  Following the
+MathComp/HB convention of organising files around dependency structure
+rather than an idealised concept map, pointedness belongs in
+\texttt{CPO.v} (hard dependency on \texttt{CPO~T}) and strictness in
+\texttt{Morphisms.v} (hard dependency on \texttt{cont\_fun}).
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-002: Separate continuity axioms in \texttt{IsCPOEnriched}}
+
+\textbf{Decision.}
+\texttt{IsCPOEnriched} axiomatises composition via two separate
+Scott-continuity conditions (\texttt{comp\_cont\_l} and
+\texttt{comp\_cont\_r}) rather than a single joint-continuity condition.
+
+\textbf{Rationale.}
+Joint continuity is equivalent to separate continuity in each variable
+(Abramsky \& Jung, Lemma~3.2.6).  The separate form avoids importing
+\texttt{Products.v} at the point where \texttt{Enriched.v} is declared,
+breaking the dependency cycle
+\texttt{Enriched.v $\to$ Products.v $\to$ CPOTheory.v $\to$ Enriched.v}.
+This is the same strategy used by
+Kornell--Lindenhovius--Mislove~\cite{KLM2024}~\S3.3.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-003: Monotonicity fields precede continuity fields}
+
+\textbf{Decision.}
+In every HB mixin that requires both monotonicity and Scott-continuity,
+the monotonicity field is declared \emph{before} the continuity field.
+
+\textbf{Rationale.}
+The \texttt{continuous} predicate takes a \texttt{mono\_fun} as its
+argument; \texttt{Build\_mono\_fun} requires a proof of monotonicity.
+If the continuity field appeared first, the monotonicity proof would not
+yet be in scope.  This is a Rocq/HB implementation detail, not a
+mathematical preference.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-004: Leibniz equality for categorical laws}
+
+\textbf{Decision.}
+The categorical laws in \texttt{IsCPOEnriched} and
+\texttt{IsLocallyContinuous} use Leibniz equality \texttt{=} rather than
+setoid equality \texttt{$\approx$}.
+
+\textbf{Rationale.}
+The hom-CPOs are HB-packed \texttt{CPO.type} values whose element
+equality is Leibniz by default.  Using \texttt{=} keeps the laws
+definitionally true and avoids setoid-rewriting overhead at the structure
+level.  If a concrete instance uses a coarser extensional equality, the
+laws can be restated in the relevant theory file.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-005: \texttt{HasMixedEndo} records only data}
+
+\textbf{Decision.}
+The mixin \texttt{HasMixedEndo} in \texttt{Enriched.v} contains only the
+object and morphism actions of a mixed-variance bifunctor.  The
+functoriality and local-continuity axioms are deferred to
+\texttt{DomainEquations.v}.
+
+\textbf{Rationale.}
+The full axioms require reasoning about directed sets of morphism pairs,
+which in turn requires the product CPO construction.  Declaring them in
+\texttt{Enriched.v} would create the same forward-dependency cycle
+described in DD-002.  Splitting data from axioms keeps the structures
+file dependency-minimal.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-006: Classical lift via \texttt{option~D}}
+
+\textbf{Decision.}
+The main library lift (\texttt{Lift.v}) uses the flat carrier
+\texttt{option~D} with a classically computed sup.  A coinductive
+alternative is developed in the supplementary file \texttt{LiftMonad.v}.
+
+\textbf{Rationale.}
+The coinductive \texttt{delay~D} type suffers an \emph{antisymmetry
+obstruction}: \texttt{now~d} and \texttt{later~(now~d)} are
+propositionally distinct yet semantically equivalent, so any CPO order
+compatible with convergence would force
+\texttt{now~d $=$ later~(now~d)}---a contradiction.  Making
+\texttt{delay~D} into a \texttt{CPO.type} (which uses Leibniz equality,
+DD-004) therefore requires quotienting by weak bisimulation, which in
+turn requires either a setoid-based CPO framework or quotient types not
+standard in Rocq.  The \texttt{option~D} approach avoids the quotient
+entirely; its only non-constructive step is \texttt{ClassicalEpsilon},
+localised to \texttt{lift\_sup}.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-007: \texttt{LiftMonad.v} as a self-contained supplementary file}
+
+\textbf{Decision.}
+The coinductive delay monad is developed in a separate, zero-import file
+\texttt{LiftMonad.v} that is not used by any other file in the library.
+
+\textbf{Rationale.}
+The file serves two thesis purposes: (i) concrete comparison of the
+\texttt{option~D} and \texttt{delay~D} monad structures side by side;
+(ii) a precise Rocq proof of \texttt{delay\_CPO\_requires\_quotient},
+which establishes that \texttt{delay~D} cannot be a \texttt{CPO.type}
+without quotient types.  Keeping the file self-contained emphasises the
+logical independence of the coinductive structure from the domain-theory
+hierarchy.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-008: HB instance ordering for \texttt{PointedCPO}}
+
+\textbf{Decision.}
+For any type~$T$, the instance registrations \texttt{lift\_IsCPO},
+\texttt{lift\_HasBottom}, \texttt{lift\_IsPointed} must appear in exactly
+this order.
+
+\textbf{Rationale.}
+\texttt{IsPointed} requires both \texttt{CPO~T} and
+\texttt{HasBottom~T}.  Violating the order causes a silent HB
+elaboration failure (no error; the instance simply does not register).
+The general rule: \texttt{HasLe $\to$ IsPreorder $\to$ IsPartialOrder
+$\to$ HasSup $\to$ IsCPO $\to$ HasBottom $\to$ IsPointed}.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-009: Intrinsic typing and ANF for PCF\textsubscript{v}}
+
+\textbf{Decision.}
+PCF syntax uses intrinsically typed terms in Administrative Normal Form,
+with separate mutually inductive \texttt{Value} and \texttt{Exp} types
+indexed by \texttt{Env} and \texttt{Ty}.  Variables are typed de~Bruijn
+indices; renamings bootstrap substitutions
+(\cref{sec:meth-pcf-syntax}).
+
+\textbf{Rationale.}
+Benton--Kennedy~\S3 describe two approaches: extrinsic typing (raw terms
+plus a separate typing judgment) and intrinsic typing (well-typedness by
+construction).  The extrinsic approach required lengthy proofs that any
+two typing derivations are equal, plus side-conditions on every
+definition.  The intrinsic approach eliminates both problems.  ANF and
+the renaming bootstrap follow Benton--Kennedy exactly; a complete naming
+comparison appears in \cref{sec:disc-bkv}.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-010: Big-step CBV evaluation}
+
+\textbf{Decision.}
+The operational semantics uses a big-step evaluation relation
+\texttt{Eval : CExp\,$\tau$ $\to$ CValue\,$\tau$ $\to$ Prop}
+(notation $e \Downarrow v$), not a small-step reduction relation.
+
+\textbf{Rationale.}
+Big-step evaluation matches the denotational semantics for CBV: the
+soundness theorem has the form
+$e \Downarrow v \;\Rightarrow\; \llbracket e \rrbracket = \eta(\llbracket v \rrbracket)$.
+With intrinsically typed closed terms there are no stuck states, so no
+progress or preservation theorems are needed.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-011: Point-free mutual fixpoint for denotation}
+
+\textbf{Decision.}
+The denotation functions \texttt{sem\_val} and \texttt{sem\_exp} are
+defined as a single mutual structural \texttt{Fixpoint}, with each case
+expressed as a point-free composition of library combinators
+(\cref{sec:meth-pcf-denotational}).
+
+\textbf{Rationale.}
+Two approaches were evaluated: (i)~a three-pass approach (raw functions,
+then monotonicity, then continuity); (ii)~a single-pass point-free
+style where each case is a pipeline of combinators already packaged as
+\texttt{cont\_fun}.  The single-pass approach was chosen because the
+combinator library already provides all needed packaging and the
+\texttt{FIX} case benefits from \texttt{FIXP} being a single continuous
+operator.  The downside is that \texttt{simpl} produces unreadable
+goals; this is mitigated by using \texttt{change} rather than
+\texttt{simpl} and making \texttt{sem\_ren} \texttt{Opaque} during the
+renaming/substitution proofs.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-012: Renaming route for the substitution lemma}
+
+\textbf{Decision.}
+The substitution lemma is proved via an intermediate renaming route:
+first the renaming lemma by mutual induction, then the weakening
+corollary, then the extension lemma, and finally the substitution
+lemma by mutual induction (\cref{sec:meth-pcf-denotational}).
+
+\textbf{Rationale.}
+The direct approach to the substitution extension lemma requires knowing
+that syntactic weakening (\texttt{wkVal}) corresponds to dropping the
+first environment component.  Since \texttt{wkVal\,v $=$ renVal\,ren\_wk\,v},
+this requires the renaming lemma first.  The dependency chain mirrors
+Benton--Kennedy's syntactic bootstrapping strategy.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-013: \texttt{var\_case} combinator}
+
+\textbf{Decision.}
+The renaming and substitution extension functions use a
+\texttt{var\_case} combinator that eliminates the head variable via a
+dependent match with a function-returning return type, rather than
+pattern matching that introduces \texttt{JMeq\_eq}
+(\cref{sec:meth-pcf-syntax}).
+
+\textbf{Rationale.}
+A na\"{\i}ve dependent match on \texttt{Var\,($\tau$\,::\,$\Gamma$)\,$\sigma$}
+introduces the opaque axiom \texttt{JMeq\_eq} from
+\texttt{Program.Equality}, which blocks kernel reduction and causes
+\texttt{reflexivity} to fail on computation rules.  The
+\texttt{var\_case} combinator avoids this by using a return type that
+takes the head and tail handlers as parameters \emph{after} the match,
+so that \texttt{var\_case\,z\,s\,ZVAR $\equiv$ z} and
+\texttt{var\_case\,z\,s\,(SVAR\,x') $\equiv$ s\,\_\,x'} hold by pure
+$\iota$+$\beta$ reduction.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-014: Soundness by structural induction on \texttt{Eval}}
+
+\textbf{Decision.}
+Soundness is proved by structural induction on the big-step evaluation
+derivation, using computation rules and substitution lemmas directly.
+
+\textbf{Rationale.}
+In the CBV big-step setting, each evaluation rule corresponds to a
+computation rule plus induction hypotheses.  The two non-trivial cases
+(\texttt{LET} and \texttt{APP}) require only \texttt{sem\_single\_subst}
+and \texttt{sem\_double\_subst}.  No auxiliary lemmas outside
+\texttt{PCF\_Soundness.v} are needed.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-015: Adequacy via logical relation}
+
+\textbf{Decision.}
+Computational adequacy is proved via a type-indexed logical relation
+following Benton--Kennedy--Varming~\S3.2, with the
+\texttt{FIX} case appealing to \texttt{fixp\_ind}.
+
+\textbf{Rationale.}
+The relation separates into \texttt{rel\_val} (values) and
+\texttt{rel\_exp} (expressions, the ``lift'' of \texttt{rel\_val}).  The
+arrow case uses \texttt{doubleSubstExp} to mirror the operational
+\texttt{e\_App} rule directly.  Admissibility of \texttt{rel\_exp} is
+established by \texttt{rel\_val\_admissible} (induction on~$\tau$) and
+chain-stabilisation properties of the lift CPO.  The fundamental lemma
+is proved by mutual induction on \texttt{Value}/\texttt{Exp} via the
+\texttt{Combined Scheme val\_exp\_ind}.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-016: HB coercion workarounds in \texttt{EnrichedTheory.v}}
+
+\textbf{Decision.}
+\texttt{EnrichedTheory.v} uses a systematic set of HB coercion
+workarounds---\texttt{etransitivity}, explicit \texttt{@}-qualified
+projections, \texttt{unshelve econstructor}, \texttt{Arguments\,\{C\}}
+directives, and \texttt{cbn\,[mf\_fun]} normalisation---to compile from
+source rather than from \texttt{.vo} files.
+
+\textbf{Rationale.}
+When building from source, HB canonical-structure resolution fails in
+several contexts that work from \texttt{.vo} files in the IDE.  The core
+problem is that coercion paths between \texttt{CPOEnrichedCat.sort} and
+\texttt{CPO.sort} resolve ambiguously.  Five categories of workarounds
+were identified (\cref{sec:meth-enriched}).  Additionally, joint
+continuity of composition is proved in a two-stage approach: a
+product-free stage~A that avoids coercion-path conflicts, and a thin
+packaging stage~B that confines the conflicts.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-017: \texttt{IsMixedLocallyContinuous} axiom design}
+
+\textbf{Decision.}
+The \texttt{IsMixedLocallyContinuous} mixin axiomatises the
+mixed-variance bifunctor via six separate fields---identity,
+composition, separate monotonicity, and separate continuity---rather
+than joint conditions.
+
+\textbf{Rationale.}
+This mirrors DD-002: separate axioms avoid importing
+\texttt{Products.v} at the mixin declaration point.  Joint monotonicity
+and continuity are derived in a \texttt{MFDerived} section.
+\texttt{DomainEquations.v} also contains the axiom
+\texttt{bilimit\_exists}, which asserts the existence of the bilimit of
+the approximation sequence; its proof requires an $\omega$-product CPO
+not yet in the library.  All consequences of the bilimit (\texttt{ROLL},
+\texttt{UNROLL}, deflation chains) are fully proved from the record
+fields.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-018: \texttt{nat\_trans} as a plain record}
+
+\textbf{Decision.}
+Natural transformations are defined as a plain \texttt{Record nat\_trans}
+parameterised over two \texttt{lc\_functor} values, not over HB
+\texttt{LocallyContinuousFunctor} instances.
+
+\textbf{Rationale.}
+HB instances for functors on \texttt{CPOEnrichedCat.type} trigger
+universe inconsistencies when natural transformations quantify over all
+objects.  Plain records avoid HB's universe machinery and compose
+directly (identity, vertical, horizontal composition produce new
+\texttt{nat\_trans} values without instance registration).
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-019: Yoneda lemma in \texttt{instances/}}
+
+\textbf{Decision.}
+The representable functor and the enriched Yoneda lemma live in
+\texttt{instances/Yoneda.v} rather than in \texttt{NatTrans.v}.
+
+\textbf{Rationale.}
+The representable functor requires the concrete CPO-enriched category
+instance registered in \texttt{instances/Function.v}.  Placing Yoneda in
+\texttt{NatTrans.v} (a theory file) would create a reverse dependency
+from \texttt{theory/} to \texttt{instances/}, violating the library's
+build-order constraint.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-020: \texttt{change} tactic for \texttt{FunLift.v}}
+
+\textbf{Decision.}
+The axiom proofs in \texttt{FunLift.v} use the \texttt{change} tactic
+to normalise coercion-wrapped goals, rather than \texttt{rewrite} or
+\texttt{unfold}.
+
+\textbf{Rationale.}
+After case-splitting on \texttt{option} values, goals are wrapped in
+HB-generated coercion chains that prevent \texttt{rewrite} from matching
+the LHS.  \texttt{change} bypasses coercions entirely by checking
+definitional equality directly.  Both \texttt{unfold + rewrite} and
+\texttt{subst + unfold} strategies were tried and fail due to immediate
+$\iota$-reduction that eliminates the head symbol before
+\texttt{rewrite} can match.
+
+% ──────────────────────────────────────────────────────────────────
+\section*{DD-022: Atoms-only quantum representation}
+
+\textbf{Decision.}
+Quantum sets are represented as plain Rocq types (atom indices) with
+$Q$-valued relations, where $Q$ is axiomatised as an involutive quantale
+via HB.  Quantum posets are plain \texttt{Record qposet} values
+parameterised by~$Q$, not HB structures.
+
+\textbf{Rationale.}
+KLM's quantum CPO theory separates into two layers: (i) abstract order
+theory (convergence, completeness, Scott continuity, enrichment), which
+needs only a quantale~$Q$ and $Q$-valued relations; (ii) concrete
+operator-space constructions (tensor products, monoidal closure), which
+require Hilbert spaces and completely bounded maps.  Layer~(ii) does not
+exist in any Rocq library.  The atoms-only approach covers Layer~(i)
+completely, matches Rocq's strengths in abstract algebra, and is
+justified by the existence of $B(H)$ as a concrete involutive quantale.
+Quantum posets are plain records (not HB structures) because HB does not
+handle structures parameterised by other structures well, following the
+same pattern as \texttt{chain}, \texttt{mono\_fun}, and
+\texttt{cont\_fun}.
