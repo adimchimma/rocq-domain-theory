@@ -4,54 +4,869 @@
 \chapter{Results}
 \label{ch:results}
 
+This chapter presents the main results of the formalisation.
+\Cref{sec:res-overview} summarises the library's scope and
+metrics.  \Cref{sec:res-soundness,sec:res-adequacy} state and
+prove the two central metatheorems---soundness and adequacy---for the
+PCF$_v$ language, and \cref{sec:res-correspondence} combines them into a
+single convergence correspondence.
+\Cref{sec:res-enriched} records the enriched-category results:
+the Yoneda lemma and recursive domain equations.
+Finally, \cref{sec:res-examples} presents worked examples that
+exercise every layer of the library.
+
 % ── Library metrics ───────────────────────────────────────────────
 \section{Library Overview}
 \label{sec:res-overview}
 
-% TODO: Table of files, line counts, definitions, lemmas
-% Total: ~15,166 lines, 36 compiled files, 0 Admitted in core
+\Cref{tab:library-metrics} summarises the size of the project.
+The library currently comprises 35 source files across five directories,
+totalling approximately 15{,}700 lines of Rocq code; the remaining
+lines belong to the four example walkthroughs and the seven
+test suites.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{l r r l}
+\hline
+\textbf{Layer} & \textbf{Files} & \textbf{Lines} & \textbf{Contents} \\
+\hline
+\texttt{structures/} &  4 &    974 & \HB{} mixins and structures \\
+\texttt{theory/}     & 13 &  7{,}488 & Core domain theory \\
+\texttt{instances/}  &  6 &  2{,}084 & Concrete CPO instances \\
+\texttt{lang/}       &  7 &  3{,}402 & PCF \& QMiniCore \\
+\texttt{quantum/}    &  5 &  1{,}767 & Quantum CPO layer \\
+\hline
+\emph{Library sub-total} & 35 & 15{,}715 & \\
+\hline
+\texttt{examples/}   &  4 &    986 & Worked walkthroughs \\
+\texttt{test/}       &  7 &  1{,}579 & Property-level test suites \\
+\hline
+\textbf{Total}       & \textbf{46} & \textbf{18{,}280} & \\
+\hline
+\end{tabular}
+\caption{Library metrics by directory layer.  Line counts are over
+  \texttt{.v} source files, not including generated build
+  artifacts.}
+\label{tab:library-metrics}
+\end{table}
+
+Across the library, the code base contains approximately 240
+definitions and 601 lemmas or theorems.
+The \HB{} hierarchy declares 25 structures and 81 instances,
+spanning the full stack from \texttt{PartialOrder} up to
+\texttt{MixedLCFunctor}.
+
+The core library (the first five rows of \cref{tab:library-metrics})
+contains \textbf{zero} uses of \texttt{Admitted}.  One explicitly
+declared axiom exists: \texttt{bilimit\_exists} in
+\texttt{DomainEquations.v}, which postulates the existence of a
+bilimit for any approximation sequence
+(\cref{sec:res-domain-equations}).  The experimental
+\texttt{LiftMonad.v} file (the coinductive lift monad explored in
+\cref{sec:disc-lift-monad}) contains two \texttt{Admitted} lemmas,
+both blocked by the guardedness obstruction discussed there; this file
+is not imported by any other module.
+
+The library builds under \Rocq~9.0 with the Hierarchy Builder
+plugin, using the Dune build system.  All 46 files compile
+without warnings.
 
 % ── Soundness ─────────────────────────────────────────────────────
 \section{PCF Soundness}
 \label{sec:res-soundness}
 
 % Source: lang/PCF_Soundness.v
-% TODO: Statement and proof sketch of soundness theorem
-% e ⇓ v → ⟦e⟧ γ = Some (⟦v⟧ γ)
+
+The mathematical proof of soundness was given in \cref{sec:bg-adequacy}.
+Here we present the mechanised version in \Rocq{} and note how the
+formal proof mirrors the paper argument.
+
+\begin{theorem}[Mechanised soundness]
+\label{thm:mech-soundness}
+For every closed expression~$e$ and closed value~$v$,
+\[
+  e \Downarrow v
+  \;\implies\;
+  \texttt{sem\_exp}\;e\;\mathtt{tt}
+    = \mathsf{Some}\,(\texttt{sem\_val}\;v\;\mathtt{tt}).
+\]
+\end{theorem}
+
+\noindent
+The complete proof script is shown in \cref{lst:soundness}.
+
+\begin{lstlisting}[caption={Soundness theorem and proof (\texttt{PCF\_Soundness.v}).},
+                    label={lst:soundness}]
+Theorem soundness :
+    forall {τ : Ty} (e : CExp τ) (v : CValue τ),
+      e ⇓ v  →  sem_exp e tt = Some (sem_val v tt).
+Proof.
+  intros τ e v H.
+  induction H as
+    [ t' v'                                     (* e_Val   *)
+    | t1 t2 e1 w1 e2 w2  He1 IH1  He2 IH2      (* e_Let   *)
+    | t1 t2 body varg w  He IH                   (* e_App   *)
+    | t1 t2 v1 v2                                (* e_Fst   *)
+    | t1 t2 v1 v2                                (* e_Snd   *)
+    | op n1 n2                                    (* e_Op    *)
+    | n1 n2                                       (* e_Gt    *)
+    | t' e1 e2 w  He IH                          (* e_IfTrue  *)
+    | t' e1 e2 w  He IH                          (* e_IfFalse *)
+    ].
+  - (* e_Val *)  reflexivity.
+  - (* e_Let *)  rewrite sem_exp_LET, IH1.
+                 rewrite <- IH2, sem_single_subst.
+                 reflexivity.
+  - (* e_App *)  rewrite sem_exp_APP, sem_val_FIX_unfold.
+                 rewrite <- IH, sem_double_subst.
+                 reflexivity.
+  - (* e_Fst *)  rewrite sem_exp_FST, sem_val_PAIR. reflexivity.
+  - (* e_Snd *)  rewrite sem_exp_SND, sem_val_PAIR. reflexivity.
+  - (* e_Op  *)  rewrite sem_exp_OP. reflexivity.
+  - (* e_Gt  *)  rewrite sem_exp_GT. reflexivity.
+  - (* e_IfTrue  *) rewrite sem_exp_IFB. simpl. exact IH.
+  - (* e_IfFalse *) rewrite sem_exp_IFB. simpl. exact IH.
+Qed.
+\end{lstlisting}
+
+The proof proceeds by induction on the evaluation derivation
+\texttt{H~:~e~$\Downarrow$~v}, exactly as in the paper proof
+(\cref{thm:soundness}).  Each case applies the $\beta$-computation
+rule exported by \texttt{PCF\_Denotational.v}---for example,
+\texttt{sem\_exp\_LET} for the \textsc{E-Let} rule and
+\texttt{sem\_exp\_APP} together with \texttt{sem\_val\_FIX\_unfold}
+for the \textsc{E-App} rule---followed by the induction hypothesis.
+The two non-trivial binder cases (\textsc{E-Let} and \textsc{E-App})
+additionally appeal to the substitution corollaries
+\texttt{sem\_single\_subst} and \texttt{sem\_double\_subst}
+developed in \cref{sec:meth-pcf}.
+
+The short proof scripts reflect a general pattern: because the
+denotational semantics was defined to compute definitionally on each
+syntactic form (DD-014), each case reduces to a chain of
+\texttt{rewrite} steps that reassemble the denotational equations
+\emph{without case analysis on the domain elements themselves}.
+The intrinsically typed representation
+(\cref{sec:meth-pcf}) eliminates all variable-binding boilerplate:
+there are no well-scopedness side-conditions to discharge.
+
+\medskip
+
+\noindent
+Three corollaries follow directly:
+
+\begin{corollary}[Convergence implies definedness]
+\label{cor:sound-not-none}
+If\/ $e \Downarrow$ then $\sem{e}^c_E \neq \mathsf{None}$.
+\end{corollary}
+
+\begin{corollary}[Values denote themselves]
+\label{cor:sound-val}
+$\texttt{sem\_exp}\;(\mathsf{val}\;v)\;\mathtt{tt}
+  = \mathsf{Some}\,(\texttt{sem\_val}\;v\;\mathtt{tt})$.
+\end{corollary}
+
+\begin{corollary}[Denotational agreement]
+\label{cor:sound-agree}
+If\/ $e \Downarrow v_1$ and $e \Downarrow v_2$ then
+$\texttt{sem\_val}\;v_1\;\mathtt{tt}
+  = \texttt{sem\_val}\;v_2\;\mathtt{tt}$.
+\end{corollary}
+
+\noindent
+\Cref{cor:sound-not-none} provides the ``easy'' direction of the
+convergence correspondence; the harder converse is the subject of
+the next section.
 
 % ── Adequacy ──────────────────────────────────────────────────────
 \section{PCF Adequacy}
 \label{sec:res-adequacy}
 
 % Source: lang/PCF_Adequacy.v
-% TODO: The BKV logical relation, fundamental lemma, adequacy theorem
-% ⟦e⟧ tt ≠ None → ∃v, e ⇓ v
 
-\section{Full Abstraction Correspondence}
+The mathematical treatment of adequacy---the logical relation, its
+admissibility, the fundamental lemma, and the adequacy
+corollary---was given in \cref{sec:bg-adequacy}.  This section presents
+the mechanised development in \texttt{PCF\_Adequacy.v} (820~lines) and
+highlights the points where the formal proof diverges from, or
+elaborates on, the paper argument.
+
+\subsection*{The logical relation}
+
+The value relation \texttt{rel\_val} and expression relation
+\texttt{rel\_exp} are defined exactly as in
+\cref{def:logical-relation}.  In \Rocq{}, the value relation is a
+\texttt{Fixpoint} on the type index~$\tau$, so that the recursive
+occurrences in the arrow and product cases are structurally guarded:
+
+\begin{lstlisting}[caption={The logical relation (\texttt{PCF\_Adequacy.v}).},
+                    label={lst:rel-val}]
+Fixpoint rel_val (τ : Ty) : sem_ty τ → CValue τ → Prop :=
+  match τ return sem_ty τ → CValue τ → Prop with
+  | Nat    => fun d v => v = NLIT d
+  | Bool   => fun b v => v = BLIT b
+  | Arrow t1 t2 =>
+      fun f v =>
+        exists body, v = FIX t1 t2 body /\
+        forall d1 v1, rel_val t1 d1 v1 →
+          match (f d1) with
+          | None   => True
+          | Some d => exists w, doubleSubstExp v1 v body ⇓ w
+                                /\ rel_val t2 d w
+          end
+  | Prod t1 t2 =>
+      fun '(d1, d2) v =>
+        exists v1 v2, v = PAIR v1 v2 /\
+          rel_val t1 d1 v1 /\ rel_val t2 d2 v2
+  end.
+
+Definition rel_exp (τ : Ty) (o : option (sem_ty τ))
+    (e : CExp τ) : Prop :=
+  match o with
+  | None   => True
+  | Some d => exists v, e ⇓ v /\ rel_val τ d v
+  end.
+\end{lstlisting}
+
+\noindent
+The expression relation matches the ``lifted'' formulation of BKV: if
+the denotation is $\bot$ (\texttt{None}), the relation is trivially
+true; if the denotation is defined (\texttt{Some~d}), the expression
+must converge to a value related by \texttt{rel\_val}.  This
+formulation avoids the implication-based definition of Plotkin
+\cite{Plotkin1977} and simplifies the chain reasoning in the
+admissibility proof.
+
+\subsection*{Admissibility}
+
+The admissibility lemmas establish that the logical relation is
+compatible with suprema of chains, which is the precondition for
+applying fixed-point induction in the \textsc{Fix} case
+(\cref{thm:scott-induction}).
+
+\begin{theorem}[Mechanised admissibility]
+\label{thm:mech-admissible}
+For every type $\tau$ and closed value~$v$, the predicate
+$d \mapsto \texttt{rel\_val}\;\tau\;d\;v$ is admissible.
+\end{theorem}
+
+\noindent
+The proof proceeds by induction on $\tau$, mirroring
+\cref{lem:rel-val-admissible}.  In the \Rocq{} formalisation, the
+arrow case is the most technically involved: given a chain of
+functions $(f_n)$ in the lifted function space
+$[\sem{\tau_1} \to_c \sem{\tau_2}_\bot]$, the proof must:
+\begin{enumerate}
+  \item apply the library's \texttt{chain\_some\_stable} lemma to
+    show that once $f_N(d_1) \neq \mathsf{None}$, all later chain
+    elements remain defined;
+  \item invoke \texttt{eval\_deterministic} to show that the
+    convergence witness~$w$ is the same at every index; and
+  \item extract a chain in the inner type~$\sem{\tau_2}$ via
+    the \texttt{D\_chain} construction from \texttt{Lift.v}, then
+    apply the induction hypothesis at $\tau_2$.
+\end{enumerate}
+Two derived lemmas complete the admissibility interface:
+\texttt{rel\_exp\_admissible} lifts the result from values to
+expressions, and \texttt{rel\_exp\_admissible\_pointwise} packages it
+in the exact form required by the \textsc{Fix} case---as an
+admissible predicate on functions
+$h \mapsto \forall\, (d_1, v_1),\;
+\texttt{rel\_val}\;\tau_1\;d_1\;v_1 \to
+\texttt{rel\_exp}\;\tau_2\;(h\;d_1)\;\ldots$
+
+\subsection*{The fundamental lemma}
+
+The fundamental lemma states that every well-typed term, instantiated
+by a related environment, lies in the logical relation.  Because
+\texttt{Value} and \texttt{Exp} are mutually inductive, the proof
+uses a combined induction scheme:
+
+\begin{lstlisting}[caption={Fundamental lemma statement
+  (\texttt{PCF\_Adequacy.v}).},
+                    label={lst:fundamental}]
+Scheme value_ind2 := Induction for Value Sort Prop
+  with exp_ind2   := Induction for Exp   Sort Prop.
+Combined Scheme val_exp_ind from value_ind2, exp_ind2.
+
+Theorem fundamental_lemma :
+    (forall {Γ τ} (v : Value Γ τ) σ γ,
+       rel_env Γ γ σ →
+       rel_val τ (sem_val v γ) (substVal σ v))
+  /\
+    (forall {Γ τ} (e : Exp Γ τ) σ γ,
+       rel_env Γ γ σ →
+       rel_exp τ (sem_exp e γ) (substExp σ e)).
+\end{lstlisting}
+
+\noindent
+Most cases mirror the paper proof in \cref{thm:fundamental-lemma}
+directly: variables appeal to the environment relation, literals are
+immediate, pairs use the induction hypothesis on each component, and
+expression forms (\textsc{Let}, \textsc{App}, \textsc{IfB}, etc.)
+unfold the denotation, case-split on partiality, and assemble the
+evaluation derivation from the sub-results.
+
+\medskip
+
+\noindent
+\textbf{The \textsc{Fix} case.}\;
+This is the most involved case and warrants detailed discussion.
+Given $v = \mathsf{fix}\;\tau_1\;\tau_2.\,e$ with denotation
+$\sem{v}_V(\gamma) = \fixp(F)$ where
+$F(h) = \lambda a.\, \sem{e}_E(a, h, \gamma)$, the goal is to show
+that $\fixp(F)$ is related to the substituted value.  Rather than
+invoking \texttt{fixp\_ind} directly (which would require matching the
+\HB{} \texttt{PointedCPO} instance on the function space), the proof
+reasons about the Kleene iterates $F^n(\bot)$ directly:
+\begin{enumerate}
+  \item A secondary induction on $n : \mathbb{N}$ establishes
+    $\texttt{rel\_exp}\;\tau_2\;(F^n(\bot)(d_1))\;
+    (\texttt{doubleSubstExp}\;v_1\;v'\;\mathit{body'})$
+    for every related argument $(d_1, v_1)$.
+    The base case $n = 0$ is trivial ($F^0(\bot) = \bot$, so
+    $\texttt{rel\_exp}$ holds vacuously).  The step case constructs
+    an extended environment
+    $(d_1,\, F^n(\bot),\, \gamma)$ related to the extended substitution
+    $[v_1/0,\, v'/1,\, \sigma]$ (using the inner induction hypothesis
+    to show $F^n(\bot)$ is related to $v'$), then applies the
+    outer induction hypothesis on the body~$e$.
+  \item The substitution-composition lemma
+    \texttt{subst\_double\_ext} bridges the syntactic substitution
+    $[v_1/0,\, v'/1] \circ \sigma^{\uparrow\uparrow}$
+    to the operational substitution
+    $\texttt{doubleSubstExp}\;v_1\;v'\;\mathit{body'}$.
+  \item \texttt{rel\_exp\_admissible\_pointwise} closes the gap from the
+    iterates to the fixed point: since the predicate holds at every
+    $F^n(\bot)$ and is admissible, it holds at
+    $\fixp(F) = \bigsqcup_n F^n(\bot)$.
+\end{enumerate}
+
+\subsection*{Adequacy}
+
+Given the fundamental lemma, the adequacy theorem is a short
+corollary.
+
+\begin{theorem}[Mechanised adequacy]
+\label{thm:mech-adequacy}
+For every closed expression~$e$,
+\[
+  \texttt{sem\_exp}\;e\;\mathtt{tt} \neq \mathsf{None}
+  \;\implies\;  e \Downarrow.
+\]
+\end{theorem}
+
+\noindent
+The proof instantiates the fundamental lemma at the empty environment
+($\Gamma = \cdot$, $\gamma = \mathtt{tt}$, $\sigma = \mathsf{id}$),
+rewrites the trivial identity substitution away with
+\texttt{substExp\_id}, and extracts the convergence witness from the
+expression relation.  The complete proof occupies eight lines:
+
+\begin{lstlisting}[caption={Adequacy theorem (\texttt{PCF\_Adequacy.v}).},
+                    label={lst:adequacy}]
+Theorem adequacy :
+    forall {τ : Ty} (e : CExp τ),
+      sem_exp e tt <> None → e ⇓.
+Proof.
+  intros τ e Hne.
+  destruct fundamental_lemma as [_ Hexp].
+  assert (Henv : rel_env [] tt subst_id)
+    by (intros τ' x; dependent destruction x).
+  specialize (Hexp [] τ e subst_id tt Henv).
+  rewrite substExp_id in Hexp.
+  destruct (sem_exp e tt) as [d|]; [|contradiction].
+  exact (rel_exp_some_converges d e Hexp).
+Qed.
+\end{lstlisting}
+
+\noindent
+The contrast with the soundness proof (\cref{lst:soundness}) is
+instructive: soundness is a straightforward induction on evaluation
+derivations, while adequacy requires the entire logical-relation
+machinery---820~lines of infrastructure culminating in the eight-line
+extraction above.
+
+\section{Convergence Correspondence}
 \label{sec:res-correspondence}
 
-% TODO: convergence_iff_defined: e ⇓ ↔ ⟦e⟧ tt ≠ None
+Combining the soundness theorem (\cref{thm:mech-soundness}) with the
+adequacy theorem (\cref{thm:mech-adequacy}) yields the central
+metatheoretic result of the PCF formalisation.
+
+\begin{theorem}[Convergence correspondence]
+\label{thm:mech-convergence}
+For every closed expression $e : \mathsf{CExp}\;\tau$,
+\[
+  e \Downarrow
+  \quad\iff\quad
+  \texttt{sem\_exp}\;e\;\mathtt{tt} \neq \mathsf{None}.
+\]
+\end{theorem}
+
+\noindent
+The \Rocq{} proof is a direct assembly of the two directions:
+
+\begin{lstlisting}[caption={Convergence correspondence
+  (\texttt{PCF\_Adequacy.v}).},
+                    label={lst:convergence}]
+Corollary convergence_iff_defined :
+    forall {τ : Ty} (e : CExp τ),
+      e ⇓  <->  sem_exp e tt <> None.
+Proof.
+  intros τ e. split.
+  - intros [v Hv].
+    rewrite (soundness e v Hv). discriminate.
+  - exact (adequacy e).
+Qed.
+\end{lstlisting}
+
+\noindent
+The forward direction unfolds the convergence witness to obtain a value
+$v$ with $e \Downarrow v$, applies soundness to rewrite the denotation
+to $\mathsf{Some}\,(\texttt{sem\_val}\;v\;\mathtt{tt})$, then
+discharges the $\neq \mathsf{None}$ goal by discrimination.  The
+converse is the adequacy theorem itself.
+
+\medskip
+
+\noindent
+\textbf{Interpretation.}\;
+The convergence correspondence establishes that the denotational
+semantics is a \emph{faithful} account of operational convergence
+behaviour: a closed program converges operationally if and only if its
+denotation is non-$\bot$.  In particular, no closed program is
+``accidentally convergent'' (converging operationally but denoting
+$\bot$) or ``accidentally divergent'' (denoting a proper value but
+failing to evaluate).
+
+\medskip
+
+\noindent
+\textbf{Relation to full abstraction.}\;
+The convergence correspondence is strictly weaker than \emph{full
+abstraction}, which would require
+\[
+  \sem{e_1}^c_E = \sem{e_2}^c_E
+  \quad\iff\quad
+  e_1 \cong_{\mathit{obs}} e_2
+\]
+for all closed terms of the same type, where $\cong_{\mathit{obs}}$
+denotes observational equivalence.  Full abstraction fails for the
+standard CPO model of PCF: the denotational semantics distinguishes
+too few programs, because the model contains elements---such as the
+parallel-or function---that are not the denotation of any PCF
+term~\cite{Plotkin1977}.  Our result makes no claim about
+observational equivalence; it characterises only the
+convergence/divergence distinction.
 
 % ── Enriched category results ─────────────────────────────────────
 \section{Enriched Category Results}
 \label{sec:res-enriched}
 
+The PCF metatheory of the preceding sections exercises the library's
+CPO constructions---products, lifting, function spaces, and fixed
+points.  This section turns to the enriched categorical layer:
+the Yoneda lemma (\cref{sec:res-yoneda}) and recursive domain
+equations (\cref{sec:res-domain-equations}).
+
 \subsection{Yoneda Lemma}
 \label{sec:res-yoneda}
 
-% Source: instances/Yoneda.v
-% TODO: Enriched Yoneda lemma, round-trip laws
+% Source: instances/Yoneda.v (~460 lines)
 
+The Yoneda lemma is one of the most fundamental results in category
+theory.  In its classical form it characterises the position of an
+object within a category entirely through the morphisms into (or out of)
+that object: every ``natural'' way of transforming those morphisms is
+determined by a single element.
+
+More precisely, fix a locally small category~$\mathcal{C}$, an
+object~$X$, and a functor $F : \mathcal{C} \to \mathbf{Set}$.  The
+\emph{representable functor} $\mathrm{Hom}(X, -)$ sends each object~$A$
+to the set $\mathcal{C}(X, A)$ of morphisms from~$X$ to~$A$, and each
+morphism $g : A \to B$ to post-composition $f \mapsto g \circ f$.  The
+Yoneda lemma then states:
+
+\begin{theorem}[Yoneda lemma --- set-level]
+\label{thm:yoneda-set}
+There is a bijection
+\[
+  \mathrm{Nat}(\mathrm{Hom}(X,-),\; F)
+    \;\cong\;
+  F(X),
+\]
+natural in both $X$ and $F$.  The bijection sends a natural
+transformation $\alpha : \mathrm{Hom}(X,-) \Rightarrow F$ to the element
+$\alpha_X(\mathrm{id}_X) \in F(X)$, and an element $x \in F(X)$ to the
+natural transformation with components $\alpha_A(f) = F(f)(x)$.
+\end{theorem}
+
+\noindent
+When $\mathcal{C}$ is enriched over a monoidal category~$\mathcal{V}$,
+the hom-sets become hom-objects in~$\mathcal{V}$ and the bijection
+should be promoted to an isomorphism in~$\mathcal{V}$
+(Kelly~\cite{Kelly1982}, Ch.~2.4).
+In our setting $\mathcal{V} = \CPO$ and
+$\mathcal{C} = \CPO$ (self-enriched via \texttt{Function.v}), so the
+hom-objects are the continuous function-space CPOs~$[X \to_c A]$ of
+\cref{prop:function-space}, and the Yoneda bijection becomes an
+isomorphism of CPOs.  The library's \texttt{Yoneda.v} mechanises this
+enriched form for fixed~$X$ and~$F$; the parametric naturality in $X$
+and $F$ is not yet formalised.
+
+\paragraph{The representable functor.}
+For a fixed CPO~$X$, the representable functor
+$\mathrm{Hom}(X, -)$ is packaged as an \texttt{lc\_functor}
+(\cref{sec:meth-lc-functors}) named \texttt{repr\_functor}: it sends
+an object~$D$ to $[X \to_c D]$ and a morphism~$f$ to
+post-composition $g \mapsto f \circ g$.  The proofs that
+post-composition preserves identities, composition, and $\omega$-chain
+suprema are all discharged by \texttt{reflexivity}---each reduces to a
+definitional equality.
+
+\paragraph{The enriched Yoneda isomorphism.}
+The Yoneda isomorphism of \cref{thm:yoneda-set}, promoted to the
+$\CPO$-enriched setting, is witnessed by two maps:
+\begin{itemize}
+  \item \textbf{Evaluation.}\;
+    $\texttt{yoneda\_eval}(\alpha) = \alpha_X(\mathrm{id}_X)$
+    extracts the element determined by the natural transformation.
+  \item \textbf{Embedding.}\;
+    $\texttt{yoneda\_embed}(x)$ constructs the natural transformation
+    whose $A$-component sends $f \in [X \to_c A]$ to $F(f)(x)$.
+    Naturality follows from the functoriality of~$F$: for
+    $g : A \to B$, the naturality square requires
+    $F(g)(F(f)(x)) = F(g \circ f)(x)$, which is the
+    composition law of~$F$.
+\end{itemize}
+These maps are mutually inverse.  The left inverse
+$\texttt{yoneda\_eval}(\texttt{yoneda\_embed}(x)) = x$ reduces to
+$F(\mathrm{id}_X)(x) = x$ by the functor identity law.  The right
+inverse $\texttt{yoneda\_embed}(\texttt{yoneda\_eval}(\alpha)) =
+\alpha$ uses naturality of~$\alpha$ at $f : [X \to_c A]$: evaluating
+both sides at $\mathrm{id}_X$ yields
+$F(f)(\alpha_X(\mathrm{id}_X)) = \alpha_A(f \circ \mathrm{id}_X)
+= \alpha_A(f)$.
+
+The mechanised round-trip laws are:
+
+\begin{lstlisting}[
+  caption={Yoneda round-trip laws (\texttt{Yoneda.v}).},
+  label={lst:yoneda-roundtrip}
+]
+Theorem yoneda_iso_l (x : lcf_obj F X) :
+    yoneda_eval (yoneda_embed x) = x.
+
+Theorem yoneda_iso_r
+    (alpha : nat_trans (repr_functor X) F) :
+    yoneda_embed (yoneda_eval alpha) = alpha.
+\end{lstlisting}
+
+\paragraph{Continuity.}
+To promote the bijection to a CPO isomorphism, both directions must
+preserve order and $\omega$-chain suprema.  Because the
+\texttt{nat\_trans} record is a plain Rocq record rather than an HB
+structure---to avoid universe inconsistencies
+(\cref{sec:meth-design-decisions}, DD-019)---the library states
+monotonicity and continuity using standalone operations
+\texttt{nt\_le}, \texttt{nt\_chain}, and \texttt{nt\_sup} rather than
+the standard \texttt{monotone}/\texttt{continuous} predicates.
+The four properties---\texttt{yoneda\_eval\_mono},
+\texttt{yoneda\_eval\_cont}, \texttt{yoneda\_embed\_mono},
+\texttt{yoneda\_embed\_cont}---together with the round-trip laws
+establish that the Yoneda correspondence is a CPO isomorphism:
+\[
+  \mathrm{Nat}(\mathrm{Hom}(X,-),\; F)
+    \;\cong_{\CPO}\;
+  F(X).
+\]
+
+This result validates the enriched categorical layer: the library's
+definitions of locally continuous functors, natural transformations,
+and their pointwise CPO structure (\cref{sec:meth-nat-trans}) are
+sufficient to state and prove the enriched Yoneda lemma with full
+continuity.
+
+% ·· Recursive domain equations ·····························
 \subsection{Recursive Domain Equations}
 \label{sec:res-domain-equations}
 
-% Source: theory/DomainEquations.v, instances/FunLift.v
-% TODO: D ≅ [D →c D]⊥, ROLL/UNROLL isomorphism
+% Source: theory/DomainEquations.v (~446 lines), instances/FunLift.v (~280 lines)
+
+\Cref{sec:bg-bilimits} defines bilimits and states the
+Smyth--Plotkin existence theorem (\cref{thm:smyth-plotkin});
+\cref{sec:meth-domain-equations} describes the mechanisation of the
+\texttt{BilimitData} record and the \texttt{bilimit\_exists} axiom.
+Here we present the concrete results: the corollaries that follow from
+a \texttt{BilimitData} instance and the worked example
+$D_\infty \cong [D_\infty \to_c D_\infty]_\bot$.
+
+\paragraph{ROLL/UNROLL isomorphism.}
+Given an initial object~$D_0$ and an ep-pair
+$D_0 \hookrightarrow F(D_0, D_0)$, the axiom
+\texttt{bilimit\_exists} yields a \texttt{BilimitData} record packaging
+the bilimit~$D_\infty$, cone ep-pairs, and the isomorphism
+witnesses.  The library extracts these as top-level definitions:
+
+\begin{lstlisting}[
+  caption={Bilimit corollaries (\texttt{DomainEquations.v}).},
+  label={lst:bilimit-corollaries}
+]
+Definition D_inf  : C := bil_lim BD.
+Definition ROLL   : hom (MF_obj D_inf D_inf) D_inf
+  := bil_roll BD.
+Definition UNROLL : hom D_inf (MF_obj D_inf D_inf)
+  := bil_unroll BD.
+
+Theorem bil_iso_roll_unroll :
+    ROLL ⊚ UNROLL = id_mor D_inf.
+
+Theorem bil_iso_unroll_roll :
+    UNROLL ⊚ ROLL = id_mor (MF_obj D_inf D_inf).
+\end{lstlisting}
+
+These theorems follow directly from the record fields; the record
+bundles the isomorphism witnesses together with their proofs,
+so the corollaries are definitional projections.
+
+\paragraph{Deflation chain.}
+The cone ep-pairs yield a chain of deflations
+$d_n = e^\infty_n \circ p^\infty_n$ in $\mathrm{hom}(D_\infty,
+D_\infty)$.  Each~$d_n$ is below the identity (the deflation
+condition), and the chain is increasing because each step can be
+factored through the next approximant's retraction.  The mechanised
+bilimit condition (\cref{eq:bilimit-identity}) is:
+
+\begin{lstlisting}[
+  caption={Deflation chain and bilimit identity
+    (\texttt{DomainEquations.v}).},
+  label={lst:defl-chain}
+]
+Definition bil_defl_chain :
+    chain (hom D_inf D_inf) :=
+  Build_chain
+    (fun n => bil_cone_emb BD n ⊚ bil_cone_proj BD n)
+    (fun m n Hmn =>
+       bil_retract_chain_mono m n Hmn).
+
+Lemma bil_sup_deflations :
+    ⊔ bil_defl_chain = id_mor D_inf.
+Proof.
+  apply le_antisym.
+  - apply sup_least; intro n.
+    exact (bil_cone_deflation BD n).
+  - apply bil_id_is_lub.
+    intro n.
+    exact (sup_upper bil_defl_chain n).
+Qed.
+\end{lstlisting}
+
+The chain packages each deflation
+$e^\infty_n \circ p^\infty_n$ with the monotonicity witness
+built from \texttt{bil\_retract\_chain\_mono} (proved by induction
+on \texttt{m $\le$ n}).  The identity proof uses antisymmetry: the
+$\sqsubseteq$ direction follows because each deflation is below the
+identity (\texttt{bil\_cone\_deflation}); the $\sqsupseteq$ direction
+applies the record's \texttt{bil\_id\_is\_lub} field, which states
+that the identity is the \emph{least} upper bound of the deflation chain.
+
+\paragraph{Concrete instance: $D \cong [D \to_c D]_\bot$.}
+\texttt{FunLift.v} registers \texttt{CPO.type} as a
+\texttt{MixedLCFunctor} via the bifunctor
+$F(A, B) = \langle [A \to_c B] \rangle_\bot$---the flat lift of the
+continuous function space.  The object action \texttt{FL\_obj} and the
+morphism action \texttt{FL\_mor} (the ``sandwich''
+$h \mapsto g \circ h \circ f$ under the lift) are shown to satisfy
+the six \texttt{IsMixed\-Locally\-Continuous} axioms: identity,
+composition, separate monotonicity, and separate continuity.  With
+this instance in place, instantiating \texttt{bilimit\_exists} with
+$D_0$ the unit CPO and the canonical ep-pair yields the recursive
+domain
+\[
+  D_\infty \cong \langle [D_\infty \to_c D_\infty] \rangle_\bot,
+\]
+the classical ``universal domain'' of self-applicable functions.  The
+\texttt{ROLL} map wraps a continuous function into the recursive type;
+\texttt{UNROLL} unwraps it, as described in \cref{sec:bg-bilimits}.
 
 % ── Worked examples ───────────────────────────────────────────────
 \section{Worked Examples}
 \label{sec:res-examples}
 
-% Source: examples/*.v
-% TODO: Key examples from basic_cpos.v, pcf_examples.v, recursive_domain.v
-% Include code listings showing PCF factorial, denotational computation, soundness
+The library ships four example files totalling approximately 1{,}000
+lines of Rocq that serve as both integration tests and usage tutorials.
+Each file exercises a different layer of the development, from basic
+CPO constructions through PCF evaluation to recursive domain equations.
+
+\paragraph{PCF factorial.}
+The file \texttt{pcf\_examples.v} demonstrates the full verification
+pipeline on a concrete recursive program.
+\Cref{lst:factorial} defines a factorial function in the PCF object
+language using the \texttt{FIX} combinator for general recursion,
+\texttt{LET} bindings for intermediate computations, and de~Bruijn
+indices (\texttt{ZVAR}, \texttt{SVAR}) for variable references.
+
+\begin{lstlisting}[
+  caption={Factorial in PCF with big-step evaluation.},
+  label={lst:factorial}]
+Definition factorial : CValue (Nat →ₜ Nat) :=
+  FIX Nat Nat
+    (LET (GT (VAR ZVAR) (NLIT 0))
+        (IFB (VAR ZVAR)
+            (LET (OP Nat.sub (VAR (SVAR ZVAR)) (NLIT 1))
+                 (LET (APP (VAR (SVAR (SVAR (SVAR ZVAR))))
+                           (VAR ZVAR))
+                    (OP Nat.mul (VAR ZVAR)
+                         (VAR (SVAR (SVAR (SVAR ZVAR)))))
+                 ))
+            (VAL (NLIT 1)))).
+
+Example eval_factorial_5 :
+    APP factorial (NLIT 5) ⇓ NLIT 120.
+Proof. pcf_eval. Qed.
+\end{lstlisting}
+
+The big-step evaluation judgement
+$\texttt{APP}\;\texttt{factorial}\;(\texttt{NLIT}\;5) \Downarrow
+\texttt{NLIT}\;120$ is proved by a single invocation of
+\texttt{pcf\_eval}, a recursive tactic combinator that tries each
+big-step rule in sequence.
+Because the factorial evaluation constitutes a derivation of the
+big-step judgement, it can be fed directly to the soundness theorem
+(\cref{sec:res-soundness}), which converts it into the denotational
+equality
+\[
+  \llbracket\texttt{APP}\;\texttt{factorial}\;
+  (\texttt{NLIT}\;5)\rrbracket
+  \;=\;
+  \texttt{Some}\;\llbracket\texttt{NLIT}\;120\rrbracket.
+\]
+Conversely, the convergence correspondence
+(\cref{sec:res-correspondence}) gives the other direction: if the
+denotation is defined (differs from $\bot$), the program must converge
+operationally.
+Together, the two results establish that
+$\texttt{factorial}\;5$ converges if and only if its denotation is
+non-$\bot$---exactly the bridge between operational and denotational
+semantics that the library is designed to provide.
+
+\paragraph{Kleene fixed point on $\mathbb{N}_\infty$.}
+The file \texttt{basic\_cpos.v} exercises the core CPO layer
+independently of PCF\@.
+A simple but informative example is the Kleene fixed point of the
+constant function $c_3 = \texttt{cont\_const}\;(\texttt{fin}\;3)$ on
+the flat natural-number CPO $\mathbb{N}_\infty$.
+The iteration chain is
+\[
+  \texttt{iter}\;c_3\;0 = \texttt{fin}\;0,\quad
+  \texttt{iter}\;c_3\;1 = \texttt{fin}\;3,\quad
+  \texttt{iter}\;c_3\;2 = \texttt{fin}\;3,\quad
+  \ldots
+\]
+Each equation holds by \texttt{reflexivity}, confirming that the chain
+stabilises after a single step.
+The fixed point itself is computed by rewriting with the fixed-point
+unfolding lemma:
+\begin{lstlisting}[
+  caption={Kleene fixed point computation on $\mathbb{N}_\infty$.},
+  label={lst:kleene-demo}]
+Definition c3 : [nat_inf →c nat_inf] :=
+    cont_const (fin 3).
+
+Example c3_fixp_val : fixp c3 = fin 3.
+Proof.
+  rewrite <- (fixp_is_fixedpoint c3).
+  reflexivity.
+Qed.
+\end{lstlisting}
+The proof applies \texttt{fixp\_is\_fixedpoint} to reduce
+$\texttt{fixp}\;c_3$ to $c_3\;(\texttt{fixp}\;c_3)$; since $c_3$
+ignores its argument and returns $\texttt{fin}\;3$, the goal closes by
+computation.
+This example connects directly to the adequacy proof
+(\cref{sec:res-adequacy}), which relies on exactly this iteration-chain
+machinery to extract witnesses from denotational fixed points.
+
+\paragraph{Recursive domain equation.}
+The file \texttt{recursive\_domain.v} instantiates the bilimit
+machinery of \cref{sec:res-domain-equations} on the concrete
+lifted-function-space bifunctor, solving
+$D_\infty \cong [D_\infty \to_c D_\infty]_\bot$.
+The initial object is the unit CPO, with a trivial EP-pair whose
+embedding sends $\texttt{tt}$ to $\bot$ and whose projection collapses
+everything to $\texttt{tt}$.
+From this seed the tower
+$D_0 = \texttt{unit},\; D_1 = [D_0 \to_c D_0]_\bot,\;
+D_2 = [D_1 \to_c D_1]_\bot, \ldots$
+is generated definitionally: each level computes by
+\texttt{reflexivity}.
+\Cref{lst:defl-completeness} shows the key completeness property:
+the supremum of the deflation chain equals the identity,
+witnessing $D_\infty$ as the colimit of the tower.
+
+\begin{lstlisting}[
+  caption={Tower levels and deflation-chain completeness.},
+  label={lst:defl-completeness}]
+Example tower_0 : mf_approx_obj D0 0 = D0.
+Proof. reflexivity. Qed.
+
+Example tower_1 :
+    mf_approx_obj D0 1 = MF_obj D0 D0.
+Proof. reflexivity. Qed.
+
+Example sup_defls_eq_id :
+    ⊔ (bil_defl_chain D0 ep0)
+    = id_mor (D_inf D0 ep0).
+Proof. exact (bil_sup_deflations D0 ep0). Qed.
+\end{lstlisting}
+
+The tower levels unfold by computation, confirming
+that \texttt{mf\_approx\_obj} produces the expected iterated
+application of the bifunctor.
+The completeness proof appeals to \texttt{bil\_sup\_deflations}, which
+extracts the identity from the bilimit record.
+Together with the \texttt{ROLL}/\texttt{UNROLL} isomorphism shown in
+\cref{sec:res-domain-equations}, this confirms that the bilimit axiom
+produces a genuine solution.
+
+\paragraph{Enriched-category constructions.}
+The file \texttt{enriched\_usage.v} validates the categorical layer by
+exercising representable functors, natural transformations, and
+embedding--projection pairs at concrete types.
+\Cref{lst:enriched-demo} shows two representative examples.
+Vertical composition of natural transformations reduces to pointwise
+enriched composition: the component
+$(\beta \cdot \alpha)_A$ equals $\beta_A \circledcirc \alpha_A$ by
+\texttt{reflexivity}, confirming that the abstract combinator
+\texttt{nt\_vcomp} computes correctly.
+The deflation-idempotence identity for EP-pairs similarly closes by
+applying the corresponding library lemma, demonstrating that the
+enriched infrastructure supports the concrete calculations
+needed for recursive domain equations.
+
+\begin{lstlisting}[
+  caption={Vertical composition and EP-pair idempotence.},
+  label={lst:enriched-demo},float=tp]
+(* Vertical composition of natural transformations. *)
+Example nt_vcomp_demo
+    (alpha beta : nat_trans F0 F0) (A : CPO.type) :
+    nt_component (nt_vcomp beta alpha) A =
+    (nt_component beta A) ⊚ (nt_component alpha A).
+Proof. exact (nt_vcomp_component beta alpha A). Qed.
+
+(* Deflation idempotence for the identity EP-pair. *)
+Example ep_idem_demo :
+    (ep_emb ep ⊚ ep_proj ep) ⊚ (ep_emb ep ⊚ ep_proj ep)
+    = ep_emb ep ⊚ ep_proj ep.
+Proof. exact (ep_deflation_idempotent ep). Qed.
+\end{lstlisting}
+
+\medskip
+\noindent
+Taken together, these examples exercise all but the quantum layer of the
+library---ordered sets, CPOs, continuous functions, fixed points, PCF
+syntax and semantics, soundness, adequacy, enriched categories, and
+recursive domains---providing confidence that the abstractions compose
+correctly across the full stack.
