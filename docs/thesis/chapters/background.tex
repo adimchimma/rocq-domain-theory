@@ -1403,12 +1403,123 @@ $h \in [A \to_c B]$ is:
   F(f, g)(h) = g \circ h \circ f.
 \]
 The domain equation $D \cong [D \to_c D]$ seeks a fixed point of
-$F(-, -)$ in the sense that $D \cong F(D, D)$. The
-Smyth--Plotkin theorem~\cite{SmythPlotkin1982} guarantees that such a
-fixed point exists whenever $F$ is a locally continuous mixed-variance
-bifunctor, by constructing the \emph{bilimit} of an expanding sequence
-of ep-pairs (\cref{def:ep-pair}). We return to this construction in
-\cref{ch:results}.
+$F(-, -)$ in the sense that $D \cong F(D, D)$.  The next subsection
+shows how the bilimit construction solves such equations.
+
+% ── Bilimits and recursive domain equations ───────────────────────
+\subsection{Bilimits and Recursive Domain Equations}
+\label{sec:bg-bilimits}
+
+Recursive domain equations ask for an object $D$ satisfying
+$D \cong F(D, D)$, where $F$ is a mixed-variance bifunctor
+(\cref{def:mixed-bifunctor}).  Because the equation is self-referential
+in both a covariant and a contravariant position, finding a
+solution is not a simple fixed-point argument; instead, one builds $D$
+as the limit of an approximation process.  The key idea, due to
+Smyth and Plotkin~\cite{SmythPlotkin1982}, is to construct an expanding
+sequence of approximants connected by ep-pairs, and then take the
+\emph{bilimit}---a simultaneous categorical limit and colimit---of
+that sequence.
+
+\subsubsection*{Approximation sequences}
+
+Fix a mixed-variance bifunctor
+$F : \mathcal{C}^{\mathrm{op}} \times \mathcal{C} \to \mathcal{C}$
+on a $\CPO$-enriched category~$\mathcal{C}$.  Choose an initial
+object $D_0$ and an ep-pair $(e_0, p_0) : D_0 \to F(D_0, D_0)$.
+Repeated application of $F$ yields a sequence
+\[
+  D_0 \xrightarrow{\;e_0\;}
+  D_1 \xrightarrow{\;e_1\;}
+  D_2 \xrightarrow{\;e_2\;}
+  \cdots
+\]
+where $D_{n+1} = F(D_n, D_n)$ and $(e_{n+1}, p_{n+1})$ is obtained
+by lifting the previous ep-pair through the bifunctor: the embedding
+is $F(p_n, e_n)$ (contravariant argument receives the projection)
+and the projection is $F(e_n, p_n)$.  Each step is an ep-pair,
+so each $D_n$ embeds into $D_{n+1}$ as a ``larger approximation'' of
+the eventual solution.
+
+\subsubsection*{Cones}
+
+\begin{definition}[Cone over an ep-chain]
+\label{def:ep-cone}
+A \emph{cone} over an approximation sequence $(D_n, e_n, p_n)_{n \in
+\mathbb{N}}$ is an object $D_\infty$ together with ep-pairs
+$(e^\infty_n, p^\infty_n) : D_n \to D_\infty$ for each~$n$ such that
+$e^\infty_{n+1} \circ e_n = e^\infty_n$ and
+$p_n \circ p^\infty_{n+1} = p^\infty_n$---in other words, the cone
+ep-pairs are compatible with the approximation sequence.
+\end{definition}
+
+Intuitively, $e^\infty_n$ embeds the $n$-th approximant into $D_\infty$,
+and $p^\infty_n$ projects back.  The compatibility conditions say that
+embedding $D_n$ and then embedding $D_{n+1}$ amounts to the same map
+as embedding $D_n$ directly.
+
+\subsubsection*{Bilimits}
+
+\begin{definition}[Bilimit]
+\label{def:bilimit}
+A cone $(D_\infty, e^\infty_n, p^\infty_n)$ is a \emph{bilimit} of
+the approximation sequence if the identity on $D_\infty$ is the
+supremum of the \emph{deflation chain}: the $\omega$-chain of
+deflations $d_n = e^\infty_n \circ p^\infty_n$ satisfies
+\begin{equation}
+\label{eq:bilimit-identity}
+  \mathrm{id}_{D_\infty} = \lub_n (e^\infty_n \circ p^\infty_n).
+\end{equation}
+\end{definition}
+
+The condition \eqref{eq:bilimit-identity} says that every element of
+$D_\infty$ is the supremum of its projections into the finite
+approximants: $D_\infty$ is ``exactly the union of all the $D_n$,''
+no more and no less.  Each deflation $d_n$ is idempotent and
+below the identity ($d_n \sqsubseteq \mathrm{id}_{D_\infty}$), so the
+chain is increasing.
+
+\begin{theorem}[Smyth--Plotkin~{\cite{SmythPlotkin1982}}]
+\label{thm:smyth-plotkin}
+Let $F : \mathcal{C}^{\mathrm{op}} \times \mathcal{C} \to
+\mathcal{C}$ be a locally continuous mixed-variance bifunctor and let
+$(D_n, e_n, p_n)_{n \in \mathbb{N}}$ be the approximation sequence
+generated from an initial object $D_0$.  Then:
+\begin{enumerate}
+  \item The bilimit $D_\infty$ exists.
+  \item There is an isomorphism
+    $D_\infty \cong F(D_\infty, D_\infty)$,
+    i.e.\ $D_\infty$ solves the recursive domain equation
+    $D \cong F(D, D)$.
+\end{enumerate}
+\end{theorem}
+
+\subsubsection*{ROLL and UNROLL}
+
+The isomorphism of \cref{thm:smyth-plotkin} is witnessed by two
+mutually inverse maps traditionally called $\mathrm{ROLL}$ and
+$\mathrm{UNROLL}$:
+\[
+  \mathrm{ROLL} : F(D_\infty, D_\infty) \to D_\infty,
+  \qquad
+  \mathrm{UNROLL} : D_\infty \to F(D_\infty, D_\infty),
+\]
+satisfying $\mathrm{ROLL} \circ \mathrm{UNROLL} = \mathrm{id}_{D_\infty}$
+and $\mathrm{UNROLL} \circ \mathrm{ROLL} = \mathrm{id}_{F(D_\infty,
+D_\infty)}$.
+These correspond directly to the $\mathbf{fold}$ and $\mathbf{unfold}$
+operations on recursive types in programming language theory:
+$\mathrm{ROLL}$ wraps a value of type $F(D, D)$ into the recursive type
+$D$, while $\mathrm{UNROLL}$ unwraps it.  For instance, if
+$F(A, B) = [A \to_c B]_\bot$, then $D_\infty$ is a domain of
+``self-applicable functions'' and $\mathrm{UNROLL}$ exposes the
+underlying function.
+
+The formalisation of the bilimit construction---including the
+\texttt{BilimitData} specification and the mechanised Rocq
+proof---is described in \cref{sec:meth-domain-equations}, with a
+worked example ($D \cong [D \to_c D]_\bot$) in
+\cref{sec:res-domain-equations}.
 
 % ── Denotational semantics ────────────────────────────────────────
 \section{Denotational Semantics of PCF\texorpdfstring{$_v$}{v}}
