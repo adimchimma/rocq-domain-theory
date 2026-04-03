@@ -1,0 +1,209 @@
+% !TeX root = ../main.tex
+% appendices/bkv-migration.tex
+
+\chapter{BKV Migration Reference}
+\label{app:bkv-migration}
+
+This appendix provides a component-by-component comparison between the
+constructions described in Benton, Kennedy, and
+Varming~\cite{BKV2009} and the corresponding implementations in our
+library.  We compare against BKV's \emph{paper description}, not their
+Coq library itself (which is not publicly available); where BKV show code, we
+cite it, and where they describe a strategy in prose, we note what they
+describe.
+
+% ── Orders and CPOs ──────────────────────────────────────────────
+\section*{Orders and CPOs}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{BKV description} & \textbf{Our implementation} & \textbf{Notes} \\
+\midrule
+\texttt{Record preorder}    & \texttt{Preorder.type} via \HB{}
+  & No \texttt{.carrier} projections \\
+CPO on preorder             & CPO requires \texttt{PartialOrder}
+  & A\&J Def.\ 2.1.13 \\
+\texttt{Class Pointed}      & \texttt{HasBottom} + \texttt{IsPointed}
+  & \HB{} mixins \\
+\texttt{lub\_of\_chain}     & \texttt{sup} ($\bigsqcup c$)
+  & \\
+\texttt{lub\_upper/least}   & \texttt{sup\_upper/sup\_least}
+  & \\
+Setoid equality \texttt{==} & Leibniz \texttt{=}
+  & See DD-004 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+BKV build CPOs on preorders; we require antisymmetry
+(\texttt{PartialOrder}), following Abramsky and
+Jung~\cite{AJ1994}.  This is needed for \texttt{sup\_ext}
+(equal chains have equal suprema).
+
+% ── Continuous Functions ──────────────────────────────────────────
+\section*{Continuous Functions}
+
+\begin{center}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{BKV description} & \textbf{Our implementation} & \textbf{Notes} \\
+\midrule
+\texttt{fconti} record        & \texttt{cont\_fun} record & Renamed \\
+\texttt{cf\_mfun} field       & \texttt{cf\_mono}         & Renamed \\
+Separate \texttt{Continuous} module
+  & \texttt{continuous} in \texttt{CPO.v}
+  & Consolidated \\
+\texttt{cont\_comp\_assoc}    & Same
+  & via \texttt{proof\_irrelevance} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+We additionally define \texttt{strict\_fun} (continuous + bottom-preserving), a concept BKV do not discuss separately.
+
+% ── Lift Monad ────────────────────────────────────────────────────
+\section*{Lift Monad}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{BKV description} & \textbf{Our implementation} & \textbf{Notes} \\
+\midrule
+Coinductive \texttt{delay D}  & \texttt{option D}
+  & Flat lift; see DD-006 \\
+\texttt{Eps}/\texttt{Val}     & \texttt{None}/\texttt{Some}
+  & \\
+Coinductive order + bisim     & Flat order
+  & \texttt{None} $\sqsubseteq$ all \\
+Setoid equality (bisim)       & Leibniz \texttt{=}
+  & \\
+Sup described abstractly      & Proved via \texttt{ClassicalEpsilon}
+  & 647 lines \\
+\texttt{eta}/\texttt{bind}    & \texttt{ret}/\texttt{kleisli}
+  & Direct pattern matching \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The coinductive \texttt{delay D} suffers from an antisymmetry
+obstruction: \texttt{now d} $\neq$ \texttt{later (now d)} but they are
+semantically equivalent under bisimulation.  Our supplementary file
+\texttt{LiftMonad.v} develops this alternative fully and proves
+the obstruction theorem; see \cref{sec:disc-lift-monad}.
+
+% ── Function Spaces and Fixed Points ─────────────────────────────
+\section*{Function Spaces and Fixed Points}
+
+BKV describe the pointwise supremum of a chain of continuous functions
+and note it is continuous, but the paper does not give a detailed
+proof.
+Our \texttt{FunctionSpaces.v} (882 lines) proves the full construction:
+pointwise sup, its continuity, \texttt{curry}/\texttt{uncurry}/\texttt{eval},
+and \texttt{FIXP} as a Scott-continuous operator.
+
+For fixed points, BKV describe the iteration chain, the fixed-point
+property, minimality, and Scott induction.  Our \texttt{FixedPoints.v}
+(525 lines) proves all of these.
+
+% ── Products and Sums ────────────────────────────────────────────
+\section*{Products and Sums}
+
+\textbf{Products.}  BKV describe binary products with pointwise order
+and componentwise suprema.  Our \texttt{Products.v} (537 lines) gives
+the full construction including continuous projections, pairing, and
+the universal property.
+
+\textbf{Sums.}  BKV describe separated sums but do not detail the
+supremum construction.  Our \texttt{Sums.v} (624 lines) proves that
+a chain in $A + B$ is eventually stable in one component, and the
+supremum is the supremum of the stable projection.
+
+% ── Domain Equations ──────────────────────────────────────────────
+\section*{Domain Equations}
+
+BKV describe solving $D \cong F(D, D)$ via inverse limits of
+approximation sequences with EP-pairs.  Our
+\texttt{DomainEquations.v} (446 lines) provides the abstract framework
+with a single axiom (\texttt{bilimit\_exists}); all consequences
+(ROLL/UNROLL, deflation chain) are fully derived.
+\texttt{FunLift.v} (298 lines) registers the concrete bifunctor
+$(A, B) \mapsto [A \to_c B]_\bot$.
+
+% ── PCF Language ──────────────────────────────────────────────────
+\section*{PCF Syntax and Semantics}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{BKV name} & \textbf{Our name} & \textbf{Notes} \\
+\midrule
+\texttt{TINT}/\texttt{TBOOL}   & \texttt{NLIT}/\texttt{BLIT}
+  & Dropped \texttt{T} prefix \\
+\texttt{TVAR i}                & \texttt{VAR v}
+  & \\
+\texttt{TFIX e}                & \texttt{FIX} $\tau_1\;\tau_2$ \texttt{body}
+  & Explicit type indices \\
+\texttt{TVAL}/\texttt{TLET}    & \texttt{VAL}/\texttt{LET}
+  & \\
+\texttt{TAPP}/\texttt{TFST}/\texttt{TSND}
+  & \texttt{APP}/\texttt{FST}/\texttt{SND}
+  & \\
+\texttt{TOP}/\texttt{TGT}/\texttt{TIF}
+  & \texttt{OP}/\texttt{GT}/\texttt{IFB}
+  & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We add the \texttt{var\_case} combinator for definitionally-computing
+case analysis on de~Bruijn variables, avoiding the \texttt{JMeq\_eq}
+opacity that BKV's \texttt{dependent destruction} introduces.
+
+BKV describe the denotational semantics via point-free composition of
+library combinators with setoid equality; we follow the same design
+with Leibniz equality.  The substitution lemma is proved via an
+explicit renaming chain (\texttt{sem\_ren\_ext} $\to$
+\texttt{sem\_val\_ren}/\texttt{sem\_exp\_ren} $\to$
+\texttt{sem\_val\_subst}/\texttt{sem\_exp\_subst}).
+
+For adequacy, BKV describe the proof strategy (logical relation, Scott
+induction in the FIX case) but characterise it as ``somewhat
+involved.''
+Our \texttt{PCF\_Adequacy.v} (820 lines) fully formalises this proof,
+including admissibility for all four type cases and the fundamental
+lemma by mutual induction.
+
+% ── Axiom Comparison ─────────────────────────────────────────────
+\section*{Axiom Usage}
+
+BKV, being a paper, do not distinguish ``proved'' from ``axiomatic'' in
+the Coq sense.  All our domain-theoretic suprema are fully proved:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}l l@{}}
+\toprule
+\textbf{Construction} & \textbf{Status} \\
+\midrule
+Function-space sup  & Proved constructively \\
+Sum sup             & Proved constructively \\
+Lift sup            & Proved via \texttt{ClassicalEpsilon} \\
+Bilimit existence   & Axiom (\texttt{bilimit\_exists}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Classical axioms used: \texttt{ClassicalEpsilon} (in \texttt{Lift.v}),
+\texttt{Classical} (in \texttt{PCF\_Adequacy.v} and
+\texttt{ScottTopology.v}), \texttt{ProofIrrelevance} (in
+\texttt{Morphisms.v}), and \texttt{FunctionalExtensionality} (in
+\texttt{PCF\_Denotational.v} and \texttt{qCPOProperties.v}).
