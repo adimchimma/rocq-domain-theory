@@ -8,55 +8,1729 @@
 \section{Comparison with Benton--Kennedy--Varming}
 \label{sec:disc-bkv}
 
-% TODO: What was in BKV 2009 vs. what we added
-% - They had: basic CPO, PCF syntax/semantics (Coq 8.2, no HB)
-% - We added: HB hierarchy, enriched categories, nat trans, Yoneda,
-%   domain equations, Scott topology, function space CCC, adequacy proof
+This thesis takes the Benton--Kennedy--Varming (BKV)
+library~\cite{BKV2009} as its classical foundation
+(\cref{ch:introduction}).
+BKV formalized $\omega$-CPOs, the Kleene fixed-point theorem, and a
+complete denotational semantics for PCF$_v$---including soundness and
+computational adequacy---in Coq.
+Our library reproduces every construction described in that paper and
+extends it with CPO-enriched categories, recursive domain equations,
+Scott topology, and the beginnings of a quantum domain theory.
+\Cref{tab:bkv-summary} summarizes the major points of divergence;
+\cref{app:bkv-migration} provides a comprehensive component-by-component
+comparison.
+
+\begin{table}[ht]
+\centering
+\caption{Summary comparison with BKV~\cite{BKV2009}.}
+\label{tab:bkv-summary}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Aspect} & \textbf{BKV paper} & \textbf{This thesis} \\
+\midrule
+Proof assistant    & Coq (circa 2009)
+                   & \Rocq{} 9.0 \\
+Structure toolkit  & \texttt{Module}/\texttt{Record}
+                   & Hierarchy Builder (\HB{}) \\
+CPO base           & Preorder
+                   & Partial order \\
+Equality           & Setoid \texttt{==}
+                   & Leibniz \texttt{=} \\
+Lift monad         & Coinductive \texttt{delay}
+                   & Flat \texttt{option} + \texttt{ClassicalEpsilon} \\
+Supremum proofs    & Described abstractly
+                   & Proved constructively (2{,}153 lines) \\
+Domain equations   & Described (approx.\ sequences)
+                   & Full framework; 1 axiom \\
+Enriched categories & Implicit (self-enrichment)
+                   & Explicit \HB{} structure \\
+PCF adequacy       & Strategy described
+                   & Fully proved (820 lines) \\
+Quantum extensions & ---
+                   & qCPOs following KLM~(2024) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Infrastructure: Hierarchy Builder.}
+The most pervasive difference is infrastructural.
+BKV's library predates the Hierarchy Builder framework~\cite{HB2023}
+and organizes its hierarchy through hand-written modules, records, and
+coercions.
+Adding a new layer---such as CPO-enriched categories---would require
+manually threading coercions through every dependent definition, a
+process that scales poorly.
+Our library uses \HB{} to declare the hierarchy
+\texttt{HasLe} $\to$ \texttt{Preorder} $\to$ \texttt{PartialOrder}
+$\to$ \texttt{CPO} $\to$ \texttt{PointedCPO},
+with each mixin contributing exactly the new axioms needed at that level.
+\HB{} automatically synthesizes join points, canonical projections, and
+sort coercions, so registering a type as a \texttt{CPO.type}
+immediately makes it available wherever a \texttt{Preorder.type} is
+expected.
+The practical consequence is that the enriched-category and
+domain-equation layers (\cref{sec:meth-enriched,sec:meth-domain-equations})
+were added as extensions of the existing hierarchy rather than
+retroactive restructurings.
+
+\paragraph{Equality: Leibniz vs.\ setoid.}
+BKV build their hierarchy on preorders rather than partial orders,
+so two elements $x$ and $y$ need not be propositionally equal even
+when $x \sqsubseteq y$ and $y \sqsubseteq x$.
+Their notion of equality is the \emph{kernel} of the preorder---
+$x == y \;\text{iff}\; x \sqsubseteq y \land y
+\sqsubseteq x$---carried as a setoid throughout the development.
+On their coinductive lift, this kernel equality happens to coincide
+with weak bisimulation: \texttt{now d} and \texttt{later (now d)} are
+mutually below in the convergence order and hence identified by
+\texttt{==}, even though they are propositionally distinct.
+This is precisely the flexibility that allows the coinductive lift to
+function as a CPO in BKV's framework.
+
+Our hierarchy, by contrast, requires antisymmetry at the
+\texttt{PartialOrder} level (following Abramsky and
+Jung~\cite{AJ1994}), which collapses the kernel equality into
+Leibniz~\texttt{=}: if $x \sqsubseteq y$ and $y \sqsubseteq x$, then
+$x = y$.
+The coinductive lift becomes incompatible under this requirement,
+because \Rocq{} can refute
+$\texttt{now}\;d = \texttt{later}\;(\texttt{now}\;d)$ by
+\texttt{discriminate}, yet the convergence order places them mutually
+below each other (\cref{sec:disc-lift-monad}).
+We therefore adopt the flat lift $D_\bot = \texttt{option}\;D$
+(\cref{sec:meth-lift}), accepting the use of
+\texttt{ClassicalEpsilon} in the supremum proof in exchange for
+globally Leibniz-compatible types.
+The trade-off is discussed further in \cref{sec:disc-tradeoffs}.
+
+\paragraph{The lift monad.}
+BKV define a coinductive \texttt{delay D} type whose elements are
+either immediate values (\texttt{now d}) or computation steps
+(\texttt{later t}).
+The bottom element is the infinite loop
+$\bot = \texttt{cofix}\;\bot := \texttt{later}\;\bot$, and equality
+is weak bisimulation.
+Our library uses the flat lift $D_\bot = \texttt{option}\;D$, where
+$\bot = \texttt{None}$ and values are $\texttt{Some}\;d$.
+The monad laws hold by Leibniz equality and the supremum construction,
+while non-trivial, avoids coinductive reasoning entirely.
+\Cref{sec:disc-lift-monad} develops the coinductive alternative in
+full and identifies the precise obstruction to making \texttt{delay D}
+a \texttt{CPO.type} without quotient types.
+
+\paragraph{New contributions.}
+Five components of our library have no counterpart in
+BKV~\cite{BKV2009}:
+\begin{enumerate}
+  \item \textbf{CPO-enriched categories.}
+    BKV implicitly rely on composition of continuous functions being
+    continuous; we formalize this as an explicit \HB{} structure
+    (\texttt{CPOEnrichedCat}) with hom-CPOs and jointly continuous
+    composition (\cref{sec:meth-enriched}).
+
+  \item \textbf{Enriched natural transformations and Yoneda.}
+    Natural transformations between locally continuous functors, with
+    pointwise order, vertical composition, and whiskering. The
+    enriched Yoneda lemma establishes a CPO isomorphism between
+    natural transformations out of a representable functor and the
+    representing object (\cref{sec:res-yoneda}).
+
+  \item \textbf{Recursive domain equations.}
+    EP-pairs, mixed-variance locally continuous bifunctors, the
+    approximation tower, and the bilimit specification.
+    The \texttt{ROLL}/\texttt{UNROLL} isomorphism and the deflation-chain
+    completeness property are fully derived from a single axiom
+    (\texttt{bilimit\_exists}); see \cref{sec:res-domain-equations}.
+
+  \item \textbf{Scott topology.}
+    The way-below relation, Scott-open sets, and an equivalence between
+    order-theoretic and topological continuity
+    (\cref{sec:bg-scott-topology}).
+
+  \item \textbf{Quantum domain theory.}
+    Involutive quantales, quantum posets, quantum CPOs, and the quantum
+    Kleene fixed-point theorem, following
+    Kornell--Lindenhovius--Mislove~\cite{KLM2024}.
+    This layer is discussed in \cref{sec:disc-quantum}.
+\end{enumerate}
+
+\noindent
+Where our library \emph{reproduces} BKV constructions---PCF syntax,
+operational and denotational semantics, soundness, adequacy---the
+mathematical content is the same but the proofs are carried out on the
+modernized \HB{} infrastructure.
+The adequacy proof follows BKV's logical-relation structure; our
+contribution is not the proof strategy but the end-to-end validation
+that the new infrastructure supports a complete language formalization
+(\cref{sec:res-soundness,sec:res-adequacy}).
 
 % ── Design trade-offs ─────────────────────────────────────────────
 \section{Design Trade-offs}
 \label{sec:disc-tradeoffs}
 
-% TODO: Classical vs. constructive (ClassicalEpsilon in Lift.v, Sums.v)
-% TODO: Plain records vs. HB for cont_fun/mono_fun
-% TODO: The bilimit_exists axiom
+The preceding section compares our library with BKV at the component
+level.  This section steps back to assess three global engineering
+compromises: the axiom budget, the two-tier packaging architecture, and
+the single unproved axiom.
+
+\paragraph{Axiom budget.}
+\Cref{tab:axiom-budget} lists every axiom on which the library depends.
+The first four are standard in MathComp-adjacent \Rocq{} developments:
+\texttt{ClassicalEpsilon} provides the informative excluded middle and
+witness extraction needed by the lift supremum
+(\cref{sec:meth-lift}); \texttt{Classical} contributes propositional
+excluded middle to the Scott-topology closure proof and the adequacy
+admissibility argument; \texttt{FunctionalExtensionality} and
+\texttt{ProofIrrelevance} are used to establish antisymmetry for
+function-space and natural-transformation types, where two elements
+that agree pointwise must be propositionally equal.
+
+% \begin{table}[ht]
+% \centering
+% \caption{Axioms used by the library.}
+% \label{tab:axiom-budget}
+% \small
+% \begin{tabular}{@{}l l l@{}}
+% \toprule
+% \textbf{Axiom} & \textbf{Role} & \textbf{Scope} \\
+% \midrule
+% \texttt{ClassicalEpsilon}
+%   & Informative excluded middle,
+%   & \texttt{Lift.v}, \texttt{Nat.v}, \\
+%   & witness extraction
+%   & \texttt{PCF\_Denotational.v} \\[3pt]
+% \texttt{Classical}
+%   & Propositional excluded middle
+%   & \texttt{ScottTopology.v}, \\
+%   & (\texttt{classic}, \texttt{NNPP})
+%   & \texttt{PCF\_Adequacy.v} \\[3pt]
+% \texttt{FunctionalExtensionality}
+%   & Pointwise function equality
+%   & \texttt{CPOTheory.v}, \texttt{FunctionSpaces.v}, \\
+%   & & \texttt{NatTrans.v}, \texttt{qCPOProperties.v} \\[3pt]
+% \texttt{ProofIrrelevance}
+%   & Proof-irrelevant \texttt{Prop}
+%   & \texttt{Morphisms.v}, \texttt{FunctionSpaces.v}, \\
+%   & & \texttt{NatTrans.v}, \texttt{qCPOProperties.v} \\[3pt]
+% \texttt{bilimit\_exists}
+%   & Bilimit of approximation sequence
+%   & \texttt{DomainEquations.v} \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+% \noindent
+The only custom axiom is \texttt{bilimit\_exists}; all others are
+shipped with the \Rocq{} standard library.
+A consequence of \texttt{ClassicalEpsilon} is that the library's
+computational content cannot be extracted to OCaml or Haskell---the
+informative excluded middle produces a term that the extraction
+mechanism refuses to compile.
+For a library whose purpose is denotational \emph{reasoning} rather
+than executable \emph{computation}, this is an acceptable cost; no
+downstream file uses \texttt{Extraction}, and the axiom is confined
+to the lift and Nat supremum constructions.
+
+\begin{table}[ht]
+\centering
+\caption{Axioms used by the library.}
+\label{tab:axiom-budget}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Axiom} & \textbf{Role} & \textbf{Scope} \\
+\midrule
+\texttt{ClassicalEpsilon}
+  & Informative excluded middle,
+  & \texttt{Lift.v}, \texttt{Nat.v}, \\
+  & witness extraction
+  & \texttt{PCF\_Denotational.v} \\[3pt]
+\texttt{Classical}
+  & Propositional excluded middle
+  & \texttt{ScottTopology.v}, \\
+  & (\texttt{classic}, \texttt{NNPP})
+  & \texttt{PCF\_Adequacy.v} \\[3pt]
+\texttt{FunctionalExtensionality}
+  & Pointwise function equality
+  & \texttt{CPOTheory.v}, \texttt{FunctionSpaces.v}, \\
+  & & \texttt{NatTrans.v}, \texttt{qCPOProperties.v} \\[3pt]
+\texttt{ProofIrrelevance}
+  & Proof-irrelevant \texttt{Prop}
+  & \texttt{Morphisms.v}, \texttt{FunctionSpaces.v}, \\
+  & & \texttt{NatTrans.v}, \texttt{qCPOProperties.v} \\[3pt]
+\texttt{bilimit\_exists}
+  & Bilimit of approximation sequence
+  & \texttt{DomainEquations.v} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\paragraph{The two-tier architecture.}
+The library packages its type hierarchy
+(\texttt{HasLe} $\to$ \texttt{Preorder} $\to$ $\cdots$ $\to$
+\texttt{PointedCPO}) via \HB{}, but uses plain \texttt{Record} types
+for morphisms (\texttt{mono\_fun}, \texttt{cont\_fun}), data
+(\texttt{chain}), and enriched constructs (\texttt{lc\_functor},
+\texttt{nat\_trans}).
+The reason is structural: \HB{} structures are indexed by a single
+carrier type, whereas morphisms are parameterised by a
+domain--codomain pair and functors by a source--target pair.
+Attempts to register \texttt{nat\_trans} or \texttt{lc\_functor} as
+\HB{} structures trigger universe inconsistencies when instantiated
+at the self-enriched category of CPOs
+(\cref{sec:meth-nat-trans,sec:meth-lc-functors}; DD-018, DD-019 in
+\cref{app:design-decisions}).
+
+This two-tier split is not a temporary workaround.
+The single-carrier indexing constraint is fundamental to \HB{}'s
+design---it is what allows automatic coercion synthesis along the
+hierarchy diamond.
+Migrating \texttt{cont\_fun} alone would touch over 50 call sites
+for minimal gain, because the plain record already composes well
+via the combinator library (\texttt{cont\_comp}, \texttt{cont\_pair},
+etc.).
+The practical cost is that \texttt{lc\_functor} and
+\texttt{nat\_trans} do not participate in \HB{}'s automatic inference,
+so the bridge function \texttt{lc\_functor\_of\_hb} is needed when
+converting between the two tiers.
+A related limitation is that the library has not been audited for
+universe polymorphism; the plain-record strategy avoids the issue
+entirely at the cost of foreclosing some generic constructions.
+
+\paragraph{The bilimit axiom.}
+\texttt{bilimit\_exists} is the library's only custom axiom.
+It asserts that every approximation sequence
+$D_0 \hookrightarrow F(D_0, D_0) \hookrightarrow \cdots$ has a
+bilimit---the enriched-categorical analogue of an inverse limit
+(\cref{sec:meth-domain-equations}).
+The axiom is structured as a fully specified \texttt{BilimitData}
+record: it does not merely assert the existence of a bilimit object
+$D_\infty$, but packages the cone ep-pairs, the ROLL/UNROLL
+isomorphism, and the deflation-chain identity
+$\mathrm{id}_{D_\infty} = \bigsqcup_n (e_n \circ p_n)$.
+
+The proof strategy is well understood: construct the $\omega$-product
+CPO $\prod_n D_n$, then extract the coherent sub-CPO of
+compatible tuples (Smyth--Plotkin, Abramsky--Jung~\S3.3~\cite{AJ1994}).
+The missing piece is the $\omega$-product CPO itself---a countable
+product of CPOs equipped with the componentwise order and
+componentwise suprema---which the library does not yet provide.
+Because all downstream theorems (the ROLL/UNROLL isomorphism, the
+deflation chain, the recursive-domain worked example in
+\cref{sec:res-domain-equations}) are derived from the
+\texttt{BilimitData} record fields alone, completing
+\texttt{bilimit\_exists} would not change a single line of any other
+file.
+
+\paragraph{Summary.}
+The three compromises are orthogonal: the classical axioms concern the
+lift and Scott topology, the two-tier architecture concerns the
+packaging of morphisms and functors, and the bilimit axiom concerns
+domain equations.
+Each could be addressed independently in future work---replacing
+\texttt{ClassicalEpsilon} with a decidability instance for finite
+types, registering \texttt{cont\_fun} as an \HB{} structure if the
+single-carrier constraint is relaxed, or constructing the
+$\omega$-product CPO---without affecting the other two.
+
+% ── Quantum extensions ────────────────────────────────────────────
+\section{Toward Quantum Programming Language Semantics}
+\label{sec:disc-quantum}
+
+The classical domain theory developed in Chapters~\ref{ch:methods}
+and~\ref{ch:results} models programs whose control flow is
+deterministic: given the same inputs, each branch decision produces
+the same outcome.
+Quantum programming languages challenge this assumption.
+This section introduces the physical and mathematical context (\cref{sec:disc-quantum-bg}),
+describes our formalisation of quantum CPOs (\cref{sec:disc-qcpo}),
+and identifies the structural observation that connects classical and
+quantum domain theory via $\CPO$-enrichment
+(\cref{sec:disc-quantum-enrichment}).
+
+% ·· Background ··············································
+\subsection{Background: Quantum Information and Quantum Order}
+\label{sec:disc-quantum-bg}
+
+This subsection develops the physical and mathematical concepts
+needed to motivate quantum CPOs, beginning from standard linear
+algebra and building to the quantale-valued order structures that
+underpin the formalisation in \cref{sec:disc-qcpo}.
+The exposition is self-contained; the reader familiar with quantum
+information theory may skip to \cref{sec:disc-qcpo}. For those unfamiliar,
+we assume some familiarity with linear algebra and analysis for the sake of brevity.
+
+% ── Part 1: Hilbert Spaces and Operators ─────────────────────────
+\subsubsection{Hilbert Spaces and Operators}
+
+The mathematical framework of quantum mechanics is built on
+\emph{Hilbert spaces}---complete inner product spaces that provide
+the geometric structure needed to describe quantum states and their
+transformations.
+
+\begin{definition}[Inner product space]
+\label{def:inner-product-space}
+An \emph{inner product space} is a complex vector space~$H$ equipped
+with a function
+$\langle \cdot , \cdot \rangle : H \times H \to \mathbb{C}$
+satisfying, for all $\psi, \phi, \chi \in H$ and
+$\alpha, \beta \in \mathbb{C}$:
+\begin{enumerate}
+  \item \textbf{Conjugate symmetry.}
+    $\langle \psi , \phi \rangle
+    = \overline{\langle \phi , \psi \rangle}$.
+  \item \textbf{Linearity in the second argument.}\footnote{This
+    is the \emph{physics convention}.  The mathematics literature
+    typically takes the inner product to be linear in the
+    \emph{first} argument and conjugate-linear in the second.
+    We follow the physics convention because it is standard in the
+    quantum information literature and aligns with Dirac notation
+    (introduced below).}
+    $\langle \psi , \alpha\phi + \beta\chi \rangle
+    = \alpha\langle \psi , \phi \rangle
+      + \beta\langle \psi , \chi \rangle$.
+  \item \textbf{Positive-definiteness.}
+    $\langle \psi , \psi \rangle \geq 0$, with equality if and
+    only if $\psi = 0$.
+\end{enumerate}
+The inner product induces a norm
+$\|\psi\| = \sqrt{\langle \psi , \psi \rangle}$ and hence a
+metric $d(\psi, \phi) = \|\psi - \phi\|$.
+\end{definition}
+
+\begin{definition}[Hilbert space]
+\label{def:hilbert-space}
+A \emph{Hilbert space} is an inner product space that is
+\emph{complete}: every Cauchy sequence converges with respect to the
+norm-induced metric.
+\end{definition}
+
+\noindent
+Every finite-dimensional inner product space is automatically
+complete,%
+\footnote{A finite-dimensional complex inner product space is
+isometrically isomorphic to~$\mathbb{C}^n$ (via any orthonormal
+basis), and $\mathbb{C}^n$ is complete because $\mathbb{C}$ is
+complete and a finite product of complete metric spaces is complete.}
+so $\mathbb{C}^n$ with the standard inner product
+$\langle \psi , \phi \rangle = \sum_i \overline{\psi_i}\,\phi_i$
+is a Hilbert space for every~$n$.
+Infinite-dimensional examples---such as the space~$\ell^2$ of
+square-summable sequences---arise in the theory of continuous-variable
+quantum systems, but all examples in this thesis are
+finite-dimensional.
+
+\paragraph{Dirac notation.}
+Physicists conventionally write elements of a Hilbert space~$H$ as
+\emph{kets} $\ket{\psi}$, emphasising their role as column vectors.
+The corresponding \emph{bra} $\bra{\psi}$ is the conjugate-transpose
+row vector, an element of the dual space~$H^*$.
+The inner product of $\ket{\psi}$ and $\ket{\phi}$ is written
+$\braket{\psi|\phi} \in \mathbb{C}$---a ``bracket'' split into a
+bra and a ket.
+The \emph{outer product} $\ket{\psi}\!\bra{\phi}$ is the linear
+operator sending $\ket{\chi}$ to
+$\braket{\phi|\chi}\,\ket{\psi}$.
+We adopt Dirac notation throughout this subsection, as it is standard
+in the quantum information
+literature~\cite{NielsenChuang2010} and makes the interplay between
+states and operators notationally transparent.
+
+\begin{example}[The qubit Hilbert space]
+\label{ex:qubit-hilbert}
+The simplest quantum system is a single \emph{qubit}, modelled by the
+Hilbert space $\mathbb{C}^2$.
+The \emph{computational basis} consists of two orthonormal vectors
+\[
+  \ket{0} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}, \qquad
+  \ket{1} = \begin{pmatrix} 0 \\ 1 \end{pmatrix}.
+\]
+An arbitrary qubit state is a unit vector
+$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$ with
+$|\alpha|^2 + |\beta|^2 = 1$.
+The coefficients $\alpha, \beta \in \mathbb{C}$ are called
+\emph{amplitudes}; their squared magnitudes give the probabilities
+of observing $0$ or $1$ upon measurement.
+\end{example}
+
+\paragraph{Bounded operators.}
+A linear map $A : H \to H$ is \emph{bounded} if there exists a
+constant $c \geq 0$ such that
+$\|A\ket{\psi}\| \leq c\,\|\ket{\psi}\|$ for
+all $\ket{\psi} \in H$.
+On finite-dimensional Hilbert spaces every linear map is automatically
+bounded, but the distinction matters in the infinite-dimensional
+setting.
+We write $B(H)$ for the set of all bounded linear operators on~$H$.
+Under operator addition, scalar multiplication, and composition,
+$B(H)$ is an \emph{algebra}---a vector space equipped with an
+associative bilinear product (here, operator
+composition). This is the key mathematical structure on which
+quantum order theory is built.
+
+\begin{definition}[Adjoint]
+\label{def:adjoint}
+The \emph{adjoint} (or \emph{Hermitian conjugate}) of an operator
+$A \in B(H)$ is the unique operator $A^\dagger \in B(H)$ satisfying
+\[
+  \langle \psi,\, A\phi \rangle
+  = \langle A^\dagger\psi,\, \phi \rangle
+\]
+for all $\psi, \phi \in H$.
+For finite-dimensional~$H$ with a chosen basis, the adjoint is the
+conjugate transpose:
+$(A^\dagger)_{ij} = \overline{A_{ji}}$.
+An operator is \emph{self-adjoint} (or \emph{Hermitian}) if
+$A = A^\dagger$.
+\end{definition}
+
+\begin{definition}[Positive semidefiniteness]
+\label{def:positive-semidefinite}
+An operator $A \in B(H)$ is \emph{positive semidefinite}, written
+$A \geq 0$, if it is self-adjoint and
+$\bra{\psi} A \ket{\psi} \geq 0$ for all $\ket{\psi} \in H$.
+\end{definition}
+
+\begin{example}[$2 \times 2$ operators]
+\label{ex:2x2-operators}
+On $\mathbb{C}^2$, the matrix
+$A = \begin{psmallmatrix} 2 & 1 \\ 1 & 3 \end{psmallmatrix}$
+is positive semidefinite: it is self-adjoint (its entries are real and
+the matrix is symmetric) and its eigenvalues
+$\frac{5 \pm \sqrt{5}}{2}$ are both positive.
+The matrix
+$B = \begin{psmallmatrix} 1 & 2 \\ 0 & 1 \end{psmallmatrix}$
+is not self-adjoint ($B \neq B^\dagger$) and hence not positive
+semidefinite.
+The outer product
+$\ket{0}\!\bra{0} =
+\begin{psmallmatrix} 1 & 0 \\ 0 & 0 \end{psmallmatrix}$
+is a \emph{projection}---a positive semidefinite operator satisfying
+$P^2 = P$.
+\end{example}
+
+\begin{definition}[Trace]
+\label{def:trace}
+The \emph{trace} of an operator $A \in B(H)$
+(for finite-dimensional~$H$) is the sum of its diagonal entries in
+any orthonormal basis $\{\ket{e_i}\}$:
+\[
+  \tr(A) = \sum_i \bra{e_i} A \ket{e_i}.
+\]
+The trace is basis-independent, linear
+($\tr(\alpha A + \beta B) =
+\alpha\,\tr(A) + \beta\,\tr(B)$), and cyclic
+($\tr(AB) = \tr(BA)$).
+\end{definition}
+
+\begin{definition}[L\"owner order]
+\label{def:lowner-order}
+The \emph{L\"owner order} on self-adjoint operators in $B(H)$ is
+defined by
+\[
+  A \sqsubseteq B
+  \quad\text{if and only if}\quad
+  B - A \geq 0
+  \quad\text{(i.e.\ $B - A$ is positive semidefinite)}.
+\]
+\end{definition}
+
+\begin{example}[L\"owner order on $\mathbb{C}^2$]
+\label{ex:lowner-2x2}
+The identity matrix
+$I = \begin{psmallmatrix} 1 & 0 \\ 0 & 1 \end{psmallmatrix}$
+and the projection
+$P = \ket{0}\!\bra{0} =
+\begin{psmallmatrix} 1 & 0 \\ 0 & 0 \end{psmallmatrix}$
+satisfy $P \sqsubseteq I$ in the L\"owner order, since
+$I - P = \begin{psmallmatrix} 0 & 0 \\ 0 & 1 \end{psmallmatrix}
+= \ket{1}\!\bra{1} \geq 0$.
+More generally, every projection satisfies
+$0 \sqsubseteq P \sqsubseteq I$.
+\end{example}
+
+\noindent
+The L\"owner order makes the set of self-adjoint operators in $B(H)$
+a partially ordered set.
+It will reappear as the underlying order of the involutive quantale
+$B(H)$ in \cref{def:inv-quantale}.
+
+% ── Part 2: Quantum States and Computation ───────────────────────
+\subsubsection{Quantum States and Computation}
+
+With the linear-algebraic framework in place, we describe quantum
+states and the basic operations of quantum computation.
+
+\paragraph{Superposition.}
+A quantum system associated with a Hilbert space~$H$ can exist in a
+\emph{superposition} of basis states.
+For a single qubit (\cref{ex:qubit-hilbert}), the state
+$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$ is not simply ``$0$
+with probability~$|\alpha|^2$ and $1$ with
+probability~$|\beta|^2$''.
+It is a genuinely different kind of state that can exhibit
+\emph{interference}---constructive or destructive combination of
+amplitudes---with no classical analogue.
+The superposition principle extends to systems of any dimension: any
+unit vector in~$H$ is a valid quantum state.
+
+\paragraph{Tensor products and multi-qubit systems.}
+The state space of a composite quantum system is the \emph{tensor
+product} of the component Hilbert spaces.
+Two qubits together live in
+$\mathbb{C}^2 \otimes \mathbb{C}^2 \cong \mathbb{C}^4$, with
+computational basis
+$\{\ket{00}, \ket{01}, \ket{10}, \ket{11}\}$,
+where $\ket{ij} = \ket{i} \otimes \ket{j}$.
+More generally, $n$~qubits live in
+$(\mathbb{C}^2)^{\otimes n} \cong \mathbb{C}^{2^n}$---the
+exponential growth of the state space is the source of quantum
+computing's potential computational advantage.
+
+\paragraph{Entanglement.}
+A state of a composite system is \emph{separable} if it can be written
+as a tensor product of states of the components, and \emph{entangled}
+otherwise.
+
+\begin{example}[Bell state]
+\label{ex:bell-state}
+The state
+\[
+  \ket{\Phi^+}
+  = \frac{1}{\sqrt{2}}\bigl(\ket{00} + \ket{11}\bigr)
+  \;\in\; \mathbb{C}^2 \otimes \mathbb{C}^2
+\]
+is entangled: there are no single-qubit states $\ket{a}, \ket{b}$
+with $\ket{\Phi^+} = \ket{a} \otimes \ket{b}$.
+Measuring either qubit in the computational basis yields $0$ or $1$
+each with probability~$\tfrac{1}{2}$, but the outcomes are perfectly
+correlated: if one qubit is measured as~$0$, the other is
+guaranteed to be~$0$ as well, regardless of the spatial separation
+between the two systems.
+\end{example}
+
+\noindent
+Entanglement is a fundamentally quantum phenomenon with no classical
+counterpart.
+It plays a central role in quantum computation and, as we shall see,
+is the reason that the positivity requirement for quantum channels
+must be strengthened to \emph{complete} positivity
+(\cref{def:cp-map}).
+
+\paragraph{Measurement and the Born rule.}
+The \emph{Born rule} governs the probabilistic outcomes of quantum
+measurements.
+For a system in state~$\ket{\psi}$ measured in an orthonormal basis
+$\{\ket{e_i}\}$, the probability of outcome~$i$ is
+$p_i = |\braket{e_i|\psi}|^2$,
+and after obtaining outcome~$i$ the system collapses to the
+post-measurement state~$\ket{e_i}$.
+Measurement is irreversible: the superposition is destroyed and
+cannot be recovered.
+
+\begin{definition}[Density operator]
+\label{def:density-operator}
+A \emph{density operator} (or \emph{density matrix}) on a Hilbert
+space~$H$ is an operator $\rho \in B(H)$ satisfying:
+\begin{enumerate}
+  \item \textbf{Positive semidefiniteness.}
+    $\rho \geq 0$ (\cref{def:positive-semidefinite}).
+  \item \textbf{Unit trace.} $\tr(\rho) = 1$ (\cref{def:trace}).
+\end{enumerate}
+\end{definition}
+
+\noindent
+A density operator is \emph{pure} if $\rho = \ket{\psi}\!\bra{\psi}$
+for some unit vector $\ket{\psi} \in H$.
+A \emph{mixed} density operator---one that is not pure---represents
+statistical uncertainty about the quantum state.
+
+\begin{example}[Qubit density operators]
+\label{ex:qubit-density}
+The pure state $\ket{0}$ corresponds to the density operator
+$\rho_0 = \ket{0}\!\bra{0} =
+\begin{psmallmatrix} 1 & 0 \\ 0 & 0 \end{psmallmatrix}$.
+A classical coin flip between $\ket{0}$ and $\ket{1}$ is represented
+by the mixed state
+\[
+  \rho_{\mathrm{mix}}
+  = \tfrac{1}{2}\ket{0}\!\bra{0} + \tfrac{1}{2}\ket{1}\!\bra{1}
+  = \begin{pmatrix} 1/2 & 0 \\ 0 & 1/2 \end{pmatrix}
+  = \tfrac{1}{2}\,I.
+\]
+Both are positive semidefinite with unit trace, confirming that they
+are valid density operators.
+The mixed state $\rho_{\mathrm{mix}}$ cannot be written as
+$\ket{\psi}\!\bra{\psi}$ for any~$\ket{\psi}$: it represents
+genuine classical uncertainty.
+\end{example}
+
+\begin{remark}[Why density operators]
+\label{rem:why-density}
+Pure state vectors are insufficient for denotational semantics because
+they cannot represent probabilistic mixtures or the partial
+information obtained by observing a subsystem of an entangled system.
+Density operators handle both: the Born rule generalises to
+$p_i = \tr(P_i\,\rho)$ for measurement projectors~$P_i$, and the
+\emph{partial trace} extracts subsystem states from entangled
+composites.
+For these reasons, the quantum information
+literature---and this thesis---works primarily with density operators
+rather than state vectors.
+\end{remark}
+
+% ── Part 3: Quantum Channels ─────────────────────────────────────
+\subsubsection{Quantum Channels}
+
+In classical domain theory, programs denote Scott-continuous functions
+between CPOs (\cref{sec:bg-fixedpoints}).
+In quantum computation, the analogous role is played by
+\emph{quantum channels}: maps between spaces of operators that
+respect the physical constraints of quantum mechanics.
+
+\begin{definition}[Positive and completely positive maps]
+\label{def:cp-map}
+A linear map $\Phi : B(H) \to B(K)$ is:
+\begin{enumerate}
+  \item \textbf{Positive} if $\Phi(A) \geq 0$ whenever $A \geq 0$.
+  \item \textbf{Completely positive (CP)} if, for every ancillary
+    Hilbert space~$R$, the extended map
+    $\Phi \otimes \mathrm{id}_R : B(H \otimes R) \to B(K \otimes R)$
+    is positive.
+\end{enumerate}
+\end{definition}
+
+\noindent
+Positivity alone does not suffice for physically meaningful maps.
+The issue is entanglement: a map~$\Phi$ may be applied to one half of
+an entangled system, so the extended map
+$\Phi \otimes \mathrm{id}_R$ must also send density operators to
+density operators.
+
+\begin{example}[A positive but not completely positive map]
+\label{ex:transpose-not-cp}
+The transpose map $T : A \mapsto A^T$ on $B(\mathbb{C}^2)$ is
+positive: if $A \geq 0$ then $A^T \geq 0$ (since transposition
+preserves eigenvalues).
+However, applying $T \otimes \mathrm{id}$ to the density operator
+$\ket{\Phi^+}\!\bra{\Phi^+}$ of the Bell state
+(\cref{ex:bell-state}) yields an operator with a negative
+eigenvalue---an unphysical result.
+Complete positivity rules out such pathologies.
+\end{example}
+
+\begin{definition}[Trace-preserving map]
+\label{def:tp-map}
+A linear map $\Phi : B(H) \to B(K)$ is \emph{trace-preserving} (TP)
+if $\tr(\Phi(A)) = \tr(A)$ for all $A \in B(H)$.
+\end{definition}
+
+\noindent
+Trace preservation ensures that probabilities sum to one: if
+$\rho$ is a density operator (trace one), then $\Phi(\rho)$ is also
+trace one.
+
+\begin{definition}[Quantum channel (CPTP map)]
+\label{def:cptp-map}
+A \emph{quantum channel} is a linear map
+$\Phi : B(H) \to B(K)$ that is both completely positive and
+trace-preserving (CPTP).
+\end{definition}
+
+\paragraph{Kraus representation.}
+Every quantum channel admits a concrete representation that makes its
+structure transparent.
+
+\begin{theorem}[Kraus representation
+  {\cite[Theorem~8.1]{NielsenChuang2010}}]
+\label{thm:kraus}
+A linear map $\Phi : B(H) \to B(K)$ is completely positive if and
+only if there exist operators $\{K_i\}_{i=1}^r$ with
+$K_i : H \to K$ such that
+\[
+  \Phi(\rho) = \sum_{i=1}^{r} K_i\,\rho\,K_i^\dagger.
+\]
+The map is additionally trace-preserving if and only if
+$\sum_{i=1}^{r} K_i^\dagger K_i = I_H$.
+The operators $\{K_i\}$ are called \emph{Kraus operators}.
+\end{theorem}
+
+\noindent
+The Kraus representation makes the structure of a quantum channel
+concrete: each Kraus operator describes one ``branch'' of the quantum
+evolution, and the channel is the incoherent sum over all branches.
+The trace-preservation constraint
+$\sum_i K_i^\dagger K_i = I$ ensures that the total probability
+across branches is one.
+
+\begin{remark}[CPTP maps as morphisms]
+\label{rem:cptp-morphisms}
+The analogy with classical domain theory is direct:
+\begin{center}
+\begin{tabular}{@{}l l@{}}
+\toprule
+\textbf{Classical} & \textbf{Quantum} \\
+\midrule
+Domain (CPO) & Space of density operators on~$H$ \\
+Scott-continuous function & CPTP map (quantum channel) \\
+Preserves $\omega$-chain suprema & Preserves positivity and trace \\
+\bottomrule
+\end{tabular}
+\end{center}
+\noindent
+In both settings, the morphisms preserve the structure that makes the
+objects well-behaved semantic domains.
+This parallel motivates the search for a unified categorical framework,
+which $\CPO$-enrichment provides
+(\cref{sec:disc-quantum-enrichment}).
+\end{remark}
+
+% ── Part 4: Quantum Control Flow ─────────────────────────────────
+\subsubsection{Quantum Control Flow}
+
+The preceding sections describe a world in which quantum data is
+manipulated by channels, but all \emph{control decisions}---which
+channel to apply, which branch to take---are classical.
+This is the regime of most existing quantum programming languages,
+including Selinger's QPL~\cite{Selinger2004},
+the quantum lambda calculus of Selinger and
+Valiron~\cite{SelingerValiron2009}, and their descendants.
+
+\paragraph{Classical control over quantum data.}
+In a language with \emph{classical control flow}, a branching
+construct
+\[
+  \mathtt{if}\;b\;\mathtt{then}\;\Phi_0\;\mathtt{else}\;\Phi_1
+\]
+requires the guard~$b$ to be a classical bit---typically the result of
+a prior measurement.
+The choice of which channel to apply is determined \emph{before} the
+quantum data is touched.
+Classical control suffices for standard quantum algorithms (Shor's
+algorithm, Grover's search, quantum error correction), but it does not
+exhaust the possibilities of quantum mechanics.
+\Cref{fig:classical-control} illustrates the structure.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    >=Stealth,
+    box/.style={draw, minimum width=1.4cm, minimum height=0.8cm,
+                font=\small},
+    diamond/.style={draw, shape=diamond, aspect=2, minimum width=1.2cm,
+                    inner sep=1pt, font=\small},
+    every edge/.style={draw, ->},
+  ]
+  % Input
+  \node[box] (rho) {$\rho$};
+  % Decision
+  \node[diamond, right=1.1cm of rho] (b) {$b$};
+  % Branches
+  \node[box, above right=0.6cm and 1.0cm of b] (phi0) {$\Phi_0$};
+  \node[box, below right=0.6cm and 1.0cm of b] (phi1) {$\Phi_1$};
+  % Merge
+  \node[coordinate, right=1.0cm of phi0] (m0) {};
+  \node[coordinate, right=1.0cm of phi1] (m1) {};
+  \node[coordinate] (merge) at ($(m0)!0.5!(m1)$) {};
+  % Output
+  \node[box, right=0.4cm of merge] (out) {$\rho'$};
+  % Edges
+  \draw[->] (rho) -- (b);
+  \draw[->] (b) -- node[above left, font=\scriptsize] {$0$} (phi0);
+  \draw[->] (b) -- node[below left, font=\scriptsize] {$1$} (phi1);
+  \draw[->] (phi0) -- (m0) -- (merge);
+  \draw[->] (phi1) -- (m1) -- (merge);
+  \draw[->] (merge) -- (out);
+\end{tikzpicture}
+\caption{Classical control flow: the classical bit~$b$ (obtained by
+  measurement) selects exactly one of $\Phi_0$ or~$\Phi_1$.
+  The two branches are mutually exclusive.}
+\label{fig:classical-control}
+\end{figure}
+
+\paragraph{Quantum control flow.}
+\emph{Quantum control flow} allows the guard to be an unmeasured
+qubit in superposition: the ``choice'' of which branch to take is
+itself a quantum degree of freedom.
+Both branches coexist coherently, and the system can exhibit
+interference between them.
+The canonical example is the \emph{quantum switch}~\cite{CDPV2013}.
+
+\paragraph{The quantum switch.}
+Given two quantum channels $A$ and $B$ acting on a target system with
+Hilbert space~$H$, and a control qubit in state
+$\ket{c} = \alpha\ket{0} + \beta\ket{1}$, the quantum switch
+produces a channel on the composite system
+$H \otimes \mathbb{C}^2$ that applies $A$ then~$B$ to the target on
+the $\ket{0}$ component of the control and $B$ then~$A$ on the
+$\ket{1}$ component---\emph{coherently}, without measuring the
+control qubit.
+When the control is in superposition, the result is a genuine
+superposition of causal orders: the target system experiences both
+$A$-then-$B$ and $B$-then-$A$ simultaneously, with quantum
+interference between the two orderings~\cite{CDPV2013}.
+This process has no classical analogue---there is no classical
+computation that produces a ``superposition of the order in which two
+operations are applied''.
+The quantum switch has been demonstrated
+experimentally~\cite{RichterEtAl2025}.
+\Cref{fig:quantum-switch} illustrates the structure; contrast with
+the classical branching of \cref{fig:classical-control}.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    >=Stealth,
+    box/.style={draw, minimum width=1.4cm, minimum height=0.8cm,
+                font=\small},
+    every edge/.style={draw, ->},
+  ]
+  % Switch box (outer)
+  \node[draw, dashed, rounded corners=6pt,
+        minimum width=4.2cm, minimum height=3.0cm,
+        label={[font=\small]above:quantum switch}] (sw) {};
+  % Inner paths — stacked
+  \node[box, fill=blue!8] (a1) at ($(sw.center)+(-.7cm, 0.55cm)$) {$A$};
+  \node[box, fill=blue!8] (b1) at ($(sw.center)+( .7cm, 0.55cm)$) {$B$};
+  \node[box, fill=red!8]  (b2) at ($(sw.center)+(-.7cm,-0.55cm)$) {$B$};
+  \node[box, fill=red!8]  (a2) at ($(sw.center)+( .7cm,-0.55cm)$) {$A$};
+  % Path labels
+  \node[font=\scriptsize, left=0.05cm of a1, blue!70!black] {$\ket{0}$:};
+  \node[font=\scriptsize, left=0.05cm of b2, red!70!black]  {$\ket{1}$:};
+  % Arrows inside
+  \draw[->, blue!70!black]  (a1) -- (b1);
+  \draw[->, red!70!black]   (b2) -- (a2);
+  % Input
+  \node[box, left=0.8cm of sw] (rho2) {$\rho$};
+  \node[font=\small, below=0.2cm of rho2] {$\ket{c} = \alpha\ket{0}+\beta\ket{1}$};
+  % Output
+  \node[box, right=0.8cm of sw] (out2) {$\rho'$};
+  % Edges
+  \draw[->] (rho2) -- (sw);
+  \draw[->] (sw)   -- (out2);
+\end{tikzpicture}
+\caption{The quantum switch: both causal orders coexist coherently,
+  controlled by the unmeasured qubit~$\ket{c}$.
+  The dashed boundary indicates a single coherent process, not a
+  sequential circuit---no measurement or branching decision occurs.}
+\label{fig:quantum-switch}
+\end{figure}
+
+\paragraph{The insufficiency of Boolean order.}
+The quantum switch exposes a fundamental limitation of classical
+domain theory.
+In a classical CPO, the order relation $x \sqsubseteq y$ is a
+proposition in~$\mathsf{Prop}$: it is simply true or false.
+A semantic model built on such an order can describe a world in which
+one branch \emph{or} the other is taken, but not a coherent
+superposition of both.
+To model quantum control flow, we need an order relation that can
+carry \emph{quantum information}---not a truth value in
+$\{0, 1\}$, but an operator in~$B(H)$.
+This is the conceptual motivation for quantale-valued order.
+
+% ── Part 5: From Boolean to Quantale-Valued Order ────────────────
+\subsubsection{From Boolean to Quantale-Valued Order}
+
+The preceding subsection identified the obstacle: classical order
+relations are Boolean-valued and cannot carry quantum information.
+The solution, due to Kornell, Lindenhovius, and
+Mislove~\cite{KLM2024} (building on Weaver~\cite{Weaver2010}),
+replaces the Boolean truth value with an element of an
+\emph{involutive quantale}.
+
+\paragraph{Quantales informally.}
+A quantale is, informally, a complete lattice equipped with a
+compatible monoid structure.
+The lattice captures ``how much truth'' a statement carries---generalising
+from the two-element Boolean lattice $\{0, 1\}$ to a richer
+ordered structure---while the monoid operation combines evidence,
+analogous to conjunction.
+An \emph{involutive} quantale additionally has an involution
+$(-)^*$, mirroring the adjoint operation on~$B(H)$.
+
+\begin{definition}[Involutive quantale]
+\label{def:inv-quantale}
+An \emph{involutive quantale} is a tuple
+$(Q, \leq, \top, \bot, \otimes, (-)^*, \wedge, \bigwedge)$ where:
+\begin{enumerate}
+  \item $(Q, \leq)$ is a partial order with top~$\top$,
+    bottom~$\bot$, binary meet~$\wedge$, and arbitrary
+    infima~$\bigwedge$.
+  \item $\otimes : Q \times Q \to Q$ is an associative binary product
+    with unit~$\top$ that is monotone in each argument.
+  \item $(-)^* : Q \to Q$ is an order-reversing involution
+    satisfying $(a \otimes b)^* = b^* \otimes a^*$.
+\end{enumerate}
+\end{definition}
+
+\begin{example}[The Boolean quantale]
+\label{ex:boolean-quantale}
+The two-element set $\{\bot, \top\}$ with the usual order,
+$\otimes = \wedge$ (conjunction), and the identity involution is an
+involutive quantale.
+This is the quantale that underlies classical order theory: an order
+relation $x \sqsubseteq y$ valued in $\{\bot, \top\}$ is simply a
+proposition that is true or false.
+\end{example}
+
+\begin{example}[$B(H)$ as an involutive quantale]
+\label{ex:bh-quantale}
+For a Hilbert space~$H$, the algebra $B(H)$ of bounded operators
+forms an involutive quantale with:
+\begin{itemize}
+  \item $\leq$ the L\"owner order (\cref{def:lowner-order});
+  \item $\top = I$ (the identity operator) and $\bot = 0$ (the zero
+    operator);
+  \item $\otimes$ operator composition;
+  \item $(-)^*$ the adjoint (\cref{def:adjoint});
+  \item $\wedge$ and $\bigwedge$ the infima in the L\"owner order.
+\end{itemize}
+When $H = \mathbb{C}^2$, this is the algebra of
+$2 \times 2$ complex matrices.
+An order relation valued in $B(\mathbb{C}^2)$ assigns to each pair
+$(x, y)$ a $2 \times 2$ matrix $R(x, y)$---not a truth value, but a
+quantum operator encoding how much information witnesses the
+approximation $x \sqsubseteq y$.
+\end{example}
+
+\noindent
+With the quantale structure in hand, we define the quantum
+generalisation of a partial order.
+
+\begin{definition}[Quantum poset {\cite[Definition~2.6.1]{KLM2024}}]
+\label{def:qposet}
+Let $Q$ be an involutive quantale.
+A \emph{$Q$-valued quantum poset} is a set~$X$ with decidable
+equality, equipped with a function $R : X \times X \to Q$ satisfying:
+\begin{enumerate}
+  \item \textbf{Reflexivity.} $\top \leq R(x, x)$ for all~$x$.
+  \item \textbf{Transitivity.}
+    $R(x, y) \otimes R(y, z) \leq R(x, z)$ for all~$x, y, z$.
+  \item \textbf{Antisymmetry.}
+    $R(x, y) \wedge R(y, x) \leq \delta(x, y)$, where
+    $\delta$ is the Kronecker delta
+    ($\delta(x,x) = \top$, $\delta(x,y) = \bot$ for $x \neq y$).
+\end{enumerate}
+\end{definition}
+
+\noindent
+When $Q$ is the Boolean quantale (\cref{ex:boolean-quantale}), a
+quantum poset reduces to an ordinary partial order: the function~$R$
+becomes a Boolean predicate, the quantale product
+$\otimes = \wedge$ becomes conjunction, and the three axioms
+specialise to the standard reflexivity, transitivity, and
+antisymmetry.
+
+The quantale-valued formulation generalises the order relation from a
+truth value to a \emph{quantum measurement outcome}: $R(x, y)$
+encodes not just \emph{whether} $x$ approximates~$y$, but
+\emph{how much quantum information} witnessing the approximation is
+available.
+This is the foundation on which quantum CPOs and the quantum Kleene
+fixed-point theorem are built (\cref{sec:disc-qcpo}).
+
+% ·· Formalisation ···········································
+\subsection{Quantum CPOs and Quantum Morphisms}
+\label{sec:disc-qcpo}
+
+With the mathematical context established, we describe our
+formalisation of the quantum domain theory of Kornell, Lindenhovius,
+and Mislove~\cite{KLM2024}.
+The implementation comprises three files totalling 1{,}749 lines of
+substantive \Rocq{} code (\texttt{QuantumStructure.v},
+\texttt{qCPO.v}, \texttt{qCPOProperties.v}), plus two stub files
+reserved for future extensions.
+
+\paragraph{Involutive quantales.}
+The quantale~$Q$ is formalised as an \HB{} structure.
+The mixin \texttt{HasQuantaleOps} provides the six operations
+($\top$, $\bot$, $\otimes$, $(-)^*$, $\wedge$, $\bigwedge$),
+and \texttt{IsInvQuantale} asserts the fourteen axioms of
+\cref{def:inv-quantale} grouped into five families: extremal
+elements, product laws, involution laws, meet laws, and infimum laws.
+Using \HB{} here has a concrete payoff: any type registered as an
+\texttt{InvQuantale.type} automatically inherits partial-order
+structure, and the elaborator resolves notational overloading
+(e.g.\ $\leq$ for the quantale order) without explicit annotations.
+
+\paragraph{Quantum posets.}
+Quantum posets (\cref{def:qposet}) are formalised as a plain
+\texttt{Record qposet Q} parameterised by an involutive quantale~$Q$.
+The record bundles a carrier type~$X$, the $Q$-valued order
+$R : X \to X \to Q$, decidable equality on~$X$, and the three axioms
+(reflexivity, transitivity, antisymmetry).
+Plain records are used rather than \HB{} structures because \HB{}
+does not handle structures parameterised by other structures well
+(DD-022 in \cref{app:design-decisions}); this follows the same
+pattern as \texttt{chain}, \texttt{mono\_fun}, and \texttt{cont\_fun}
+in the classical layer.
+
+\begin{lstlisting}[caption={The \texttt{qposet} record (\texttt{QuantumStructure.v}).},
+                    label={lst:qposet}]
+Record qposet (Q : InvQuantale.type) : Type := Build_qposet {
+    qp_carrier :> Type;
+    qp_ord     : qp_carrier -> qp_carrier -> Q;
+    qp_dec_eq  : forall (x y : qp_carrier), {x = y} + {x <> y};
+    (* Reflexivity: q_top ⊑ R(x, x) *)
+    qp_refl    : forall (x : qp_carrier),
+        q_top ⊑ qp_ord x x;
+    (* Transitivity: R(x,y) ⊗ R(y,z) ⊑ R(x,z) *)
+    qp_trans   : forall (x y z : qp_carrier),
+        qp_ord x y ⊗ qp_ord y z ⊑ qp_ord x z;
+    (* Antisymmetry: R(x,y) ⊓ q_adj(R(y,x)) ⊑ q_delta(x,y) *)
+    qp_antisym : forall (x y : qp_carrier),
+        qp_ord x y ⊓ q_adj (qp_ord y x) ⊑ q_delta qp_dec_eq x y;
+}.
+\end{lstlisting}
+
+\noindent
+The three axioms are direct translations of
+\cref{def:qposet}: reflexivity replaces
+$\top \leq R(x, x)$ with \lstinline{q_top ⊑ qp_ord x x},
+transitivity replaces conjunction with the quantale tensor product
+$\otimes$, and antisymmetry uses the quantale meet~$\sqcap$, the
+involution~$(-)^*$, and the Kronecker delta \texttt{q\_delta}
+(which returns $\top$ when $x = y$ and $\bot$ otherwise,
+using the decidable equality \texttt{qp\_dec\_eq}).
+
+\paragraph{Quantum chains and convergence.}
+A \emph{quantum chain} in a quantum poset~$X$ is a family
+$K : \mathbb{N} \to W \to X$ (parameterised by an arbitrary probe
+type~$W$) that is ascending:
+$\top \leq R(K(n, w),\; K(n{+}1, w))$ for all~$n$ and~$w$.
+A function $K_\infty : W \to X$ is the \emph{limit} of~$K$ when
+\[
+  R(K_\infty(w),\; x) \;=\; \textstyle\bigwedge_n\, R(K(n, w),\; x)
+\]
+for all $w$ and~$x$---that is, the $Q$-valued distance from the limit
+to any point equals the infimum of the distances from the chain
+elements~\cite[Definition~3.1.1]{KLM2024}.
+In \Rocq{}, this equality is split into two directions:
+
+\begin{lstlisting}[caption={Quantum-chain convergence (\texttt{qCPO.v}).},
+                    label={lst:converges}]
+Definition converges (K : qchain) (K_inf : W -> X) : Prop :=
+    forall (w : W) (x : X),
+        qp_ord X (K_inf w) x ⊑ q_inf (qord_desc_chain K w x)
+        /\
+        q_inf (qord_desc_chain K w x) ⊑ qp_ord X (K_inf w) x.
+\end{lstlisting}
+
+\noindent
+The auxiliary \texttt{qord\_desc\_chain K w x} packages the
+sequence $n \mapsto R(K(n, w),\; x)$ as a descending $\omega$-chain
+in~$Q$---descending because $R$ is antitone in its first argument
+when the chain is ascending---so that \texttt{q\_inf} can compute
+its greatest lower bound.
+
+\begin{definition}[Quantum CPO {\cite[Definition~3.2.1]{KLM2024}}]
+\label{def:qcpo}
+A quantum poset~$X$ is a \emph{quantum $\omega$-CPO}
+(with respect to probe type~$W$)
+if every quantum $W$-chain in~$X$ has a limit.
+A \emph{pointed quantum CPO} additionally has a bottom element
+$\bot_X$ satisfying $\top \leq R(\bot_X, x)$ for all~$x$.
+\end{definition}
+
+\noindent
+The formalisation provides both a propositional version
+(\texttt{is\_qcpo}) and a data-carrying version (\texttt{QCPOData})
+that bundles the limit function with a convergence proof, mirroring
+the \texttt{HasSup}/\texttt{IsCPO} split in the classical hierarchy.
+
+\paragraph{Quantum-continuous morphisms.}
+A function $F : X \to Y$ between quantum posets is
+\emph{quantum-monotone} if
+$R_X(x, x') \leq R_Y(F(x), F(x'))$
+and \emph{quantum Scott-continuous} if additionally
+$F$ preserves limits of quantum chains.
+These are bundled in a \texttt{q\_cont\_fun} record with three
+fields: the function, a monotonicity proof, and a
+convergence-preservation proof.
+The record supports identity, composition (with separate
+monotonicity and preservation proofs composed independently), and
+the three category laws (left/right identity, associativity)---all
+proved using \texttt{FunctionalExtensionality} and
+\texttt{ProofIrrelevance}, the same strategy as the classical
+\texttt{cont\_fun} (\cref{sec:meth-function-spaces}).
+
+\begin{lstlisting}[caption={Bundled quantum Scott-continuous maps
+  (\texttt{qCPOProperties.v}).},
+                    label={lst:qcontfun}]
+Record q_cont_fun (X Y : qposet Q) : Type := Build_q_cont_fun {
+    qcf_fun :> X -> Y;
+    qcf_mono : q_monotone qcf_fun;
+    qcf_preserves : forall (W : Type)
+        (K : @qchain Q X W) (K_inf : W -> X),
+        converges K K_inf ->
+        converges (map_qchain qcf_fun qcf_mono K)
+                  (fun w => qcf_fun (K_inf w));
+}.
+\end{lstlisting}
+
+\noindent
+The split-field design (DD-023 in \cref{app:design-decisions}) keeps
+monotonicity and convergence-preservation as separate record fields
+rather than embedding monotonicity inside an existential.  This
+ensures that the monotonicity witness is always directly available
+for \texttt{map\_qchain}---the function that applies a monotone
+map pointwise to a quantum chain---avoiding proof-witness mismatches
+during composition.
+
+\paragraph{The quantum Kleene fixed-point theorem.}
+Given a pointed quantum CPO~$X$ with bottom~$\bot_X$ and a
+quantum Scott-continuous endomorphism $F : X \to X$, the sequence
+$\bot_X, F(\bot_X), F^2(\bot_X), \ldots$ forms an ascending quantum
+chain.
+Its limit is the least fixed point of~$F$:
+\begin{enumerate}
+  \item $R(F(\mathrm{fix}), y) = R(\mathrm{fix}, y)$
+    for all~$y$---i.e.\ $F(\mathrm{fix})$ is indistinguishable
+    from~$\mathrm{fix}$ in the quantum order.
+  \item For any prefixed point~$x$
+    ($\top \leq R(F(x), x)$),
+    $\top \leq R(\mathrm{fix}, x)$---i.e.\ $\mathrm{fix}$ is least.
+\end{enumerate}
+The proof (\texttt{qfixp\_at\_is\_fixedpoint},
+\texttt{qfixp\_at\_least} in \texttt{qCPOProperties.v})
+mirrors the classical Kleene construction
+(\cref{sec:bg-fixedpoints}), with $Q$-valued inequalities
+replacing Boolean ones throughout.
+A quantum Scott induction principle (\texttt{qfixp\_at\_ind}) is
+also derived: any admissible predicate that holds at~$\bot_X$ and is
+preserved by~$F$ holds at $\mathrm{fix}$.
+
+\begin{lstlisting}[caption={Kleene iteration and ascending chain
+  (\texttt{qCPOProperties.v}).},
+                    label={lst:qiter}]
+Fixpoint q_iter (F : [X →qc X]) (n : nat) : X :=
+    match n with
+    | O   => q_bot_elem bot
+    | S k => F (q_iter F k)
+    end.
+
+Lemma q_iter_ascending (F : [X →qc X]) (n : nat) (w : W) :
+    (q_top : Q) ⊑ qp_ord X (q_iter F n) (q_iter F (S n)).
+\end{lstlisting}
+
+\noindent
+The iteration has the same structure as its classical counterpart
+(\cref{sec:bg-fixedpoints}): the base case is the bottom element,
+and each step applies~$F$.  The ascending lemma shows that each
+consecutive pair is related in the quantum order; the proof proceeds
+by induction, using the bottom property at the base case and
+monotonicity of~$F$ at the step.
+
+% ·· Enrichment ··············································
+\subsection{The Enrichment Correspondence}
+\label{sec:disc-quantum-enrichment}
+
+The central structural observation of this thesis is that the
+category of quantum CPOs is $\CPO$-enriched.
+This subsection explains what that means concretely and what the
+formalisation establishes.
+
+\paragraph{Hom-sets as CPOs.}
+Given quantum CPOs $X$ and $Y$, the quantum Scott-continuous maps
+$[X \to_q Y]$ carry a pointwise quantum order:
+\[
+  f \sqsubseteq g
+  \;\;\text{iff}\;\;
+  \forall\, x.\;
+  \top \leq R_Y(f(x),\; g(x)).
+\]
+
+\begin{lstlisting}[caption={Pointwise ordering on quantum hom-sets
+  (\texttt{qCPOProperties.v}).},
+                    label={lst:qhomle}]
+Definition q_hom_le (f g : [X →qc Y]) : Prop :=
+    forall (x : X),
+        (q_top : Q) ⊑ qp_ord Y (qcf_fun f x) (qcf_fun g x).
+\end{lstlisting}
+
+\noindent
+This order is reflexive, transitive, and antisymmetric (the last by
+extensionality of \texttt{q\_cont\_fun}), making
+$[X \to_q Y]$ a partial order.
+Ascendingness of a chain of morphisms $(f_n)$ is inherited
+pointwise, and the limit is constructed as the pointwise limit via
+\texttt{QCPOData}:
+$(\bigsqcup_n f_n)(x) = \bigsqcup_n f_n(x)$.
+The proof that this limit is itself quantum Scott-continuous
+(\texttt{qhom\_limit\_cont}, 150 lines) is the technical core of
+the quantum layer: it requires showing that the pointwise limit of
+continuous maps preserves convergence of arbitrary quantum chains, a
+three-step argument analogous to the classical
+\texttt{fun\_sup}~(\cref{sec:meth-function-spaces}).
+
+This means $[X \to_q Y]$ is an $\omega$-\textbf{CPO} (a classical
+$\omega$-CPO, not merely a quantum one).
+This is precisely the $\CPO$-enrichment condition
+(\cref{def:cpo-enriched-cat}): the hom-objects are CPOs, and
+composition is Scott-continuous in each variable---the latter
+following from the separate continuity of quantum function
+composition.
+
+\paragraph{The unifying correspondence.}
+Both the classical category $\CPO$ and the quantum category $\qCPO$
+satisfy the \texttt{CPOEnrichedCat} axioms:
+\begin{itemize}
+  \item In $\CPO$: hom-sets $[D \to_c E]$ are CPOs
+    (\cref{sec:meth-function-spaces}), and composition is separately
+    Scott-continuous (DD-002 in \cref{app:design-decisions}).
+  \item In $\qCPO$: hom-sets $[X \to_q Y]$ are CPOs (this section),
+    and composition is separately continuous
+    (\texttt{q\_cont\_comp} in \texttt{qCPOProperties.v}).
+\end{itemize}
+Every theorem proved generically over a \texttt{CPOEnrichedCat}---locally continuous functors, enriched natural transformations with
+pointwise CPO structure, the Yoneda lemma, recursive domain equations
+via bilimits---therefore applies to quantum domains without
+modification, provided the enrichment instance is registered.
+
+\paragraph{The gap.}
+The formalisation demonstrates that all the required properties
+hold (\texttt{q\_hom\_le\_refl}, \texttt{q\_hom\_le\_trans},
+\texttt{q\_hom\_le\_antisym\_ord}, \texttt{qhom\_limit\_cont},
+and the category laws in \texttt{qCPOProperties.v}), but does
+\emph{not} yet register $\qCPO$ as an \texttt{HB.instance} of
+\texttt{CPOEnrichedCat}.
+The obstacle is engineering, not mathematics: \HB{} requires the
+objects and morphisms to be packaged as \HB{}-compatible types,
+whereas the quantum layer uses plain records parameterised by a
+quantale (\cref{sec:disc-tradeoffs}).
+Concretely, the \texttt{q\_cont\_fun} record would need to be
+promoted to an \HB{} structure---or a wrapper type
+introduced---before the instance declaration compiles.
+The two stub files \texttt{QuantumMorphisms.v} and
+\texttt{QuantumEnrichment.v} mark where this bridge would be
+built.
+
+\paragraph{Limitations and future directions.}
+The quantum layer is exploratory.
+Three significant gaps remain beyond the enrichment instance:
+\begin{enumerate}
+  \item \textbf{No concrete quantale instance.}
+    The library axiomatises $Q$ as an abstract
+    \texttt{InvQuantale.type} but does not construct the concrete
+    example $Q = B(H)$.
+    Doing so would require a Hilbert-space formalisation not available
+    in the current \Rocq{} ecosystem.
+
+  \item \textbf{No quantum lift monad.}
+    The classical lift $D_\bot = \texttt{option}\;D$ has no direct
+    quantum analogue; the quantum variant would need to interact with
+    the quantale-valued order in a way that is not yet clear.
+
+  \item \textbf{No quantum language.}
+    The stub files \texttt{QMiniCore\_Syntax.v} and
+    \texttt{QMiniCore\_Semantics.v} in \texttt{lang/} are reserved
+    for a quantum programming language whose types would be
+    interpreted as quantum CPOs, but no syntax or semantics has been
+    specified.
+\end{enumerate}
+These gaps are discussed further in the future-work section of
+\cref{ch:conclusion}.
 
 % ── The lift monad obstruction ────────────────────────────────────
 \section{The Coinductive Lift Monad}
 \label{sec:disc-lift-monad}
 
 % Source: theory/LiftMonad.v
-% TODO: Why the delay monad does NOT form a CPO
-% The CPO obstruction theorem
 
-% ── Quantum extensions ────────────────────────────────────────────
-\section{Toward Quantum Programming Language Semantics}
-\label{sec:disc-quantum}
+The library uses the flat lift $D_\bot = \texttt{option}\;D$ to model
+partiality (\cref{sec:meth-lift}).
+The original BKV library~\cite{BKV2009} used instead a coinductive
+\texttt{delay} type, which more faithfully models the step-by-step
+unfolding of a partial computation.
+This section explains why the coinductive lift cannot be made into a
+\texttt{CPO.type} in our Leibniz-equality framework, develops the
+obstruction formally in \Rocq{}, and discusses the resolution.
+\Cref{sec:disc-lift-bg} introduces coinduction and the delay monad,
+\cref{sec:disc-lift-obstruction} states the CPO obstruction theorem,
+and \cref{sec:disc-lift-resolution} discusses the design trade-off.
 
-% Source: quantum/*.v context files, KLM2024
+% ·· Background ··············································
+\subsection{Background: Coinduction and the Delay Monad}
+\label{sec:disc-lift-bg}
 
-\subsection{Quantum CPOs}
-\label{sec:disc-qcpo}
+This subsection introduces \emph{coinductive types} and the
+\emph{delay monad}---the concepts needed to understand the CPO
+obstruction developed in \cref{sec:disc-lift-obstruction}.
+The reader familiar with coinduction in \Rocq{} may skip to
+\cref{sec:disc-lift-obstruction}.
 
-% TODO: qCPO definition from Kornell-Lindenhovius-Mislove
-% Comparison with classical CPOs
+\paragraph{Coinductive types.}
+\Rocq{}'s \texttt{Inductive} types define the \emph{smallest} type closed
+under a set of constructors: every element is a finite tree built from
+those constructors, and elimination proceeds by structural recursion.
+\emph{Coinductive} types, declared with \texttt{CoInductive}, dualise
+this: they define the \emph{largest} type closed under the constructors,
+admitting potentially infinite inhabitants.
+Where an inductive type is characterised by how its elements are
+\emph{built} (introduction), a coinductive type is characterised by
+how its elements are \emph{observed} (elimination by pattern matching,
+one constructor at a time).
+The canonical example is a stream $\texttt{Stream}\;A$: an infinite
+sequence of $A$-values, destructed into a head and a tail but never
+fully traversed.
 
-\subsection{Quantum Channels as Morphisms}
-\label{sec:disc-quantum-morphisms}
+\paragraph{Guardedness.}
+Functions producing coinductive values are defined with
+\texttt{CoFixpoint} rather than \texttt{Fixpoint}.
+Whereas recursive functions must be \emph{structurally decreasing} on
+an inductive argument, corecursive functions must be
+\emph{guarded}: every corecursive call must appear directly under a
+constructor of the coinductive type.
+This ensures that the output can always be observed one constructor
+at a time---\Rocq{}'s productivity guarantee, the dual of
+termination for inductive recursion.
 
-% TODO: CPTP maps, quantum continuity
+The guardedness requirement interacts awkwardly with \Rocq{}'s
+reduction strategy.
+A \texttt{CoFixpoint} definition does not reduce at the top level;
+it only unfolds when it is the scrutinee of a \texttt{match}.
+This means that a propositional equality like
+$\texttt{bind}\;(\texttt{now}\;d)\;f = f\;d$---which should hold by
+computation---is \emph{not} provable by \texttt{reflexivity},
+because the left-hand side is a stuck cofixpoint.
+The standard workaround is the \emph{frob trick}%
+~\cite{Capretta2005}: define a function
+\texttt{delay\_decompose} that pattern-matches on a \texttt{delay}
+value and reconstructs it, then use the propositional identity
+$t = \texttt{delay\_decompose}\;t$ to force one step of cofixpoint
+evaluation.
+This is a routine but pervasive annoyance in coinductive developments.
 
-\subsection{Quantum Enrichment}
-\label{sec:disc-quantum-enrichment}
+\paragraph{The delay type.}
+The \emph{delay monad}, introduced by
+Capretta~\cite{Capretta2005}, models partial computations as
+coinductive sequences of ``computation steps'':
 
-% TODO: qCPO-enriched categories as semantic setting for quantum languages
+\begin{lstlisting}[caption={The coinductive delay type
+  (\texttt{LiftMonad.v}).},
+                    label={lst:delay}]
+CoInductive delay (D : Type) : Type :=
+  | now   : D -> delay D
+  | later : delay D -> delay D.
+\end{lstlisting}
 
-% ── Limitations ───────────────────────────────────────────────────
-\section{Limitations}
-\label{sec:disc-limitations}
+\noindent
+A value $\texttt{now}\;d$ represents a terminated computation
+returning~$d$.
+A value $\texttt{later}\;t$ represents one more step of
+computation before~$t$.
+The bottom element is the infinite loop
+$\bot = \texttt{cofix}\;\bot := \texttt{later}\;\bot$, which
+unfolds to $\texttt{later}\;(\texttt{later}\;(\texttt{later}\;
+\cdots))$ and never produces a value.
 
-% TODO:
-% - Universe polymorphism not fully audited
-% - bilimit_exists is axiomatized
-% - Quantum portion is exploratory/future work
-% - No extraction to executable code
+This type has a natural monad structure.
+The unit is $\texttt{now} : D \to \texttt{delay}\;D$, and the bind
+operation sequences computations:
+\texttt{bind} peels off \texttt{later} constructors until it
+reaches a \texttt{now}\;$d$, then applies the continuation.
+The three monad laws (left unit, right unit, associativity) all hold
+\emph{up to bisimulation}---not up to propositional equality, for
+the reduction reasons described above.
+
+\paragraph{Weak bisimulation.}
+Propositional equality is the wrong notion of equivalence on
+\texttt{delay}\;$D$.
+The terms $\texttt{now}\;d$ and $\texttt{later}\;(\texttt{now}\;d)$
+are propositionally distinct (they have different outermost
+constructors), but they should be semantically equivalent: one extra
+computation step makes no observable difference.
+The correct equivalence is \emph{weak bisimulation}: a coinductive
+relation that allows either side to take arbitrarily many
+\texttt{later} steps before matching.
+
+\begin{lstlisting}[caption={Weak bisimulation on \texttt{delay}
+  (\texttt{LiftMonad.v}).},
+                    label={lst:bisim}]
+CoInductive bisim {D : Type} : delay D -> delay D -> Prop :=
+  | bisim_now   : forall d,     bisim (now d) (now d)
+  | bisim_later : forall t1 t2, bisim t1 t2 ->
+                                bisim (later t1) (later t2)
+  | bisim_left  : forall t1 t2, bisim t1 t2 ->
+                                bisim (later t1) t2
+  | bisim_right : forall t1 t2, bisim t1 t2 ->
+                                bisim t1 (later t2).
+\end{lstlisting}
+
+\noindent
+The four constructors capture the idea that \texttt{later} steps on
+either side can be silently absorbed.
+\texttt{bisim\_now} is the base case: two terminated computations
+with the same value are bisimilar.
+\texttt{bisim\_later} steps both sides simultaneously.
+\texttt{bisim\_left} and \texttt{bisim\_right} skip a step on one
+side only.
+
+Bisimulation is reflexive (by corecursion on the \texttt{delay}
+structure) and symmetric (by swapping \texttt{bisim\_left} and
+\texttt{bisim\_right}).
+Transitivity, however, is problematic---this point is taken up in
+\cref{sec:disc-lift-obstruction}.
+
+\paragraph{Convergence.}
+The \emph{convergence} relation is the dual concept: an
+\emph{inductive} (finitary) predicate asserting that a computation
+terminates with a specific value after finitely many steps.
+
+\begin{definition}[Convergence]
+\label{def:convergence}
+$\texttt{converges}\;t\;d$ holds if $t$ reaches
+$\texttt{now}\;d$ after finitely many \texttt{later} steps:
+\begin{enumerate}
+  \item $\texttt{converges}\;(\texttt{now}\;d)\;d$, and
+  \item if $\texttt{converges}\;t\;d$ then
+    $\texttt{converges}\;(\texttt{later}\;t)\;d$.
+\end{enumerate}
+Convergence is functional: if $\texttt{converges}\;t\;d$ and
+$\texttt{converges}\;t\;d'$, then $d = d'$.
+The bottom element $\bot$ does not converge to any value.
+\end{definition}
+
+\noindent
+The interaction between coinductive bisimulation and inductive
+convergence is where the technical difficulties arise, as we now
+describe.
+
+% ·· The CPO obstruction ·····································
+\subsection{The CPO Obstruction}
+\label{sec:disc-lift-obstruction}
+
+The BKV library~\cite{BKV2009} builds on a preorder hierarchy where
+two elements can be mutually below without being propositionally
+equal (\cref{sec:disc-bkv}).
+Our library requires Leibniz antisymmetry:
+$x \sqsubseteq y \land y \sqsubseteq x \implies x = y$.
+This section shows that no ordering on \texttt{delay}\;$D$ can
+simultaneously respect the convergence structure and satisfy Leibniz
+antisymmetry.
+
+\paragraph{The convergence preorder.}
+The natural ordering on \texttt{delay}\;$D$ is the
+\emph{convergence preorder}:
+\[
+  t \sqsubseteq t'
+  \quad\text{iff}\quad
+  \forall\, d.\;
+  \texttt{converges}\;t\;d \implies \texttt{converges}\;t'\;d.
+\]
+A computation $t'$ is ``at least as defined as''~$t$ if every value
+that $t$ produces is also produced by~$t'$.
+This is a preorder (reflexive and transitive), but it is not
+antisymmetric under propositional equality.
+The obstruction is captured by three facts, which together constitute
+the main result of \texttt{LiftMonad.v}:
+
+\begin{lstlisting}[caption={The CPO obstruction theorem
+  (\texttt{LiftMonad.v}).},
+                    label={lst:obstruction}]
+(*  FACT A: bisimilar (should be equal) *)
+Fact A {D : Type} (d : D) :
+    bisim (now d) (later (now d)).
+
+(*  FACT B: propositionally unequal *)
+Fact B {D : Type} (d : D) :
+    now d <> later (now d).
+
+(*  FACT C: mutually below in convergence order *)
+Fact C {D : Type} (d : D) :
+    forall e,
+        converges (now d) e <->
+        converges (later (now d)) e.
+
+Theorem delay_CPO_requires_quotient {D : Type} (d : D) :
+    bisim (now d) (later (now d)) /\
+    now d <> later (now d) /\
+    (forall e,
+        converges (now d) e <->
+        converges (later (now d)) e).
+\end{lstlisting}
+
+\noindent
+\textbf{Fact~A} states that $\texttt{now}\;d$ and
+$\texttt{later}\;(\texttt{now}\;d)$ are bisimilar: the extra
+\texttt{later} step is absorbed by \texttt{bisim\_right}.
+In any CPO modelling partial computation, these two elements
+\emph{should} be identified---they represent the same
+computation, one finishing immediately and the other taking one
+extra step.
+
+\textbf{Fact~B} states that $\texttt{now}\;d \neq
+\texttt{later}\;(\texttt{now}\;d)$ in propositional equality.
+The proof is a single tactic: \texttt{discriminate}, which exploits
+the fact that distinct constructors of an inductive (or coinductive)
+type yield distinct terms.
+
+\textbf{Fact~C} states that these two terms are mutually below in
+the convergence order: anything that $\texttt{now}\;d$ converges to,
+$\texttt{later}\;(\texttt{now}\;d)$ also converges to, and
+vice versa.
+The forward direction wraps the convergence proof in
+\texttt{conv\_later}; the reverse direction inverts one
+\texttt{later} step.
+
+\paragraph{The contradiction.}
+Any \texttt{CPO.type} in our hierarchy inherits
+\texttt{PartialOrder}, which requires Leibniz antisymmetry.
+If \texttt{delay}\;$D$ were a \texttt{CPO.type} with an order
+extending the convergence preorder, then Fact~C would give
+$\texttt{now}\;d \sqsubseteq \texttt{later}\;(\texttt{now}\;d)$
+and
+$\texttt{later}\;(\texttt{now}\;d) \sqsubseteq \texttt{now}\;d$,
+and antisymmetry would force
+$\texttt{now}\;d = \texttt{later}\;(\texttt{now}\;d)$---contradicting
+Fact~B.
+
+The theorem \texttt{delay\_CPO\_requires\_quotient} is fully proved;
+no axioms or admissions are used.
+It is a \emph{negative} result: it does not merely say that we have
+not found a CPO structure, but that no such structure exists on the
+raw \texttt{delay} type under Leibniz equality.
+
+\paragraph{The \texttt{bisim\_trans} guardedness failure.}
+The file also develops the monad structure of \texttt{delay} and
+attempts to prove that bisimulation is an equivalence relation.
+Reflexivity and symmetry are straightforward corecursions.
+Transitivity, however, is admitted (\texttt{bisim\_trans}).
+
+The difficulty arises in a single case.
+When the first bisimulation proof ends with \texttt{bisim\_right}
+(skipping a \texttt{later} on the right) and the second ends with
+\texttt{bisim\_left} (skipping a \texttt{later} on the left), the
+two steps cancel:
+\[
+  \underbrace{t_1 \sim \texttt{later}\;s_2}_{\texttt{bisim\_right}}
+  \qquad
+  \underbrace{\texttt{later}\;s_2 \sim t_3}_{\texttt{bisim\_left}}
+\]
+The recursive call $\texttt{IH}\;t_1\;s_2\;t_3$ is needed, but it
+does not appear under any constructor of \texttt{bisim}---the
+\texttt{later} wrappers have been consumed on both sides.
+\Rocq{}'s guardedness checker rejects this because the corecursive
+call is not productive: it does not produce a constructor before
+recurring.
+
+This is a well-known limitation, not specific to our development.
+Three resolutions exist in the literature:
+\begin{enumerate}
+  \item \textbf{Parameterised coinduction} (the \texttt{paco}
+    library~\cite{Capretta2005}): replaces the guardedness check
+    with an explicit monotonicity argument on a coinduction
+    hypothesis, allowing non-guarded recursive calls.
+  \item \textbf{Sized types} (available in Agda but not \Rocq{}):
+    track the ``depth'' of a coinductive value in its type, making
+    the well-foundedness of the recursive call explicit.
+  \item \textbf{Mixed inductive-coinductive bisimilarity}
+    (Chapman, Uustalu, and Veltri~\cite{ChapmanUustaluVeltri2019}):
+    redefine bisimulation with an inductive ``convergence to a
+    common value'' component nested inside a coinductive wrapper,
+    eliminating the problematic case by construction.
+\end{enumerate}
+We do not pursue these resolutions because the CPO obstruction
+theorem (\texttt{delay\_CPO\_requires\_quotient}) is fully proved
+without \texttt{bisim\_trans}, and the flat lift sidesteps the
+issue entirely.
+
+\paragraph{The \texttt{converges\_bisim} admission.}
+A second result is admitted:
+$\texttt{converges\_bisim}$, which states that convergence is
+preserved by bisimulation.
+The difficulty is analogous: inverting a coinductive bisimulation
+hypothesis inside an inductive recursion on convergence leads to
+cases where the induction measure does not decrease.
+This result is also unused in the obstruction proof and would
+be resolved by the same techniques as \texttt{bisim\_trans}.
+
+% ·· Resolution ··············································
+\subsection{Resolution: The Flat Lift}
+\label{sec:disc-lift-resolution}
+
+The obstruction admits two resolutions, corresponding to two ways of
+eliminating the offending pair $\texttt{now}\;d \neq
+\texttt{later}\;(\texttt{now}\;d)$.
+
+\paragraph{Quotient by bisimulation.}
+The principled resolution is to quotient \texttt{delay}\;$D$ by weak
+bisimulation, obtaining a type
+$\texttt{delay}\;D\;/\!\sim$ in which
+$[\texttt{now}\;d] = [\texttt{later}\;(\texttt{now}\;d)]$ by
+construction.
+Chapman, Uustalu, and Veltri~\cite{ChapmanUustaluVeltri2019}
+carry out this construction in Agda using quotient
+inductive-inductive types (QIITs), proving that the quotient admits
+a monad structure whose laws hold up to propositional equality.
+They further show that the resulting type is isomorphic to the
+\emph{partiality monad}---a countable join completion---under the
+assumption of countable choice.
+
+\Rocq{} does not natively support quotient types.
+Quotients can be simulated using setoids (as BKV does implicitly)
+or \texttt{Prop}-truncated sigma types, but both approaches require
+carrying setoid morphism proofs through every construction.
+The \HB{} hierarchy, designed for Leibniz equality throughout,
+would need substantial reworking to accommodate setoid-based types.
+
+\paragraph{The flat alternative.}
+The flat lift $D_\bot = \texttt{option}\;D$ avoids the issue entirely
+by giving up the step-by-step computational structure.
+The bottom element $\bot = \texttt{None}$ and values
+$\texttt{Some}\;d$ are propositionally distinct from each other
+\emph{and} from $\texttt{Some}\;d'$ when $d \neq d'$, so no
+bisimulation quotient is needed.
+The cost is the use of \texttt{ClassicalEpsilon} in the supremum
+construction (\cref{sec:meth-lift}): the informative excluded middle
+is used to decide whether a chain is eventually \texttt{Some}, which
+makes the library non-extractable.
+
+\paragraph{Summary of the trade-off.}
+\Cref{tab:lift-comparison} summarises the two approaches.
+The flat lift fits cleanly into the \HB{} hierarchy with Leibniz
+equality; the coinductive lift is computationally more natural but
+requires either quotient types or a setoid-based framework.
+Our choice of the flat lift is a pragmatic compromise: the library's
+purpose is denotational \emph{reasoning} (proving adequacy,
+constructing fixed points), not executable extraction, so the
+classical axiom is an acceptable price for a simpler infrastructure.
+
+\begin{table}[ht]
+\centering
+\caption{Comparison of lift constructions.}
+\label{tab:lift-comparison}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Aspect} & \textbf{Coinductive lift} & \textbf{Flat lift} \\
+\midrule
+Type              & \texttt{delay D}
+                  & \texttt{option D} \\
+Bottom            & $\texttt{cofix}\;\bot := \texttt{later}\;\bot$
+                  & \texttt{None} \\
+Equality          & Weak bisimulation
+                  & Leibniz \texttt{=} \\
+Monad laws        & Up to bisimulation
+                  & Up to \texttt{=} \\
+CPO structure     & Requires quotient types
+                  & Direct (\texttt{ClassicalEpsilon}) \\
+Extractable       & Yes (in principle)
+                  & No (\texttt{ClassicalEpsilon}) \\
+\HB{} compatible  & No (without quotients)
+                  & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+The development in \texttt{LiftMonad.v} (490 lines) is
+self-contained: it imports no files from the library's hierarchy and
+could be extracted into a standalone proof of the obstruction
+result.
+Its purpose is not to provide library infrastructure but to make the
+design rationale for the flat lift precise and machine-checked.
