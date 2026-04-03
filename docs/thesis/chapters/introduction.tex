@@ -16,9 +16,9 @@ its denotation---in a way that respects the structure of the language. For simpl
 are straightforward. For programs with recursion and recursive types, however, the construction of a suitable 
 mathematical universe is itself a deep problem.
 
-Consider the recursive definition: $f(x) = 1 + f(x)$. As a program, this defines $f$ by self-reference: $f$ calls 
-itself on every input, computing nothing---it diverges. But the program's definition, within this framework of constructing denotations for programs, 
-is also an mathematical equation with no solution. Nevertheless, the program is well-formed in any language 
+Consider the recursive definition: $f(x) = 1 + f(x)$. As a program, $f$ calls 
+itself on every input, computing nothing---it \textit{diverges}. But the program's definition, within this framework of constructing denotations for programs, 
+is also a mathematical equation with no solution. Nevertheless, the program is well-formed in any language 
 supporting general recursion---so a complete mathematical semantics must assign it a precise meaning. The answer \emph{domain theory} 
 gives is elegant: interpret $f$ as the \textit{least fixed point} of the operator $\Phi(g)(x) = 1 + g(x)$, 
 computed as the supremum of the sequence $\bot, \Phi(\bot), \Phi^{2}(\bot), \ldots$ in a mathematical structure---an 
@@ -70,7 +70,7 @@ the Hierarchy Builder framework \cite{HB2023}---now the standard approach for hi
 \cite{BKV2009} entirely, and the hand-assembled infrastructure of that era makes extending the library difficult in practice. 
 This thesis takes \cite{BKV2009} as its classical foundation and extends it in both directions.
 
-The second direction, being quantum programming languages, attempts to capture the phenomenon their semantics requires that classical domain theory cannot provide. Most existing quantum languages---
+The second direction---quantum programming languages---is motivated by a semantic requirement that classical domain theory cannot meet. Most existing quantum languages---
 Proto-Quipper, Quipper, and their relatives---support only \textit{classical control flow} over quantum data: the decision of which 
 branch to take is always a classical computation on classical information. However, \emph{Quantum control flow}---branching on unmeasured
 quantum states---is a strictly more expressive paradigm. The canonical example is the \textit{quantum switch} \cite{CDPV2013}: 
