@@ -14,7 +14,7 @@ why things are the way they are.
 
 **Rationale:**
 
-The original pre-migration codebase had a `Pointed.v` that was a
+The first iteration of the codebase had a `Pointed.v` that was a
 one-line re-export shim:
 
 ```coq

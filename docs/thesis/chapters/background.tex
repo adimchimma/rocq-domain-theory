@@ -1,0 +1,2977 @@
+% !TeX root = ../main.tex
+% chapters/background.tex
+
+\chapter{Background}
+\label{ch:background}
+
+This chapter reviews the mathematical concepts used throughout the thesis:
+domain theory, enriched category theory specialised to $\CPO$, the
+denotational semantics of PCF$_v$, and the proof-assistant infrastructure
+we build on. The presentation provides the definitions and results needed
+to make the subsequent chapters self-contained. We assume familiarity with
+basic set theory and elementary functional programming, but not with
+domain theory or category theory.
+
+% ── Domain theory ─────────────────────────────────────────────────
+\section{Domain Theory}
+\label{sec:bg-domain-theory}
+
+Domain theory provides the mathematical framework for giving meaning to
+recursive programs. The central idea is to model computation as
+\emph{approximation}: partial results are ordered by how much information
+they carry, and the meaning of a recursive program is the limit of
+increasingly refined approximations. This section introduces the ordered
+structures that make this precise. The standard reference is Abramsky and
+Jung~\cite{AJ1994}; we follow their presentation throughout.
+
+\subsection{Partial Orders and $\omega$-Chains}
+\label{sec:bg-partial-orders}
+
+\begin{definition}[Preorder]
+\label{def:preorder}
+A \emph{preorder} is a pair $(P, \sqsubseteq)$ where $P$ is a set and
+$\sqsubseteq$ is a binary relation on $P$ that is:
+\begin{enumerate}
+  \item \textbf{Reflexive}: $x \sqsubseteq x$ for all $x \in P$, and
+  \item \textbf{Transitive}: $x \sqsubseteq y$ and $y \sqsubseteq z$
+        imply $x \sqsubseteq z$.
+\end{enumerate}
+\end{definition}
+
+Every preorder induces a kernel equivalence $x \approx y$ defined by
+$x \sqsubseteq y \land y \sqsubseteq x$. In a preorder that is not
+antisymmetric, equivalent elements need not be equal.
+
+\begin{definition}[Partial Order]
+\label{def:partial-order}
+A \emph{partial order} (or \emph{poset}) is a preorder $(P, \sqsubseteq)$
+that is additionally \textbf{antisymmetric}: $x \sqsubseteq y$ and
+$y \sqsubseteq x$ imply $x = y$.
+\end{definition}
+
+In the domain-theoretic reading, the relation $x \sqsubseteq y$ means
+``$x$ carries no more information than $y$.'' Antisymmetry ensures that
+elements carrying the same information are identified.
+
+In a partial order, not every pair of elements need be comparable: it is
+possible that neither $x \sqsubseteq y$ nor $y \sqsubseteq x$. When every
+pair is comparable, the order is called a \emph{total order}. The natural
+numbers with the usual ordering $(\mathbb{N}, \le)$ form a total order.
+
+\begin{definition}[Monotone Function]
+\label{def:monotone}
+A function $f : P \to Q$ between preorders is \emph{monotone} if
+$x \sqsubseteq y$ implies $f(x) \sqsubseteq f(y)$.
+\end{definition}
+
+Monotone functions compose: if $f$ and $g$ are monotone, so is
+$f \circ g$. Moreover, the identity function is monotone, and
+composition is associative with the identity as its unit. This gives
+the collection of preorders and monotone functions the structure of a
+category, a fact we revisit in \cref{sec:bg-enriched}.
+
+\begin{definition}[$\omega$-Chain]
+\label{def:omega-chain}
+An \emph{$\omega$-chain} in a preorder $(P, \sqsubseteq)$ is a monotone
+function $c : \mathbb{N} \to P$.
+\end{definition}
+
+We write $c_n$ for the $n$-th element of a chain. An $\omega$-chain
+models a computation producing increasingly refined approximations:
+$c_0$ is the coarsest, and successive elements add information.
+
+\begin{example}[Constant Chain]
+\label{ex:constant-chain}
+For any element $d$ in a preorder, the constant sequence $c_n = d$ for
+all $n$ is an $\omega$-chain. Given that the range of $c_n$ is the singleton
+$\{d\}$, the supremum is always $d$ itself.
+\end{example}
+
+\subsection{$\omega$-Complete Partial Orders}
+\label{sec:bg-cpo}
+
+\begin{definition}[$\omega$-Complete Partial Order]
+\label{def:omega-cpo}
+An \emph{$\omega$-complete partial order} ($\omega$-CPO, or simply CPO)
+is a partial order $(D, \sqsubseteq)$ in which every $\omega$-chain has
+a \emph{least upper bound} (supremum). That is, for every $\omega$-chain
+$(c_n)_{n \in \mathbb{N}}$ in $D$, there exists an element
+$\lub_n c_n \in D$ satisfying:
+\begin{enumerate}
+  \item \textbf{Upper bound}: $c_n \sqsubseteq \lub_n c_n$ for all $n$, and
+  \item \textbf{Least}: if $c_n \sqsubseteq u$ for all $n$, then
+        $\lub_n c_n \sqsubseteq u$.
+\end{enumerate}
+\end{definition}
+
+The least upper bound, when it exists, is unique by antisymmetry of the
+partial order. We write $\lub c$ for the supremum of a chain $c$.
+
+\begin{definition}[Pointed CPO]
+\label{def:pointed-cpo}
+A \emph{pointed CPO} is an $\omega$-CPO $(D, \sqsubseteq)$ equipped with a
+\emph{least element} $\bot \in D$, satisfying $\bot \sqsubseteq d$ for all
+$d \in D$.
+\end{definition}
+
+The element $\bot$ represents the absence of information---in
+computational terms, the result of a divergent computation. Pointed CPOs
+are the standard semantic domains for languages with general recursion.
+
+\begin{remark}
+\label{rem:domain}
+The word \emph{domain} has several technical meanings in the literature
+(continuous domain, algebraic domain, Scott domain, etc.). In this thesis
+we use it informally as a synonym for ``(pointed) CPO'' unless a more
+specific definition is indicated.
+\end{remark}
+
+\begin{example}[Flat Domains]
+\label{ex:flat-domain}
+Given any set $S$, the \emph{flat domain} $S_\bot$ places $\bot$ below every
+element of $S$, with no other ordering: distinct elements of $S$ are
+incomparable. Every $\omega$-chain in $S_\bot$ is eventually constant (it
+either stays at $\bot$ forever or reaches some $s \in S$ and remains there),
+so $S_\bot$ is a pointed CPO. Taking $S = \mathbb{N}$ gives the flat natural
+numbers $\mathbb{N}_\bot$; taking $S = \{$\textsf{true}, \textsf{false}$\}$
+gives the flat booleans $\mathbb{B}_\bot$. These are the domains we use to
+interpret base types in PCF$_v$ (\cref{sec:bg-pcf-syntax}).
+\end{example}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5]
+    % Define Vertices (just filled circles, no text)
+    \fill ( -1,1) circle (2pt) node (true) {};
+    \fill ( 1,1) circle (2pt) node (false) {};
+    \fill ( 0,0) circle (2pt) node (bottom) {};
+
+    % Draw Edges
+    \draw (bottom) -- (true);
+    \draw (bottom) -- (false);
+    
+    % Add Free-Floating Labels (no styling, just text)
+    \node at (-1,1.4) {$\mathsf{true}$};
+    \node at (1,1.4) {$\mathsf{false}$};
+    \node at (0,-0.4) {$\bot$};
+\end{tikzpicture}
+\caption{Flat booleans ($\mathbb{B}_{\bot}$)}
+\end{figure}
+
+\begin{example}[The Extended Naturals]
+\label{ex:nat-inf}
+The set $\mathbb{N}_\infty = \mathbb{N} \cup \{\infty\}$ with the usual
+ordering $0 \sqsubseteq 1 \sqsubseteq 2 \sqsubseteq \cdots \sqsubseteq \infty$
+is a pointed CPO with $\bot = 0$. Unlike the flat domain, elements of
+$\mathbb{N}$ are totally ordered, and the chain $0, 1, 2, \ldots$ has
+$\infty$ as its supremum.
+\end{example}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5]
+    % Vertices (filled circles only)
+    \fill (0,3) circle (2pt) node (top) {};
+    \fill (0,2) circle (2pt) node (three) {};
+    \fill (0,1) circle (2pt) node (two) {};
+    \fill (0,0) circle (2pt) node (one) {};
+    \fill (0,-1) circle (2pt) node (bottom) {};
+
+    % Draw Edges (chain)
+    \draw (bottom) -- (one);
+    \draw (one) -- (two);
+    \draw (two) -- (three);
+    
+    % Add vertical dots to indicate continuation
+    \node at (0,2.5) {$\vdots$};
+    
+    % Free-Floating Labels
+    \node at (0.5,3) {$\infty$};
+    \node at (0.5,2) {$3$};
+    \node at (0.5,1) {$2$};
+    \node at (0.5,0) {$1$};
+    \node at (0.5,-1) {$\bot = 0$};
+\end{tikzpicture}
+\caption{Natural numbers with infinity ($\mathbb{N} \cup \{\infty\}$)}
+\end{figure}
+
+\begin{definition}[Scott-Continuous Function]
+\label{def:scott-continuous}
+A function $f : D \to E$ between $\omega$-CPOs is \emph{Scott-continuous}
+if it preserves suprema of $\omega$-chains: for every chain $(c_n)$ in $D$,
+\[
+  f\!\left(\lub_n c_n\right) = \lub_n f(c_n).
+\]
+\end{definition}
+
+Every Scott-continuous function is monotone. To see this, suppose
+$x \sqsubseteq y$. The sequence $c_n$ defined by $c_0 = x$ and $c_n = y$
+for $n \geq 1$ is an $\omega$-chain (monotonicity of $c$ follows from
+$x \sqsubseteq y$), and its supremum is $y$. Applying the continuity
+condition to this chain gives
+\[
+  f(y) = f\!\left(\lub_n c_n\right) = \lub_n f(c_n).
+\]
+Since $f(x) = f(c_0)$ appears in the sequence $(f(c_n))_{n \in \mathbb{N}}$, and the supremum
+of a set is an upper bound for every element, we obtain
+$f(x) \sqsubseteq \lub_n f(c_n) = f(y)$.
+
+Note that the right-hand side $\lub_n f(c_n)$ is the supremum of the
+\emph{sequence} $(f(c_0), f(c_1), \ldots)$ in $E$, which exists because
+$E$ is a CPO and the sequence, being eventually constant at $f(y)$, is
+trivially an $\omega$-chain.
+
+\begin{proposition}[Function Spaces]
+\label{prop:function-space}
+Given $\omega$-CPOs $D$ and $E$, the set of Scott-continuous functions
+$[D \to_{c} E]$ is itself an $\omega$-CPO under the \emph{pointwise order}:
+$f \sqsubseteq g$ if and only if $f(x) \sqsubseteq g(x)$ for all
+$x \in D$. When $E$ is pointed, so is $[D \to_{c} E]$, with $\bot$ as the
+constant function $x \mapsto \bot_E$.
+\end{proposition}
+
+\begin{proof}
+The pointwise order is a partial order: reflexivity, antisymmetry, and
+transitivity each follow from the corresponding property of
+$\sqsubseteq_E$.
+
+Let $(f_n)$ be an $\omega$-chain in $[D \to_{c} E]$. Define
+$\bar{f} : D \to E$ by $\bar{f}(x) = \lub_n f_n(x)$. For each
+$x \in D$ the sequence $(f_n(x))$ is an $\omega$-chain in $E$ (since
+$f_n \sqsubseteq f_{n+1}$ pointwise), so the supremum exists.
+
+We verify that $\bar{f}$ is Scott-continuous. Let $(d_m)$ be an
+$\omega$-chain in $D$. Then:
+\begin{align*}
+  \bar{f}\!\left(\lub_m d_m\right)
+    &= \lub_n f_n\!\left(\lub_m d_m\right)
+     = \lub_n \lub_m f_n(d_m)
+       && \text{(each $f_n$ is continuous)} \\
+    &= \lub_m \lub_n f_n(d_m)
+       && \text{(interchange of suprema\footnotemark)} \\
+    &= \lub_m \bar{f}(d_m).
+\end{align*}
+\footnotetext{The family $(f_n(d_m))_{n,m}$ is ascending in both
+indices. Both iterated suprema equal $\lub_k f_k(d_k)$: for each $n,m$
+we have $f_n(d_m) \sqsubseteq f_{\max(n,m)}(d_{\max(n,m)})$, and for
+each $k$ we have $f_k(d_k) \sqsubseteq \lub_m f_k(d_m) \sqsubseteq
+\lub_n \lub_m f_n(d_m)$.}
+
+Finally, $\bar{f}$ is the least upper bound: $f_n \sqsubseteq \bar{f}$
+by construction, and if $f_n \sqsubseteq g$ for all $n$, then
+$\bar{f}(x) = \lub_n f_n(x) \sqsubseteq g(x)$ for every $x$,
+so $\bar{f} \sqsubseteq g$.
+\end{proof}
+
+This construction is central to the semantics of higher-order
+languages, where function types are interpreted as function spaces.
+
+\begin{proposition}[Composition and identity]
+\label{prop:cont-compose}
+Let $f : D \to_{c} E$ and $g : E \to_{c} F$ be Scott-continuous
+functions. Then:
+\begin{enumerate}
+  \item The composite $g \circ f : D \to F$ is Scott-continuous.
+  \item The identity function $\mathrm{id}_D : D \to D$ is
+        Scott-continuous.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+For~(1), let $(c_n)$ be an $\omega$-chain in $D$. Then:
+\[
+  (g \circ f)\!\left(\lub_n c_n\right)
+    = g\!\left(f\!\left(\lub_n c_n\right)\right)
+    = g\!\left(\lub_n f(c_n)\right)
+    = \lub_n g(f(c_n))
+    = \lub_n (g \circ f)(c_n),
+\]
+using the continuity of $f$ and then of $g$.
+
+For~(2),
+$\mathrm{id}_D(\lub_n c_n) = \lub_n c_n
+  = \lub_n \mathrm{id}_D(c_n)$.
+\end{proof}
+
+These two facts give us the category $\CPO$ of $\omega$-CPOs and
+Scott-continuous maps.
+
+\subsection{Fixed-Point Theory}
+\label{sec:bg-fixedpoints}
+
+The ability to assign meaning to recursive definitions is what distinguishes
+domain theory from ordinary order theory. The key result is the Kleene
+fixed-point theorem, which guarantees that every Scott-continuous
+endomorphism on a pointed CPO has a canonical least fixed point.
+
+\begin{definition}[Fixed Point, Pre-Fixed Point]
+\label{def:fixed-point}
+Let $f : D \to D$ be a function on a partial order. An element $d \in D$ is
+a \emph{fixed point} of $f$ if $f(d) = d$. It is a \emph{pre-fixed point}
+if $f(d) \sqsubseteq d$.
+\end{definition}
+
+\begin{definition}[Kleene Chain]
+\label{def:kleene-chain}
+Given a Scott-continuous function $f : D \to_{c} D$ on a pointed CPO, the
+\emph{Kleene chain} of $f$ is the $\omega$-chain
+\[
+  \bot,\; f(\bot),\; f^2(\bot),\; f^3(\bot),\; \ldots
+\]
+where $f^n$ denotes the $n$-fold application of $f$%
+\footnote{The sequence is ascending: by induction on $n$, we have
+$f^n(\bot) \sqsubseteq f^{n+1}(\bot)$. The base case $\bot \sqsubseteq
+f(\bot)$ holds because $\bot$ is the least element. The inductive step
+$f^n(\bot) \sqsubseteq f^{n+1}(\bot) \Rightarrow f^{n+1}(\bot)
+\sqsubseteq f^{n+2}(\bot)$ follows from monotonicity of $f$.}.
+\end{definition}
+
+\begin{definition}[Chain Shift]
+\label{def:chain-shift}
+The \emph{shift} of an $\omega$-chain $(c_n)$ is the chain
+$(c_{n+1})_{n \in \mathbb{N}}$. A chain and its shift have the same
+supremum: $\lub_n c_n = \lub_n c_{n+1}$. Indeed,
+$\lub_n c_{n+1} \sqsubseteq \lub_n c_n$ because the shifted chain is a
+subsequence of the original (hence bounded by its supremum), and
+$\lub_n c_n \sqsubseteq \lub_n c_{n+1}$ because each $c_n \sqsubseteq
+c_{n+1} \sqsubseteq \lub_k c_{k+1}$.
+\end{definition}
+
+\begin{theorem}[Kleene Fixed-Point Theorem]
+\label{thm:kleene}
+Let $(D, \sqsubseteq, \bot)$ be a pointed CPO and $f : D \to_{c} D$ a
+Scott-continuous function. Define $\fixp(f) = \lub_n f^n(\bot)$. Then:
+\begin{enumerate}
+  \item $f(\fixp(f)) = \fixp(f)$ \quad (the supremum is a fixed point), and
+  \item for every pre-fixed point $d$ (i.e., $f(d) \sqsubseteq d$),
+        $\fixp(f) \sqsubseteq d$ \quad (it is the \emph{least} such point).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For part~(1), we apply the continuity of $f$ to the Kleene chain:
+\[
+  f(\fixp(f))
+  = f\!\left(\lub_n f^n(\bot)\right)
+  = \lub_n f(f^n(\bot))
+  = \lub_n f^{n+1}(\bot).
+\]
+The sequence $(f^{n+1}(\bot))_{n \in \mathbb{N}}$ is precisely the shift
+of the Kleene chain (\cref{def:chain-shift}). Since a chain and its shift
+have the same supremum, $\lub_n f^{n+1}(\bot) = \lub_n f^n(\bot) =
+\fixp(f)$.
+
+For part~(2), suppose $f(d) \sqsubseteq d$. We show by induction on $n$
+that $f^n(\bot) \sqsubseteq d$ for all $n$.
+\begin{itemize}
+  \item \textbf{Base case} ($n = 0$): $f^0(\bot) = \bot \sqsubseteq d$,
+        since $\bot$ is the least element.
+  \item \textbf{Inductive step}: Assuming $f^n(\bot) \sqsubseteq d$,
+        monotonicity of $f$ gives $f^{n+1}(\bot) = f(f^n(\bot))
+        \sqsubseteq f(d) \sqsubseteq d$.
+\end{itemize}
+Thus $d$ is an upper bound for the Kleene chain, and the least upper
+bound property gives $\fixp(f) = \lub_n f^n(\bot) \sqsubseteq d$.
+\end{proof}
+
+\begin{example}
+\label{ex:fixp-divergence}
+Recall the recursive definition $f(x) = 1 + f(x)$ from
+\cref{sec:intro-motivation}. The corresponding operator
+$\Phi(g)(x) = 1 + g(x)$ acts on $[\mathbb{N}_\bot \to_{c} \mathbb{N}_\bot]$.
+Its Kleene chain is $\bot, \Phi(\bot), \Phi^2(\bot), \ldots$, where every
+iterate maps all inputs to $\bot$ (since adding $1$ to $\bot$ gives $\bot$
+in the flat domain). The supremum is $\bot$ itself, correctly capturing
+divergence.
+\end{example}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[arr/.style={-Stealth, thick}]
+    \fill (0,0)   circle (2pt) node (n0)   {};
+    \fill (2.2,0) circle (2pt) node (n1)   {};
+    \fill (4.6,0) circle (2pt) node (n2)   {};
+    \fill (8.2,0) circle (2pt) node (nfix) {};
+
+    \node[below=5pt, font=\small] at (n0)   {$\bot$};
+    \node[below=5pt, font=\small] at (n1)   {$f(\bot)$};
+    \node[below=5pt, font=\small] at (n2)   {$f^2(\bot)$};
+    \node[below=5pt, font=\small] at (nfix) {$\fixp(f)$};
+    \node[above=5pt, font=\small] at (nfix) {$= \lub_n f^n(\bot)$};
+
+    \draw[arr] (n0) -- node[above, font=\scriptsize]{$\sqsubseteq$} (n1);
+    \draw[arr] (n1) -- node[above, font=\scriptsize]{$\sqsubseteq$} (n2);
+    \draw[arr] (n2) -- (6.1,0);
+    \node at (6.4,0) {$\cdots$};
+    \draw[arr, dashed] (6.7,0) -- (nfix);
+\end{tikzpicture}
+\caption{The Kleene chain of a Scott-continuous $f : D \to_c D$ on a
+  pointed CPO.  Each iterate $f^n(\bot)$ is a finer approximation;
+  their supremum is the least fixed point $\fixp(f)$.}
+\label{fig:kleene-chain}
+\end{figure}
+
+The Kleene theorem provides the fixed point. To \emph{reason} about fixed
+points, we need an induction principle.
+
+\begin{definition}[Admissible Predicate]
+\label{def:admissible}
+A predicate $P : D \to \mathrm{Prop}$ on a CPO is \emph{admissible}
+(or \emph{chain-closed}) if for every $\omega$-chain $(c_n)$ in $D$,
+$P(c_n)$ for all $n$ implies $P(\lub_n c_n)$.
+\end{definition}
+
+\begin{theorem}[Fixed-Point Induction (Scott Induction)]
+\label{thm:scott-induction}
+Let $f : D \to_{c} D$ be Scott-continuous on a pointed CPO, and let
+$P : D \to \mathrm{Prop}$ be admissible. If $P(\bot)$ and
+$P(x) \Rightarrow P(f(x))$ for all $x$, then $P(\fixp(f))$.
+\end{theorem}
+
+\begin{proof}
+We show by induction on $n$ that $P(f^n(\bot))$ holds for all $n$.
+\begin{itemize}
+  \item \textbf{Base case} ($n = 0$): $f^0(\bot) = \bot$, and $P(\bot)$
+        holds by hypothesis.
+  \item \textbf{Inductive step}: Assuming $P(f^n(\bot))$, the hypothesis
+        $P(x) \Rightarrow P(f(x))$ gives $P(f^{n+1}(\bot))$.
+\end{itemize}
+Since $P(f^n(\bot))$ holds for every $n$ and $P$ is admissible,
+$P(\lub_n f^n(\bot)) = P(\fixp(f))$.
+\end{proof}
+
+Fixed-point induction is the primary proof technique for establishing
+properties of recursively defined programs. It avoids reasoning directly
+about infinite behaviour by reducing the problem to a base case ($\bot$)
+and a step case (one application of the defining function).
+
+Finally, the fixed-point operator $\fixp$ is itself well-behaved with
+respect to the order: if $f(x) \sqsubseteq g(x)$ for all $x$, then
+$\fixp(f) \sqsubseteq \fixp(g)$. Moreover, the map
+$\fixp : [D \to_{c} D] \to_{c} D$ is itself Scott-continuous when the function
+space $[D \to_{c} D]$ carries the pointwise CPO structure---a fact we prove
+in \cref{ch:methods}. This continuity of $\fixp$ is essential for the
+compositional denotational semantics of languages with nested recursion.
+
+\subsection{Approximation and the Scott Topology}
+\label{sec:bg-scott-topology}
+
+The definition of Scott-continuity (\cref{def:scott-continuous}) is
+algebraic: it asks that a function commute with suprema of chains. This
+subsection develops the topological perspective on CPOs, following
+Abramsky and Jung~\cite[\S1.2, \S4.2--4.3]{AJ1994}. We introduce the
+\emph{way-below} relation, which captures finite approximation; the
+\emph{Scott topology}, which is the canonical topology on a CPO; and
+prove that the algebraic and topological notions of continuity coincide.
+
+\subsubsection*{Approximation}
+
+\begin{definition}[Way-Below Relation]
+\label{def:way-below}
+In an $\omega$-CPO $D$, we say $x$ is \emph{way below} $y$, written
+$x \ll y$, if for every $\omega$-chain $(c_n)$ with $y \sqsubseteq
+\lub_n c_n$, there exists $n$ such that $x \sqsubseteq c_n$.
+\end{definition}
+
+Intuitively, $x \ll y$ means that $x$ is a finite approximation to $y$:
+any chain that reaches $y$ in the limit must already reach $x$ at some
+finite stage.
+
+\begin{proposition}
+\label{prop:way-below-order}
+If $x \ll y$ then $x \sqsubseteq y$.
+\end{proposition}
+
+\begin{proof}
+The constant chain $c_n = y$ for all $n$ has supremum
+$\lub_n c_n = y \sqsubseteq y$. Since $x \ll y$, there exists $n$ with
+$x \sqsubseteq c_n = y$.
+\end{proof}
+
+The converse does not hold in general: in the extended naturals
+$\mathbb{N}_\infty$, we have $3 \sqsubseteq \infty$ but $3 \ll \infty$
+also holds (every chain reaching $\infty$ eventually passes $3$), whereas
+$\infty \sqsubseteq \infty$ but $\infty \not\ll \infty$ (the chain
+$0, 1, 2, \ldots$ reaches $\infty$ in the limit, yet no finite stage
+equals $\infty$).
+
+\begin{proposition}[Mixed transitivity]
+\label{prop:way-below-trans}
+Let $D$ be an $\omega$-CPO.
+\begin{enumerate}
+  \item If $x \sqsubseteq y \ll z$, then $x \ll z$.
+  \item If $x \ll y \sqsubseteq z$, then $x \ll z$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+For~(1): let $(c_n)$ be a chain with $z \sqsubseteq \lub_n c_n$. Since
+$y \ll z$, there exists $n$ with $y \sqsubseteq c_n$. By transitivity,
+$x \sqsubseteq y \sqsubseteq c_n$.
+
+For~(2): let $(c_n)$ be a chain with $z \sqsubseteq \lub_n c_n$. Since
+$y \sqsubseteq z \sqsubseteq \lub_n c_n$ and $x \ll y$, there exists
+$n$ with $x \sqsubseteq c_n$.
+\end{proof}
+
+\begin{definition}[Compact Element]
+\label{def:compact}
+An element $x \in D$ is \emph{compact} (or \emph{finite}) if
+$x \ll x$: that is, whenever $x \sqsubseteq \lub_n c_n$, some $c_n$
+already lies above $x$. We write $K(D)$ for the set of compact elements
+of $D$.
+\end{definition}
+
+\begin{example}
+\label{ex:compact}
+In the flat domain $\mathbb{N}_\bot$, every element is compact: every
+$\omega$-chain is eventually constant, so if the supremum lies above $n$,
+some finite stage already equals $n$. In particular, $\bot$ is compact
+since $\bot \sqsubseteq c_n$ for any $n$. In the extended naturals
+$\mathbb{N}_\infty$, every finite number is compact but $\infty$ is not
+(as shown above).
+\end{example}
+
+Compact elements represent the ``truly finite'' pieces of data in a
+domain. The two notions of domain that appear most frequently in the
+literature are distinguished by how well compact elements, or more
+generally the way-below relation, approximate arbitrary elements.
+
+\begin{definition}[Algebraic CPO]
+\label{def:algebraic}
+An $\omega$-CPO $D$ is \emph{algebraic} if for every $x \in D$, the set
+$K_x = \{k \in K(D) \mid k \sqsubseteq x\}$ of compact elements below
+$x$ is directed\footnote{A subset $S \subseteq D$ is \emph{directed} if
+it is non-empty and every pair of elements in $S$ has an upper bound in
+$S$. For $\omega$-CPOs, it suffices to consider $\omega$-chains.} and
+has $x$ as its supremum: $x = \lub K_x$.
+\end{definition}
+
+\begin{definition}[Continuous CPO]
+\label{def:continuous-cpo}
+An $\omega$-CPO $D$ is \emph{continuous} if for every $x \in D$, the set
+$\mathord{\Downarrow} x = \{y \in D \mid y \ll x\}$ is directed and has
+$x$ as its supremum: $x = \lub (\mathord{\Downarrow} x)$.
+\end{definition}
+
+Since every compact element $k \sqsubseteq x$ satisfies $k \ll k$ and
+hence $k \ll x$ (by mixed transitivity,
+\cref{prop:way-below-trans}(2)), we have $K_x \subseteq
+\mathord{\Downarrow} x$. Therefore:
+
+\begin{proposition}
+\label{prop:algebraic-continuous}
+Every algebraic CPO is continuous.
+\end{proposition}
+
+\begin{proof}
+Let $D$ be algebraic and $x \in D$. Then
+$K_x \subseteq \mathord{\Downarrow} x$ (as argued above), and
+$x = \lub K_x \sqsubseteq \lub (\mathord{\Downarrow} x) \sqsubseteq x$
+(the last inequality because $y \ll x$ implies $y \sqsubseteq x$ by
+\cref{prop:way-below-order}). By antisymmetry,
+$x = \lub (\mathord{\Downarrow} x)$. Directedness of
+$\mathord{\Downarrow} x$ follows from directedness of $K_x$ (the larger
+set inherits the property).
+\end{proof}
+
+\begin{example}
+\label{ex:algebraic-cpo}
+The flat domains $\mathbb{N}_\bot$ and $\mathbb{B}_\bot$ are algebraic:
+every element is compact, so $K_x = \{x\}$ (or $K_\bot = \{\bot\}$).
+The extended naturals $\mathbb{N}_\infty$ are algebraic:
+$K_\infty = \{0, 1, 2, \ldots\}$ and $\infty = \lub_n n$.
+Function spaces $[D \to_{c} E]$ over algebraic CPOs are typically
+continuous but not algebraic; the theory of continuous domains was
+developed precisely to accommodate such cases.
+\end{example}
+
+\begin{definition}[Basis]
+\label{def:basis}
+A \emph{basis} for an $\omega$-CPO $D$ is a subset $B \subseteq D$ such
+that for every $x \in D$, the set $\{b \in B \mid b \ll x\}$ is directed
+and has supremum $x$. A continuous CPO always has $D$ itself as a basis;
+an algebraic CPO has $K(D)$ as a basis.
+\end{definition}
+
+\subsubsection*{The Scott topology}
+
+\begin{definition}[Scott-Open Set]
+\label{def:scott-topology}
+A subset $U \subseteq D$ of an $\omega$-CPO is \emph{Scott-open} if:
+\begin{enumerate}
+  \item \textbf{Upward closed}: $x \in U$ and $x \sqsubseteq y$ imply
+        $y \in U$, and
+  \item \textbf{Inaccessible by suprema}: if $\lub_n c_n \in U$ for some
+        $\omega$-chain $(c_n)$, then $c_n \in U$ for some $n$.
+\end{enumerate}
+A subset $C \subseteq D$ is \emph{Scott-closed} if its complement
+$D \setminus C$ is Scott-open. Equivalently, $C$ is downward closed and
+closed under suprema of $\omega$-chains.
+\end{definition}
+
+\begin{proposition}
+\label{prop:scott-topology}
+The Scott-open subsets of an $\omega$-CPO $D$ form a topology on $D$.
+\end{proposition}
+
+\begin{proof}
+We verify the topology axioms.
+
+\textbf{Empty set and $D$}. The empty set $\emptyset$ is vacuously
+Scott-open (both conditions hold trivially). The full set $D$ is upward
+closed and every chain element lies in $D$, so the inaccessibility
+condition holds.
+
+\textbf{Finite intersections}. Let $U_1, U_2$ be Scott-open and let
+$U = U_1 \cap U_2$.
+\begin{itemize}
+  \item Upward closure: if $x \in U$ and $x \sqsubseteq y$, then
+        $x \in U_i$ and $U_i$ upward closed give $y \in U_i$ for
+        $i = 1,2$, so $y \in U$.
+  \item Inaccessibility: if $\lub_n c_n \in U$, then
+        $\lub_n c_n \in U_1$, so there exists $n_1$ with
+        $c_{n_1} \in U_1$; likewise there exists $n_2$ with
+        $c_{n_2} \in U_2$. Setting $n = \max(n_1, n_2)$, the chain is
+        ascending so $c_{n_1} \sqsubseteq c_n$ and
+        $c_{n_2} \sqsubseteq c_n$. By upward closure,
+        $c_n \in U_1 \cap U_2 = U$.
+\end{itemize}
+By induction, all finite intersections of Scott-open sets are Scott-open.
+
+\textbf{Arbitrary unions}. Let $(U_i)_{i \in I}$ be Scott-open and let
+$U = \bigcup_{i \in I} U_i$.
+\begin{itemize}
+  \item Upward closure: if $x \in U$, then $x \in U_i$ for some $i$.
+        Since $U_i$ is upward closed, $y \in U_i \subseteq U$.
+  \item Inaccessibility: if $\lub_n c_n \in U$, then
+        $\lub_n c_n \in U_i$ for some~$i$, and by inaccessibility of
+        $U_i$, some $c_n \in U_i \subseteq U$. \qedhere
+\end{itemize}
+\end{proof}
+
+\subsubsection*{Separation properties}
+
+The Scott topology interacts with the order structure in a precise way:
+the topological notion of ``point separation'' recovers the partial
+order.
+
+\begin{definition}[Specialisation order]
+\label{def:specialisation}
+In any topological space $(X, \tau)$, the \emph{specialisation
+preorder} is defined by $x \leq_\tau y$ if every open set containing
+$x$ also contains $y$ (equivalently, $x \in \overline{\{y\}}$).
+\end{definition}
+
+\begin{proposition}
+\label{prop:specialisation-order}
+In an $\omega$-CPO $D$ with the Scott topology, the specialisation order
+coincides with the original partial order: $x \leq_\tau y$ if and only
+if $x \sqsubseteq y$.
+\end{proposition}
+
+\begin{proof}
+$(\Rightarrow)$\quad We show the contrapositive: if $x \not\sqsubseteq y$,
+there exists a Scott-open set containing $x$ but not $y$. Define
+$C = {\downarrow}y = \{z \in D \mid z \sqsubseteq y\}$. Then $C$ is
+downward closed by transitivity. Moreover, $C$ is closed under chain
+suprema: if $(c_n)$ is a chain in $C$, then $c_n \sqsubseteq y$ for all
+$n$, so $\lub_n c_n \sqsubseteq y$ (since $y$ is an upper bound), hence
+$\lub_n c_n \in C$. Thus $C$ is Scott-closed, so
+$U = D \setminus C = \{z \mid z \not\sqsubseteq y\}$ is Scott-open.
+Since $x \not\sqsubseteq y$, we have $x \in U$; and $y \sqsubseteq y$
+gives $y \notin U$.
+
+$(\Leftarrow)$\quad If $x \sqsubseteq y$ and $U$ is Scott-open with
+$x \in U$, then $y \in U$ by upward closure. Hence every open
+neighbourhood of $x$ contains $y$, so $x \leq_\tau y$.
+\end{proof}
+
+\begin{corollary}[The Scott topology is $T_0$]
+\label{cor:scott-T0}
+For any $\omega$-CPO $D$, the Scott topology is $T_0$: distinct points
+are topologically distinguishable.
+\end{corollary}
+
+\begin{proof}
+If $x \neq y$, then by antisymmetry of the partial order, either
+$x \not\sqsubseteq y$ or $y \not\sqsubseteq x$. In the first case,
+\cref{prop:specialisation-order} provides a Scott-open set containing
+$x$ but not~$y$.
+\end{proof}
+
+\begin{proposition}[The Scott topology is not $T_1$]
+\label{prop:scott-not-T1}
+If $D$ has a non-trivial order (i.e., there exist $x, y$ with
+$x \sqsubseteq y$ and $x \neq y$), then the Scott topology on $D$ is not $T_1$, and
+in particular not Hausdorff.
+\end{proposition}
+
+\begin{proof}
+Recall that $T_1$ requires: for all $x \neq y$, there exists an open
+set containing $x$ but not $y$, \emph{and} an open set containing $y$
+but not $x$. Let $x \sqsubseteq y$ with $x \neq y$. Every Scott-open set containing
+$x$ is upward closed, so it also contains $y$. Thus no open set
+separates $x$ from $y$ in the direction required by $T_1$.
+\end{proof}
+
+\begin{example}
+\label{ex:scott-separation}
+In the extended naturals $\mathbb{N}_\infty$, the Scott-open sets are
+$\emptyset$ and $\{n, n{+}1, n{+}2, \ldots\} \cup \{\infty\}$ for each
+$n \in \mathbb{N}$. Every non-empty open set containing $0$ is all of
+$\mathbb{N}_\infty$, since $0$ is the least element. Thus any two
+non-empty open sets intersect---the space is not even $T_1$, let alone
+Hausdorff.
+\end{example}
+
+The failure of the Hausdorff property is not a defect: in domain theory,
+points related by the order are \emph{supposed} to be topologically
+inseparable, since a finer approximation should lie in every
+neighbourhood of a coarser one. The $T_0$ property ensures that
+\emph{unrelated} or \emph{distinct} points can still be distinguished.
+
+\subsubsection*{Continuity equivalence}
+
+\begin{definition}[Topologically Scott-continuous]
+\label{def:topological-continuity}
+A function $f : D \to E$ between $\omega$-CPOs is \emph{topologically
+Scott-continuous} if the preimage $f^{-1}(U)$ of every Scott-open set
+$U \subseteq E$ is Scott-open in $D$.
+\end{definition}
+
+\begin{theorem}[Continuity equivalence {\cite[Prop.~4.3.5]{AJ1994}}]
+\label{thm:continuity-equiv}
+For a function $f : D \to E$ between $\omega$-CPOs, the following are
+equivalent:
+\begin{enumerate}
+  \item $f$ is Scott-continuous: $f$ preserves suprema of
+        $\omega$-chains (\cref{def:scott-continuous}).
+  \item $f$ is topologically Scott-continuous: preimages of Scott-open
+        sets are Scott-open (\cref{def:topological-continuity}).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\textbf{(1)~$\Rightarrow$~(2).}\quad Assume $f$ preserves suprema of
+chains. In particular, $f$ is monotone (as proved after
+\cref{def:scott-continuous}). Let $U \subseteq E$ be Scott-open; we show
+$f^{-1}(U)$ is Scott-open.
+
+\emph{Upward closure}: Suppose $x \in f^{-1}(U)$ and
+$x \sqsubseteq y$. Since $f$ is monotone, $f(x) \sqsubseteq f(y)$.
+Since $U$ is upward closed and $f(x) \in U$, we get $f(y) \in U$, so
+$y \in f^{-1}(U)$.
+
+\emph{Inaccessibility}: Suppose $(c_n)$ is a chain in $D$ with
+$\lub_n c_n \in f^{-1}(U)$, i.e., $f(\lub_n c_n) \in U$.  By
+continuity, $f(\lub_n c_n) = \lub_n f(c_n)$.  Since $U$ is
+inaccessible by suprema and $\lub_n f(c_n) \in U$, there exists $n$
+with $f(c_n) \in U$, hence $c_n \in f^{-1}(U)$.
+
+\medskip
+\textbf{(2)~$\Rightarrow$~(1).}\quad Assume $f$ is topologically
+Scott-continuous. Let $(c_n)$ be an $\omega$-chain in $D$ with
+$d = \lub_n c_n$.
+
+\emph{$f$ is monotone}: Let $x \sqsubseteq y$ and let $U$ be any
+Scott-open set with $f(x) \in U$. Then $x \in f^{-1}(U)$, which is
+Scott-open and hence upward closed, so $y \in f^{-1}(U)$ and
+$f(y) \in U$. Since every Scott-open neighbourhood of $f(x)$ contains
+$f(y)$, we have $f(x) \leq_\tau f(y)$, and by
+\cref{prop:specialisation-order}, $f(x) \sqsubseteq f(y)$.
+
+\emph{$f$ preserves the supremum}: By monotonicity, $f(c_n) \sqsubseteq
+f(d)$ for all $n$, so the chain $(f(c_n))$ has a supremum satisfying
+$\lub_n f(c_n) \sqsubseteq f(d)$. For the reverse inequality, we show
+that $f(d)$ and $\lub_n f(c_n)$ belong to the same Scott-open sets.
+Let $U \subseteq E$ be Scott-open.
+\begin{itemize}
+  \item If $f(d) \in U$: then $d \in f^{-1}(U)$, which is Scott-open.
+        Since $d = \lub_n c_n \in f^{-1}(U)$, by inaccessibility there
+        exists $n$ with $c_n \in f^{-1}(U)$, i.e., $f(c_n) \in U$.
+        Since $f(c_n) \sqsubseteq \lub_n f(c_n)$ and $U$ is upward
+        closed, $\lub_n f(c_n) \in U$.
+  \item If $\lub_n f(c_n) \in U$: by inaccessibility of $U$, there
+        exists $n$ with $f(c_n) \in U$, so $c_n \in f^{-1}(U)$.
+        Since $c_n \sqsubseteq d$ and $f^{-1}(U)$ is upward closed,
+        $d \in f^{-1}(U)$, hence $f(d) \in U$.
+\end{itemize}
+Thus $f(d)$ and $\lub_n f(c_n)$ belong to the same Scott-open sets.
+By \cref{prop:specialisation-order}, the specialisation order coincides
+with $\sqsubseteq$, so $f(d) \sqsubseteq \lub_n f(c_n)$ and
+$\lub_n f(c_n) \sqsubseteq f(d)$. By antisymmetry,
+$f(d) = \lub_n f(c_n)$.
+\end{proof}
+
+This equivalence validates the algebraic definition of continuity used
+throughout this thesis: it agrees with the standard topological notion.
+Both directions of the proof are constructive (no appeal to classical
+logic is necessary), a point we return to when discussing the
+formalisation in \cref{ch:methods}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[arr/.style={-Stealth, thick}]
+    % Domain D (left)
+    \draw (0,0) ellipse (1.8cm and 1.4cm);
+    \node[above=1.5cm] at (0,0) {$D$};
+    \fill[gray!25] (-0.2,0) ellipse (0.9cm and 0.72cm);
+    \draw          (-0.2,0) ellipse (0.9cm and 0.72cm);
+    \node[font=\small] at (-0.2,0) {$f^{-1}(U)$};
+
+    % Domain E (right)
+    \draw (5.5,0) ellipse (1.8cm and 1.4cm);
+    \node[above=1.5cm] at (5.5,0) {$E$};
+    \fill[gray!25] (5.8,0) ellipse (0.9cm and 0.72cm);
+    \draw          (5.8,0) ellipse (0.9cm and 0.72cm);
+    \node[font=\small] at (5.8,0) {$U$};
+
+    % Arrows
+    \draw[arr]         (1.9, 0.4) -- node[above, font=\small]{$f$} (3.6, 0.4);
+    \draw[arr, dashed] (3.6,-0.4) -- node[below, font=\footnotesize]{$f^{-1}$} (1.9,-0.4);
+\end{tikzpicture}
+\caption{Scott-continuity as a topological property: $f : D \to E$
+  is Scott-continuous if and only if $f^{-1}(U)$ is Scott-open in~$D$
+  for every Scott-open $U \subseteq E$.}
+\label{fig:scott-continuity}
+\end{figure}
+
+% ── Enriched category theory ─────────────────────────────────────
+\section{Enriched Category Theory}
+\label{sec:bg-enriched}
+
+The constructions of the previous section---function spaces, fixed
+points, products---all respect the CPO structure: composition of
+continuous functions is continuous, the fixed-point operator is
+continuous, and so on. This is not a coincidence.  It reflects the fact
+that the category of CPOs is \emph{enriched over itself}: the
+collection of morphisms between any two objects is not merely a set but
+a CPO, and all categorical operations are Scott-continuous.
+
+Enriched category theory, introduced by Kelly~\cite{Kelly1982}, provides
+the general framework for categories whose hom-objects live in a
+monoidal category~$\mathbf{V}$ rather than in~$\mathbf{Set}$. For a
+recent formalisation of the general theory using the UniMath Library, see 
+van der Weide et al.~\cite{VanDerWeide2024}. In this thesis we never need 
+the full generality: the enrichment base is always~$\CPO$ (with the
+cartesian product as monoidal structure). We therefore present the
+definitions specialised to~$\mathbf{V} = \CPO$ from the outset, noting
+where the general theory would substitute an arbitrary monoidal
+category.
+
+\subsection{Enriched Categories}
+\label{sec:bg-enriched-cats}
+
+We begin with a brief reminder of ordinary categories, then upgrade the
+definition by replacing hom-sets with hom-CPOs.
+
+\begin{definition}[Category]
+\label{def:category}
+A \emph{category} $\mathcal{C}$ consists of:
+\begin{itemize}
+  \item a collection of \emph{objects} $\mathrm{ob}(\mathcal{C})$,
+  \item for each pair of objects $A, B$, a \emph{hom-set}
+        $\mathcal{C}(A, B)$ of morphisms from $A$ to $B$,
+  \item for each object $A$, an \emph{identity morphism}
+        $\mathrm{id}_A \in \mathcal{C}(A, A)$, and
+  \item for each triple $A, B, C$, a \emph{composition function}
+        \[
+          \circ_{A,B,C} : \mathcal{C}(B, C) \times \mathcal{C}(A, B)
+            \;\longrightarrow\; \mathcal{C}(A, C),
+        \]
+\end{itemize}
+satisfying left and right identity laws
+($\mathrm{id}_B \circ f = f = f \circ \mathrm{id}_A$ for
+$f \in \mathcal{C}(A, B)$) and associativity
+($h \circ (g \circ f) = (h \circ g) \circ f$).
+\end{definition}
+
+
+\begin{remark}[Diagrammatic Form]
+The identity and associativity laws can be expressed as commutative diagrams.
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+\centering
+\begin{tikzcd}[column sep=large, row sep=large]
+A \arrow[r, "f"] \arrow[dr, "f"'] & B \arrow[d, "\mathrm{id}_B"] \\
+& B
+\end{tikzcd}
+\caption{Left identity}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[b]{0.3\textwidth}
+\centering
+\begin{tikzcd}[column sep=large, row sep=large]
+A \arrow[r, "\mathrm{id}_A"] \arrow[dr, "f"'] & A \arrow[d, "f"] \\
+& B
+\end{tikzcd}
+\caption{Right identity}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[b]{0.3\textwidth}
+\centering
+\begin{tikzcd}[column sep=large, row sep=large]
+A \arrow[r, "f"] \arrow[d, swap, "g \circ f"]
+  & B \arrow[d, "h \circ g"] \\
+C \arrow[r, swap, "h"]
+  & D
+\end{tikzcd}
+\caption{Associativity}
+\end{subfigure}
+\caption{The category laws as commutative diagrams: (a)~$\mathrm{id}_B \circ f = f$,
+  (b)~$f \circ \mathrm{id}_A = f$, (c)~$(h \circ g) \circ f = h \circ (g \circ f)$.}
+\label{fig:category-laws}
+\end{figure}
+\end{remark}
+
+
+A standard example is the category $\mathbf{Set}$, whose objects are
+sets and whose morphisms are functions; another is $\CPO$, whose objects
+are $\omega$-CPOs and whose morphisms are Scott-continuous functions.
+
+The key observation motivating enrichment is that $\CPO(D, E)$---the
+collection of Scott-continuous functions from $D$ to $E$---is not just a
+set: it is itself an $\omega$-CPO under the \emph{pointwise order}
+$f \sqsubseteq g \iff \forall x.\, f(x) \sqsubseteq g(x)$, with
+pointwise suprema $(\lub_n f_n)(x) = \lub_n f_n(x)$
+(\cref{prop:function-space}). In
+other words, the hom-sets of $\CPO$ are themselves objects of $\CPO$.
+This additional structure is what enriched category theory captures.
+
+\begin{definition}[$\CPO$-enriched category]
+\label{def:cpo-enriched-cat}
+A \emph{$\CPO$-enriched category} $\mathcal{C}$ consists of:
+\begin{itemize}
+  \item a collection of objects $\mathrm{ob}(\mathcal{C})$,
+  \item for each pair of objects $A, B$, a \emph{hom-CPO}
+        $\mathcal{C}(A, B)$ that is an $\omega$-CPO,
+  \item for each object $A$, an identity element
+        $\mathrm{id}_A \in \mathcal{C}(A, A)$, and
+  \item for each triple $A, B, C$, a \emph{composition map}
+        \[
+          \circ_{A,B,C} : \mathcal{C}(B, C) \times \mathcal{C}(A, B)
+            \;\longrightarrow\; \mathcal{C}(A, C)
+        \]
+        that is \textbf{Scott-continuous in each argument separately},
+\end{itemize}
+satisfying the same identity and associativity laws as an ordinary
+category.
+\end{definition}
+
+In the general theory of Kelly~\cite{Kelly1982}, the hom-sets are
+replaced by hom-\emph{objects} in an arbitrary monoidal
+category~$\mathbf{V}$, and composition is a morphism in~$\mathbf{V}$.
+When $\mathbf{V} = \CPO$ with the cartesian product, ``morphism
+in~$\mathbf{V}$'' means Scott-continuous function, recovering
+\cref{def:cpo-enriched-cat}.
+
+\begin{remark}[Separate continuity]
+\label{rem:separate-vs-joint}
+\Cref{def:cpo-enriched-cat} asks that composition be Scott-continuous in
+each argument \emph{separately}: for a fixed $g$, the map
+$f \mapsto g \circ f$ is continuous, and for a fixed $f$, the map
+$g \mapsto g \circ f$ is continuous. This is \emph{a priori} weaker than
+joint continuity of the binary operation
+$\circ : \mathcal{C}(B,C) \times \mathcal{C}(A,B) \to \mathcal{C}(A,C)$.
+However, the two notions coincide for $\omega$-chains.
+\end{remark}
+
+\begin{proposition}[Joint continuity of composition
+  {\cite[Lemma~3.2.6]{AJ1994}}]
+\label{prop:joint-continuity}
+Let $\mathcal{C}$ be a $\CPO$-enriched category.  For any
+$\omega$-chains $(f_n)$ in $\mathcal{C}(A, B)$ and $(g_n)$ in
+$\mathcal{C}(B, C)$,
+\begin{equation}
+\label{eq:joint-continuity}
+  \Bigl(\lub_n g_n\Bigr) \circ \Bigl(\lub_n f_n\Bigr)
+    \;=\; \lub_n \bigl(g_n \circ f_n\bigr).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+By separate continuity of composition in the second argument:
+\[
+  \Bigl(\lub_n g_n\Bigr) \circ \Bigl(\lub_m f_m\Bigr)
+    = \lub_m \Bigl[\Bigl(\lub_n g_n\Bigr) \circ f_m\Bigr].
+\]
+Applying separate continuity in the first argument to each inner term:
+\[
+  \lub_m \Bigl[\Bigl(\lub_n g_n\Bigr) \circ f_m\Bigr]
+    = \lub_m \lub_n \bigl(g_n \circ f_m\bigr).
+\]
+We show that the double supremum $\lub_m \lub_n (g_n \circ f_m)$
+equals the diagonal supremum $\lub_k (g_k \circ f_k)$.
+
+\noindent$(\geq)$\quad For each $m$ and $n$, let $k = \max(m,n)$. Since
+both chains are ascending, $f_m \sqsubseteq f_k$ and
+$g_n \sqsubseteq g_k$, so by monotonicity of composition
+$g_n \circ f_m \sqsubseteq g_k \circ f_k \sqsubseteq
+\lub_k (g_k \circ f_k)$.
+Taking the supremum over $n$ and then over $m$ gives
+$\lub_m \lub_n (g_n \circ f_m) \sqsubseteq \lub_k (g_k \circ f_k)$.
+
+\noindent$(\leq)$\quad For each $k$, setting $m = n = k$ gives
+$g_k \circ f_k \sqsubseteq \lub_n (g_n \circ f_k) \sqsubseteq
+\lub_m \lub_n (g_n \circ f_m)$.
+Taking the supremum over $k$ gives
+$\lub_k (g_k \circ f_k) \sqsubseteq \lub_m \lub_n (g_n \circ f_m)$.
+\end{proof}
+
+Using separate continuity as the axiom rather than joint continuity
+simplifies both the mathematical formulation and its formalisation, since
+it avoids the need to construct product CPOs at the level of the
+definition.
+
+\begin{example}[Self-enrichment of $\CPO$]
+\label{ex:cpo-self-enriched}
+The category $\CPO$ is itself $\CPO$-enriched: the hom-CPO
+$\CPO(D, E) = [D \to_{c} E]$ is the function-space CPO of
+\cref{prop:function-space}, identity and composition are
+Scott-continuous (composition is continuous in each argument by the
+argument of \cref{rem:separate-vs-joint}), and the categorical laws hold
+pointwise. That $\CPO$ is enriched over itself is the defining feature
+of a \emph{closed} category and is what allows function types to serve
+as both objects and hom-objects.
+\end{example}
+
+\begin{definition}[Embedding--projection pair]
+\label{def:ep-pair}
+Let $\mathcal{C}$ be a $\CPO$-enriched category and let $D, E$ be
+objects. An \emph{embedding--projection pair} (ep-pair) from $D$ to $E$
+is a pair $(e, p)$ with $e \in \mathcal{C}(D, E)$ and
+$p \in \mathcal{C}(E, D)$ satisfying:
+\[
+  p \circ e = \mathrm{id}_D
+  \qquad\text{and}\qquad
+  e \circ p \sqsubseteq \mathrm{id}_E.
+\]
+\end{definition}
+
+Intuitively, $e$ embeds $D$ into $E$ as a ``sub-CPO,'' and $p$ projects
+back: the round-trip through $D$ is the identity, while the round-trip
+through $E$ may lose information.
+
+\begin{proposition}[Composition of ep-pairs]
+\label{prop:ep-pair-comp}
+If $(e, p) : D \to E$ and $(e', p') : E \to F$ are ep-pairs, then
+$(e' \circ e,\; p \circ p') : D \to F$ is an ep-pair.
+\end{proposition}
+
+\begin{proof}
+For the section condition:
+\[
+  (p \circ p') \circ (e' \circ e)
+    = p \circ (p' \circ e') \circ e
+    = p \circ \mathrm{id}_E \circ e
+    = p \circ e
+    = \mathrm{id}_D.
+\]
+For the retraction inequality, since $e \circ p \sqsubseteq
+\mathrm{id}_E$ and $e' \circ p' \sqsubseteq \mathrm{id}_F$:
+\[
+  (e' \circ e) \circ (p \circ p')
+    = e' \circ (e \circ p) \circ p'
+    \sqsubseteq e' \circ \mathrm{id}_E \circ p'
+    = e' \circ p'
+    \sqsubseteq \mathrm{id}_F,
+\]
+where the first inequality uses monotonicity of composition and
+$e \circ p \sqsubseteq \mathrm{id}_E$.
+\end{proof}
+
+Ep-pairs are the morphisms of choice for building the expanding
+sequences that underlie recursive domain equations
+(\cref{sec:bg-enriched-functors}).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[arr/.style={-Stealth, thick}]
+    \node[draw, ellipse, minimum width=1.4cm, minimum height=2.0cm] (D) at (0,0)   {};
+    \node[font=\normalsize] at (D) {$D$};
+
+    \node[draw, ellipse, minimum width=1.4cm, minimum height=2.8cm] (E) at (4.5,0) {};
+    \node[font=\normalsize] at (E) {$E$};
+
+    \draw[arr, bend left=25]  (D) to node[midway, above, font=\small]{$e$} (E);
+    \draw[arr, bend left=25]  (E) to node[midway, below, font=\small]{$p$} (D);
+
+    \node[align=center, font=\small] at (2.25,-2.2) {
+        $p \circ e = \mathrm{id}_D$ \quad (exact round-trip)\\[4pt]
+        $e \circ p \sqsubseteq \mathrm{id}_E$ \quad (retraction)
+    };
+\end{tikzpicture}
+\caption{An embedding--projection pair $(e, p) : D \to E$.  The larger oval
+  represents $E$; the smaller represents~$D$.  The round-trip
+  $p \circ e$ through $D$ is exact, while the round-trip $e \circ p$
+  through $E$ may lose information ($e \circ p \sqsubseteq \mathrm{id}_E$).}
+\label{fig:ep-pair}
+\end{figure}
+
+% ·· Cartesian closed structure ····························
+\subsection{Cartesian Closed Structure}
+\label{sec:bg-ccc}
+
+In a denotational semantics for a higher-order language, every type must
+denote an object in the semantic category.  For base types this is
+straightforward: natural numbers are interpreted as the flat CPO
+$\mathbb{N}_\bot$, and Booleans as $\mathbb{B}_\bot$.  The challenge
+arises with \emph{function types}: the interpretation of
+$\tau_1 \to \tau_2$ must be an object~$[D_1 \Rightarrow D_2]$ in the
+same category, equipped with maps that internalise function application
+and $\lambda$-abstraction.  The categorical structure that guarantees
+this is \emph{cartesian closedness}.
+
+\begin{definition}[Cartesian closed category]
+\label{def:ccc}
+A category~$\mathcal{C}$ is \emph{cartesian closed} (a CCC) if it has:
+\begin{enumerate}
+  \item a \emph{terminal object}~$1$,
+  \item a \emph{binary product}~$A \times B$ for every pair of
+        objects~$A, B$, and
+  \item for every object~$B$, an \emph{exponential
+        object}~$[B \Rightarrow C]$ for each object~$C$: an
+        object together with a morphism
+        \[
+            \mathit{eval}_{B,C} : [B \Rightarrow C] \times B
+              \;\longrightarrow\; C
+        \]
+        satisfying the following universal property: for every morphism
+        $f : A \times B \to C$ there exists a \emph{unique} morphism
+        $\widetilde{f} : A \to [B \Rightarrow C]$ such that
+        \[
+            \mathit{eval}_{B,C} \circ (\widetilde{f} \times \mathrm{id}_B)
+              = f.
+        \]
+\end{enumerate}
+\end{definition}
+
+The map~$\widetilde{f}$ is called the \emph{exponential transpose} or
+\emph{curry} of~$f$; its inverse---recovering~$f$ from a
+higher-order map---is \emph{uncurry}.  The universal property therefore
+establishes a natural bijection
+\[
+    \mathcal{C}(A \times B,\; C)
+      \;\cong\;
+    \mathcal{C}(A,\; [B \Rightarrow C])
+\]
+for all objects $A$, $B$, $C$.  This bijection is exactly the
+\emph{exponential adjunction}: the product functor $- \times B$ is left
+adjoint to the exponential functor $[B \Rightarrow -]$.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzcd}[column sep=3.2cm, row sep=2.0cm]
+  A \times B
+    \arrow[r, "f"]
+    \arrow[d, "\widetilde{f} \times \mathrm{id}_B"']
+  & C \\
+  {[B \Rightarrow C]} \times B
+    \arrow[ur, "\mathit{eval}_{B,C}"']
+\end{tikzcd}
+\caption{The exponential transpose: for every $f : A \times B \to C$,
+  there exists a unique $\widetilde{f} : A \to [B \Rightarrow C]$
+  making the triangle commute, i.e.\
+  $\mathit{eval}_{B,C} \circ (\widetilde{f} \times \mathrm{id}_B) = f$.}
+\label{fig:exponential-transpose}
+\end{figure}
+
+\begin{proposition}[$\CPO$ is cartesian closed]
+\label{prop:cpo-ccc}
+The category $\CPO$ is cartesian closed. Concretely:
+\begin{enumerate}
+  \item The \emph{terminal object} is the one-element CPO~$\{*\}$.
+  \item The \emph{product} $D \times E$ is the set-theoretic product
+    with the componentwise order (\cref{sec:bg-cpo}).
+  \item The \emph{exponential object} $[D \to_c E]$ is the
+    function-space CPO of~\cref{prop:function-space}, with:
+    \begin{itemize}
+      \item $\mathit{eval}(f, d) = f(d)$, the
+            \emph{evaluation map} that applies a continuous function
+            to its argument, and
+      \item $\mathit{curry}(f)(c)(d) = f(c, d)$, the exponential
+            transpose that turns a two-argument continuous map into a
+            higher-order one.
+    \end{itemize}
+\end{enumerate}
+The evaluation map is Scott-continuous; its continuity requires a
+diagonal argument, since one must relate the suprema of two independent
+chains (one of functions, one of arguments).
+\end{proposition}
+
+\paragraph{Cartesian closedness and computation.}
+The CCC structure of $\CPO$ is what makes higher-order denotational
+semantics compositional.  Each syntactic construct of a typed
+$\lambda$-calculus has a direct semantic counterpart:
+\begin{itemize}
+  \item \textbf{Function types} $\tau_1 \to \tau_2$ are interpreted as
+        exponential objects $[\sem{\tau_1} \to_c \sem{\tau_2}_\bot]$,
+        which are themselves CPOs.
+  \item \textbf{Application}~$e_1\;e_2$ is modelled by the evaluation
+        map: $\sem{e_1\;e_2} = \mathit{eval}(\sem{e_1}, \sem{e_2})$.
+  \item \textbf{Abstraction}~$\lambda x.\, e$ is modelled by currying:
+        $\sem{\lambda x.\, e} = \mathit{curry}(\sem{e})$.
+  \item \textbf{$\beta$-reduction} corresponds to the equation
+        $\mathit{eval} \circ (\mathit{curry}(f) \times \mathrm{id}) = f$
+        (\cref{fig:exponential-transpose}), which holds by definition
+        of the transpose.
+\end{itemize}
+The adjunction guarantees that these correspondences are natural and
+compose correctly: substitution is functorial, and the
+$\beta$- and $\eta$-laws of the $\lambda$-calculus hold in every CCC.
+This connection between cartesian closed categories and typed
+$\lambda$-calculi was established by Lambek and
+Scott~\cite{LambekScott1986} and is the deep reason that domain theory
+provides a sound semantic framework for functional programming
+languages.
+
+\subsection{Enriched Functors and Natural Transformations}
+\label{sec:bg-enriched-functors}
+
+We now define functors, natural transformations, and their enriched
+variants. The enriched setting adds a hierarchy of structure to the
+action on morphisms: an ordinary functor merely requires a function
+between hom-sets; in the enriched world we strengthen this first to
+monotonicity, then to Scott-continuity.
+
+\begin{definition}[Functor]
+\label{def:functor}
+Let $\mathcal{C}$ and $\mathcal{D}$ be categories. A \emph{functor}
+$F : \mathcal{C} \to \mathcal{D}$ consists of:
+\begin{itemize}
+  \item an object mapping
+        $F : \mathrm{ob}(\mathcal{C}) \to \mathrm{ob}(\mathcal{D})$, and
+  \item for each pair of objects $A, B \in \mathrm{ob}(\mathcal{C})$, a
+        function on hom-sets
+        \[
+          F_{A,B} : \mathcal{C}(A, B) \;\longrightarrow\;
+            \mathcal{D}(FA, FB),
+        \]
+\end{itemize}
+satisfying:
+\begin{enumerate}
+  \item \textbf{Identity preservation}:
+        $F_{A,A}(\mathrm{id}_A) = \mathrm{id}_{FA}$ for every
+        object~$A$, and
+  \item \textbf{Composition preservation}:
+        $F_{A,C}(g \circ f) = F_{B,C}(g) \circ F_{A,B}(f)$
+        for all $f \in \mathcal{C}(A,B)$ and $g \in \mathcal{C}(B,C)$.
+\end{enumerate}
+\end{definition}
+
+The composition preservation axiom states that the following triangle
+commutes for all composable $f$ and $g$:
+\[
+\begin{tikzcd}[column sep=large]
+FA \arrow[r, "F(f)"] \arrow[dr, "F(g \circ f)"'] & FB \arrow[d, "F(g)"] \\
+& FC
+\end{tikzcd}
+\]
+
+When $\mathcal{C}$ and $\mathcal{D}$ are $\CPO$-enriched categories, each
+hom-set $\mathcal{C}(A,B)$ and $\mathcal{D}(FA,FB)$ carries the structure
+of an $\omega$-CPO. We may then ask what order-theoretic properties the
+maps $F_{A,B}$ satisfy.
+
+\begin{definition}[Locally monotone functor]
+\label{def:locally-monotone}
+A functor $F : \mathcal{C} \to \mathcal{D}$ between $\CPO$-enriched
+categories is \emph{locally monotone} if for each pair of objects $A, B$,
+the map
+$F_{A,B} : \mathcal{C}(A,B) \to \mathcal{D}(FA,FB)$
+is \emph{monotone}: for all $f, g \in \mathcal{C}(A,B)$,
+\[
+  f \sqsubseteq g \;\Longrightarrow\; F_{A,B}(f) \sqsubseteq F_{A,B}(g).
+\]
+\end{definition}
+
+\begin{definition}[Locally continuous functor]
+\label{def:lc-functor}
+A functor $F : \mathcal{C} \to \mathcal{D}$ between $\CPO$-enriched
+categories is \emph{locally continuous} if for each pair of objects
+$A, B$, the map
+$F_{A,B} : \mathcal{C}(A,B) \to \mathcal{D}(FA,FB)$
+is \emph{Scott-continuous}: for every $\omega$-chain $(f_n)$ in
+$\mathcal{C}(A,B)$,
+\[
+  F_{A,B}\!\left(\lub_n f_n\right) = \lub_n F_{A,B}(f_n).
+\]
+\end{definition}
+
+Since every Scott-continuous function is monotone
+(\cref{def:scott-continuous}), every locally continuous functor is
+locally monotone. The converse does not hold in general. The term
+``locally continuous'' comes from Abramsky and
+Jung~\cite[\S5.2]{AJ1994}: the functor acts on each hom-CPO
+independently (``locally''), and each such action preserves suprema of
+$\omega$-chains (``continuously'').
+
+\begin{proposition}[Closure under identity and composition]
+\label{prop:lc-functor-closure}
+The identity functor
+$\mathrm{Id}_{\mathcal{C}} : \mathcal{C} \to \mathcal{C}$ is locally
+continuous. If $F : \mathcal{C} \to \mathcal{D}$ and
+$G : \mathcal{D} \to \mathcal{E}$ are locally continuous functors, then
+so is $G \circ F : \mathcal{C} \to \mathcal{E}$.
+\end{proposition}
+
+\begin{proof}
+For the identity functor, the action on each hom-CPO is
+$(\mathrm{Id})_{A,B} = \mathrm{id}_{\mathcal{C}(A,B)}$, which is
+Scott-continuous (the identity function preserves all suprema).
+Preservation of identities and composition is immediate.
+
+For the composite, the action on hom-CPOs is
+$(G \circ F)_{A,B} = G_{FA,FB} \circ F_{A,B}$, which is the composition
+of two Scott-continuous functions and hence Scott-continuous. For
+identity preservation:
+\[
+  (G \circ F)(\mathrm{id}_A)
+    = G(F(\mathrm{id}_A))
+    = G(\mathrm{id}_{FA})
+    = \mathrm{id}_{GFA}.
+\]
+For composition preservation:
+\[
+  (G \circ F)(g \circ f)
+    = G(F(g \circ f))
+    = G(F(g) \circ F(f))
+    = G(F(g)) \circ G(F(f))
+    = (G \circ F)(g) \circ (G \circ F)(f). \qedhere
+\]
+\end{proof}
+
+\begin{example}
+\label{ex:lc-functor-lift}
+The lift construction $D \mapsto D_\bot$ of \cref{sec:bg-cpo} extends
+to a locally continuous endofunctor on $\CPO$. Given
+$f \in \CPO(D, E)$, define its \emph{lifted} action
+$f_\bot : D_\bot \to E_\bot$ by $f_\bot(\bot) = \bot$ and
+$f_\bot(\eta(x)) = \eta(f(x))$, where $\eta$ is the unit embedding.
+To verify local continuity, let $(f_n)$ be an $\omega$-chain in
+$\CPO(D,E)$. For any $x \in D$:
+\[
+  (\lub_n f_n)_\bot(\eta(x))
+    = \eta\bigl((\lub_n f_n)(x)\bigr)
+    = \eta\bigl(\lub_n f_n(x)\bigr)
+    = \lub_n \eta(f_n(x))
+    = \lub_n (f_n)_\bot(\eta(x)),
+\]
+and both sides yield $\bot$ on the bottom element. Thus
+$(\lub_n f_n)_\bot = \lub_n (f_n)_\bot$. Preservation of identities
+and composition is straightforward.
+\end{example}
+
+We now turn to natural transformations, the structure-preserving maps
+between functors.
+
+\begin{definition}[Enriched natural transformation]
+\label{def:enriched-nat-trans}
+Let $F, G : \mathcal{C} \to \mathcal{D}$ be locally continuous functors.
+An \emph{enriched natural transformation} $\alpha : F \Rightarrow G$
+consists of a family of components
+$\alpha_A \in \mathcal{D}(FA, GA)$, one for each object
+$A \in \mathrm{ob}(\mathcal{C})$, satisfying the \emph{naturality
+condition}: for every $f \in \mathcal{C}(A, B)$,
+\begin{equation}
+\label{eq:enriched-naturality}
+  G_{A,B}(f) \circ \alpha_A \;=\; \alpha_B \circ F_{A,B}(f).
+\end{equation}
+\end{definition}
+
+The naturality condition states that the following square commutes for
+every morphism $f \in \mathcal{C}(A, B)$:
+\[
+\begin{tikzcd}[column sep=large, row sep=large]
+FA \arrow[r, "\alpha_A"] \arrow[d, "F_{A,B}(f)"'] &
+  GA \arrow[d, "G_{A,B}(f)"] \\
+FB \arrow[r, "\alpha_B"'] & GB
+\end{tikzcd}
+\]
+
+In ordinary category theory the naturality condition is an equation
+between elements of a hom-\emph{set}; here it is an equation between
+elements of a hom-\emph{CPO}. This extra structure allows natural
+transformations between a fixed pair of functors to be ordered
+pointwise.
+
+\begin{proposition}[Natural transformations form a CPO]
+\label{prop:nat-trans-cpo}
+Given locally continuous functors $F, G : \mathcal{C} \to \mathcal{D}$,
+define $\alpha \sqsubseteq \beta$ if
+$\alpha_A \sqsubseteq \beta_A$ in $\mathcal{D}(FA, GA)$ for every
+object~$A$. Under this \emph{pointwise order}, the collection of
+enriched natural transformations $F \Rightarrow G$ is an $\omega$-CPO:
+the supremum of a chain $(\alpha^{(n)})$ is given componentwise by
+$(\lub_n \alpha^{(n)})_A = \lub_n \alpha^{(n)}_A$.
+\end{proposition}
+
+\begin{proof}
+Let $(\alpha^{(n)})_{n \in \mathbb{N}}$ be an $\omega$-chain of enriched
+natural transformations. Define
+$\bar{\alpha}_A = \lub_n \alpha^{(n)}_A$ for each object~$A$; this
+supremum exists because $\mathcal{D}(FA, GA)$ is a CPO. We verify that
+$\bar{\alpha}$ satisfies the naturality
+condition~\eqref{eq:enriched-naturality}. For any
+$f \in \mathcal{C}(A, B)$:
+\begin{align*}
+  G_{A,B}(f) \circ \bar{\alpha}_A
+    &= G_{A,B}(f) \circ \Bigl(\lub_n \alpha^{(n)}_A\Bigr) \\
+    &= \lub_n \bigl(G_{A,B}(f) \circ \alpha^{(n)}_A\bigr)
+       && \text{(separate continuity, left)} \\
+    &= \lub_n \bigl(\alpha^{(n)}_B \circ F_{A,B}(f)\bigr)
+       && \text{(naturality of each $\alpha^{(n)}$)} \\
+    &= \Bigl(\lub_n \alpha^{(n)}_B\Bigr) \circ F_{A,B}(f)
+       && \text{(separate continuity, right)} \\
+    &= \bar{\alpha}_B \circ F_{A,B}(f).
+\end{align*}
+Thus $\bar{\alpha}$ is a natural transformation. That it is the least
+upper bound of the chain follows from the componentwise construction:
+if $\alpha^{(n)} \sqsubseteq \gamma$ for all $n$, then
+$\alpha^{(n)}_A \sqsubseteq \gamma_A$ for every $A$ and $n$, whence
+$\bar{\alpha}_A = \lub_n \alpha^{(n)}_A \sqsubseteq \gamma_A$,
+i.e.\ $\bar{\alpha} \sqsubseteq \gamma$.
+\end{proof}
+
+\begin{proposition}[Vertical composition]
+\label{prop:vcomp}
+Let $\alpha : F \Rightarrow G$ and $\beta : G \Rightarrow H$ be enriched
+natural transformations between locally continuous functors
+$F, G, H : \mathcal{C} \to \mathcal{D}$. The \emph{vertical composite}
+$(\beta \cdot \alpha)_A = \beta_A \circ \alpha_A$ is an enriched natural
+transformation $F \Rightarrow H$.
+\end{proposition}
+
+\begin{proof}
+For any $f \in \mathcal{C}(A, B)$:
+\begin{align*}
+  H_{A,B}(f) \circ (\beta \cdot \alpha)_A
+    &= H_{A,B}(f) \circ \beta_A \circ \alpha_A \\
+    &= \beta_B \circ G_{A,B}(f) \circ \alpha_A
+       && \text{(naturality of $\beta$)} \\
+    &= \beta_B \circ \alpha_B \circ F_{A,B}(f)
+       && \text{(naturality of $\alpha$)} \\
+    &= (\beta \cdot \alpha)_B \circ F_{A,B}(f). \qedhere
+\end{align*}
+\end{proof}
+
+Diagrammatically, the proof shows that pasting the naturality
+squares of $\alpha$ and $\beta$ produces the naturality square of the
+composite:
+\[
+\begin{tikzcd}[column sep=large, row sep=large]
+FA \arrow[r, "\alpha_A"] \arrow[d, "F(f)"'] &
+  GA \arrow[r, "\beta_A"] \arrow[d, "G(f)"] &
+  HA \arrow[d, "H(f)"] \\
+FB \arrow[r, "\alpha_B"'] &
+  GB \arrow[r, "\beta_B"'] & HB
+\end{tikzcd}
+\]
+
+Vertical composition is associative---both
+$(\gamma \cdot \beta) \cdot \alpha$ and
+$\gamma \cdot (\beta \cdot \alpha)$ have components
+$\gamma_A \circ \beta_A \circ \alpha_A$, by associativity of
+composition in~$\mathcal{D}$---and has the \emph{identity natural
+transformation} $(\mathrm{id}_F)_A = \mathrm{id}_{FA}$ as its unit.
+Thus the locally continuous functors and enriched natural transformations
+between any two $\CPO$-enriched categories form a category.
+
+\begin{definition}[Mixed-variance bifunctor]
+\label{def:mixed-bifunctor}
+Let $\mathcal{C}$ be a $\CPO$-enriched category. A \emph{mixed-variance
+bifunctor} $F : \mathcal{C}^{\mathrm{op}} \times \mathcal{C} \to
+\mathcal{C}$ assigns:
+\begin{itemize}
+  \item to each pair of objects $(A, B)$, an object $F(A, B)$, and
+  \item to morphisms $f \in \mathcal{C}(A', A)$ (note the contravariant
+        direction) and $g \in \mathcal{C}(B, B')$, a morphism
+        \[
+          F(f, g) \in \mathcal{C}\bigl(F(A, B),\; F(A', B')\bigr),
+        \]
+\end{itemize}
+satisfying:
+\begin{enumerate}
+  \item \textbf{Identity}: $F(\mathrm{id}_A, \mathrm{id}_B) =
+        \mathrm{id}_{F(A,B)}$,
+  \item \textbf{Composition}: for composable
+        $f' \in \mathcal{C}(A'', A')$, $f \in \mathcal{C}(A', A)$,
+        $g \in \mathcal{C}(B, B')$, $g' \in \mathcal{C}(B', B'')$,
+        \[
+          F(f \circ f',\; g' \circ g)
+            = F(f', g') \circ F(f, g),
+        \]
+  \item \textbf{Separate continuity}: for each fixed $f$, the map
+        $g \mapsto F(f, g)$ is Scott-continuous, and for each fixed $g$,
+        the map $f \mapsto F(f, g)$ is Scott-continuous.
+\end{enumerate}
+\end{definition}
+
+Mixed-variance bifunctors arise naturally in the construction of
+recursive domain equations. The function-space construction
+$F(A, B) = [A \to_c B]$ is contravariant in~$A$ (precomposition by
+$f : A' \to A$) and covariant in~$B$ (postcomposition by
+$g : B \to B'$), making it a mixed-variance bifunctor on $\CPO$. Given
+$f \in \CPO(A', A)$ and $g \in \CPO(B, B')$, the action on a morphism
+$h \in [A \to_c B]$ is:
+\[
+  F(f, g)(h) = g \circ h \circ f.
+\]
+The domain equation $D \cong [D \to_c D]$ seeks a fixed point of
+$F(-, -)$ in the sense that $D \cong F(D, D)$.  The next subsection
+shows how the bilimit construction solves such equations.
+
+% ── Bilimits and recursive domain equations ───────────────────────
+\subsection{Bilimits and Recursive Domain Equations}
+\label{sec:bg-bilimits}
+
+Recursive domain equations ask for an object $D$ satisfying
+$D \cong F(D, D)$, where $F$ is a mixed-variance bifunctor
+(\cref{def:mixed-bifunctor}).  Because the equation is self-referential
+in both a covariant and a contravariant position, finding a
+solution is not a simple fixed-point argument; instead, one builds $D$
+as the limit of an approximation process.  The key idea, due to
+Smyth and Plotkin~\cite{SmythPlotkin1982}, is to construct an expanding
+sequence of approximants connected by ep-pairs, and then take the
+\emph{bilimit}---a simultaneous categorical limit and colimit---of
+that sequence.
+
+\subsubsection*{Approximation sequences}
+
+Fix a mixed-variance bifunctor
+$F : \mathcal{C}^{\mathrm{op}} \times \mathcal{C} \to \mathcal{C}$
+on a $\CPO$-enriched category~$\mathcal{C}$.  Choose an initial
+object $D_0$ and an ep-pair $(e_0, p_0) : D_0 \to F(D_0, D_0)$.
+Repeated application of $F$ yields a sequence
+\[
+  D_0 \xrightarrow{\;e_0\;}
+  D_1 \xrightarrow{\;e_1\;}
+  D_2 \xrightarrow{\;e_2\;}
+  \cdots
+\]
+where $D_{n+1} = F(D_n, D_n)$ and $(e_{n+1}, p_{n+1})$ is obtained
+by lifting the previous ep-pair through the bifunctor: the embedding
+is $F(p_n, e_n)$ (contravariant argument receives the projection)
+and the projection is $F(e_n, p_n)$.  Each step is an ep-pair,
+so each $D_n$ embeds into $D_{n+1}$ as a ``larger approximation'' of
+the eventual solution.
+
+\subsubsection*{Cones}
+
+\begin{definition}[Cone over an ep-chain]
+\label{def:ep-cone}
+A \emph{cone} over an approximation sequence $(D_n, e_n, p_n)_{n \in
+\mathbb{N}}$ is an object $D_\infty$ together with ep-pairs
+$(e^\infty_n, p^\infty_n) : D_n \to D_\infty$ for each~$n$ such that
+$e^\infty_{n+1} \circ e_n = e^\infty_n$ and
+$p_n \circ p^\infty_{n+1} = p^\infty_n$---in other words, the cone
+ep-pairs are compatible with the approximation sequence.
+\end{definition}
+
+Intuitively, $e^\infty_n$ embeds the $n$-th approximant into $D_\infty$,
+and $p^\infty_n$ projects back.  The compatibility conditions say that
+embedding $D_n$ and then embedding $D_{n+1}$ amounts to the same map
+as embedding $D_n$ directly.
+
+\subsubsection*{Bilimits}
+
+\begin{definition}[Bilimit]
+\label{def:bilimit}
+A cone $(D_\infty, e^\infty_n, p^\infty_n)$ is a \emph{bilimit} of
+the approximation sequence if the identity on $D_\infty$ is the
+supremum of the \emph{deflation chain}: the $\omega$-chain of
+deflations $d_n = e^\infty_n \circ p^\infty_n$ satisfies
+\begin{equation}
+\label{eq:bilimit-identity}
+  \mathrm{id}_{D_\infty} = \lub_n (e^\infty_n \circ p^\infty_n).
+\end{equation}
+\end{definition}
+
+The condition \eqref{eq:bilimit-identity} says that every element of
+$D_\infty$ is the supremum of its projections into the finite
+approximants: $D_\infty$ is ``exactly the union of all the $D_n$,''
+no more and no less.  Each deflation $d_n$ is idempotent and
+below the identity ($d_n \sqsubseteq \mathrm{id}_{D_\infty}$), so the
+chain is increasing.
+
+\begin{theorem}[Smyth--Plotkin~{\cite{SmythPlotkin1982}}]
+\label{thm:smyth-plotkin}
+Let $F : \mathcal{C}^{\mathrm{op}} \times \mathcal{C} \to
+\mathcal{C}$ be a locally continuous mixed-variance bifunctor and let
+$(D_n, e_n, p_n)_{n \in \mathbb{N}}$ be the approximation sequence
+generated from an initial object $D_0$.  Then:
+\begin{enumerate}
+  \item The bilimit $D_\infty$ exists.
+  \item There is an isomorphism
+    $D_\infty \cong F(D_\infty, D_\infty)$,
+    i.e.\ $D_\infty$ solves the recursive domain equation
+    $D \cong F(D, D)$.
+\end{enumerate}
+\end{theorem}
+
+\subsubsection*{ROLL and UNROLL}
+
+The isomorphism of \cref{thm:smyth-plotkin} is witnessed by two
+mutually inverse maps traditionally called $\mathrm{ROLL}$ and
+$\mathrm{UNROLL}$:
+\[
+  \mathrm{ROLL} : F(D_\infty, D_\infty) \to D_\infty,
+  \qquad
+  \mathrm{UNROLL} : D_\infty \to F(D_\infty, D_\infty),
+\]
+satisfying $\mathrm{ROLL} \circ \mathrm{UNROLL} = \mathrm{id}_{D_\infty}$
+and $\mathrm{UNROLL} \circ \mathrm{ROLL} = \mathrm{id}_{F(D_\infty,
+D_\infty)}$.
+These correspond directly to the $\mathbf{fold}$ and $\mathbf{unfold}$
+operations on recursive types in programming language theory:
+$\mathrm{ROLL}$ wraps a value of type $F(D, D)$ into the recursive type
+$D$, while $\mathrm{UNROLL}$ unwraps it.  For instance, if
+$F(A, B) = [A \to_c B]_\bot$, then $D_\infty$ is a domain of
+``self-applicable functions'' and $\mathrm{UNROLL}$ exposes the
+underlying function.
+
+The formalisation of the bilimit construction---including the
+\texttt{BilimitData} specification and the mechanised Rocq
+proof---is described in \cref{sec:meth-domain-equations}, with a
+worked example ($D \cong [D \to_c D]_\bot$) in
+\cref{sec:res-domain-equations}.
+
+% ── Denotational semantics ────────────────────────────────────────
+\section{Denotational Semantics of PCF\texorpdfstring{$_v$}{v}}
+\label{sec:bg-denotational}
+
+Denotational semantics assigns mathematical meaning to programs in a
+\emph{compositional} way: the meaning of a compound program is determined
+by the meanings of its parts.  This section presents the denotational
+semantics of PCF$_v$, a call-by-value variant of Plotkin's
+PCF~\cite{Plotkin1977}, following Benton, Kennedy and
+Varming~\cite{BKV2009}.  PCF$_v$ serves as the canonical test case for our
+domain-theoretic library: its denotational semantics exercises function
+spaces, the lift monad, and the Kleene fixed-point theorem from
+\cref{sec:bg-domain-theory}, while remaining simple enough to admit a
+complete soundness and adequacy proof.
+
+% ── §2.3.1 Syntax and Evaluation ─────────────────────────────────
+\subsection{Syntax and Evaluation}
+\label{sec:bg-pcf-syntax}
+
+\subsubsection*{Types}
+
+PCF$_v$ has four type constructors: natural numbers, booleans, function
+types, and product types.
+
+\begin{definition}[PCF$_v$ types]
+\label{def:pcfv-types}
+The set of types is generated by the grammar
+\[
+  \tau, \sigma \;\;::=\;\;
+  \Nat \;\mid\; \Bool \;\mid\; \tau \to \sigma \;\mid\;
+  \tau \times \sigma.
+\]
+\end{definition}
+
+A \emph{typing environment} $\Gamma$ is a finite list of types.  We write
+$\cdot$ for the empty environment and $\tau :: \Gamma$ for the environment
+that extends $\Gamma$ with a fresh variable of type~$\tau$.
+
+\subsubsection*{Terms}
+
+PCF$_v$ is presented in \emph{administrative normal form}
+(ANF)~\cite{BKV2009}: the syntax distinguishes \emph{values} (terms that
+are already fully evaluated) from \emph{expressions} (terms that may
+diverge or perform computation).  In particular, function application
+$\mathsf{app}\;v_1\;v_2$ requires both the function and its argument to
+be values, and $\mathsf{let}$ sequences the evaluation of an expression
+before binding the result.
+
+\begin{definition}[PCF$_v$ terms]
+\label{def:pcfv-terms}
+The sets of values $v$ and expressions $e$, both indexed by an environment
+$\Gamma$ and a type~$\tau$, are defined by mutual induction
+(simultaneously defining two syntactic categories, with each referring to
+the other):
+\begin{align*}
+  v &\;\;::=\;\;
+    n \;\mid\; b \;\mid\; x \;\mid\;
+    \mathsf{fix}\;\tau_1\;\tau_2.\, e \;\mid\;
+    (v_1, v_2) \\[3pt]
+  e &\;\;::=\;\;
+    \mathsf{val}\;v \;\mid\;
+    \mathsf{let}\;e_1\;\mathsf{in}\;e_2 \;\mid\;
+    \mathsf{app}\;v_1\;v_2 \;\mid\;
+    \mathsf{fst}\;v \;\mid\;
+    \mathsf{snd}\;v \\
+    &\;\;\phantom{::=}\;\;{}\mid\;
+    \mathsf{op}\;f\;v_1\;v_2 \;\mid\;
+    \mathsf{gt}\;v_1\;v_2 \;\mid\;
+    \mathsf{ifb}\;v\;e_1\;e_2
+\end{align*}
+where $n \in \mathbb{N}$, $b \in \mathbb{B}$, $x$ is a variable, $f :
+\mathbb{N} \to \mathbb{N} \to \mathbb{N}$ is a binary arithmetic
+operation, and the typing constraints are:
+\begin{itemize}
+  \item $\mathsf{fix}\;\tau_1\;\tau_2.\, e$ has type $\tau_1 \to \tau_2$ in
+    $\Gamma$; the body $e$ has type $\tau_2$ in the extended environment
+    $\tau_1 :: (\tau_1 \to \tau_2) :: \Gamma$, where index $0$ binds the
+    argument and index $1$ binds the function itself (for recursion);
+  \item $\mathsf{let}\;e_1\;\mathsf{in}\;e_2$ evaluates $e_1 : \tau_1$,
+    then binds the result in $e_2 : \tau_2$ under environment
+    $\tau_1 :: \Gamma$;
+  \item $\mathsf{app}\;v_1\;v_2$ requires $v_1 : \tau_1 \to \tau_2$ and
+    $v_2 : \tau_1$.
+\end{itemize}
+\end{definition}
+
+\begin{remark}[Intrinsic typing]
+\label{rem:intrinsic-typing}
+Following BKV~\cite{BKV2009}, our terms are \emph{intrinsically typed}:
+both values and expressions are indexed by $\Gamma$ and $\tau$, so
+that only well-typed terms can be constructed.  Variables are represented
+as de~Bruijn indices---that is, as proofs that a given type appears at a
+particular position in $\Gamma$.  This eliminates the need for
+separate well-formedness judgments and ensures that substitution preserves
+typing by construction.
+\end{remark}
+
+\begin{remark}[Relationship to PCF]
+\label{rem:pcf-vs-pcfv}
+Plotkin's original PCF~\cite{Plotkin1977} is a call-by-\emph{name}
+language with a fixed-point combinator $\mathbf{fix} : (\tau \to
+\tau) \to \tau$.  PCF$_v$ modifies this in two ways: (1)~evaluation is
+call-by-\emph{value}, so arguments are evaluated before function
+application, and (2)~the syntax is restricted to ANF, which makes the
+evaluation order explicit.  The CBV discipline is reflected in the
+denotational semantics by placing the lift monad in the codomain of
+function types (see \cref{def:type-interpretation}).
+\end{remark}
+
+\subsubsection*{Big-step evaluation}
+
+The operational semantics of PCF$_v$ is given by a big-step evaluation
+relation $e \Downarrow v$, defined on \emph{closed} terms (empty
+environment).  We write $[v_1/x]\,e$ for the capture-avoiding
+substitution of value~$v_1$ for variable~$x$ in expression~$e$, and
+$[v_{\mathit{arg}}/0,\; v_{\mathit{fun}}/1]\,e$ for the simultaneous
+substitution of the argument and function in the body of a
+$\mathsf{fix}$.
+
+\begin{definition}[Big-step evaluation]
+\label{def:big-step}
+The relation $e \Downarrow v$ between closed expressions and closed values
+is defined by the following rules.
+\begin{mathpar}
+  \inferrule*[right=E-Val]
+    { }
+    {\mathsf{val}\;v \Downarrow v}
+
+  \inferrule*[right=E-Let]
+    {e_1 \Downarrow v_1 \\
+     [v_1/0]\,e_2 \Downarrow v_2}
+    {\mathsf{let}\;e_1\;\mathsf{in}\;e_2 \Downarrow v_2}
+
+  \inferrule*[right=E-App]
+    {[v_{\mathit{arg}}/0,\; (\mathsf{fix}\;\tau_1\;\tau_2.\,e)/1]\,e
+     \Downarrow v}
+    {\mathsf{app}\;(\mathsf{fix}\;\tau_1\;\tau_2.\,e)\;v_{\mathit{arg}}
+     \Downarrow v}
+
+  \inferrule*[right=E-Fst]
+    { }
+    {\mathsf{fst}\;(v_1, v_2) \Downarrow v_1}
+
+  \inferrule*[right=E-Snd]
+    { }
+    {\mathsf{snd}\;(v_1, v_2) \Downarrow v_2}
+
+  \inferrule*[right=E-Op]
+    { }
+    {\mathsf{op}\;f\;n_1\;n_2 \Downarrow f(n_1, n_2)}
+
+  \inferrule*[right=E-Gt]
+    { }
+    {\mathsf{gt}\;n_1\;n_2 \Downarrow (n_2 <_? n_1)}
+
+  \inferrule*[right=E-IfTrue]
+    {e_1 \Downarrow v}
+    {\mathsf{ifb}\;\mathit{true}\;e_1\;e_2 \Downarrow v}
+
+  \inferrule*[right=E-IfFalse]
+    {e_2 \Downarrow v}
+    {\mathsf{ifb}\;\mathit{false}\;e_1\;e_2 \Downarrow v}
+\end{mathpar}
+\end{definition}
+
+We write $e \Downarrow$ (``$e$ converges'') to mean $\exists\, v.\;
+e \Downarrow v$.
+
+We adopt the following notation for \emph{closed} terms (terms in
+the empty environment):
+\[
+  \mathsf{CValue}\;\tau \;=\; \mathsf{Value}\;\cdot\;\tau,
+  \qquad
+  \mathsf{CExp}\;\tau \;=\; \mathsf{Exp}\;\cdot\;\tau.
+\]
+
+\begin{proposition}[Determinism]
+\label{prop:eval-deterministic}
+The evaluation relation is deterministic: if $e \Downarrow v_1$ and
+$e \Downarrow v_2$ then $v_1 = v_2$.
+\end{proposition}
+
+Determinism follows by a routine induction on the evaluation derivation;
+we prove it formally in \Rocq{} (\cref{ch:results}).
+
+\subsubsection*{Divergence}
+
+Note that \textsc{E-App} is the only rule that can produce unbounded
+recursion: evaluating $\mathsf{app}\;(\mathsf{fix}\;\tau_1\;\tau_2.\,e)
+\;v_{\mathit{arg}}$ substitutes the argument \emph{and} the function
+itself into the body, so the body may call the function again.  A term
+that never terminates---such as
+$\mathsf{app}\;(\mathsf{fix}\;\Nat\;\Nat.\;\mathsf{app}\;x_1\;x_0)\;0$,
+where $x_1$ is the function itself and $x_0$ the argument---simply has
+no evaluation derivation: each application of \textsc{E-App} substitutes
+the function and argument back into $\mathsf{app}\;x_1\;x_0$, producing
+the same expression and looping forever.  This is how PCF$_v$ represents
+divergence operationally; the denotational counterpart is~$\bot$.
+
+\subsubsection*{Example: factorial}
+
+As a running example, we define the factorial function in PCF$_v$.
+The definition uses $\mathsf{fix}$ with the convention that $x_0$ is
+the argument and $x_1$ is the function itself.
+\begin{align*}
+  \mathit{fact} \;&=\; \mathsf{fix}\;\Nat\;\Nat.\;
+    \mathsf{let}\; (\mathsf{gt}\;x_0\;0) \;\mathsf{in} \\
+    &\qquad \mathsf{ifb}\;x_0 \\
+    &\qquad\quad
+      \bigl(\mathsf{let}\;(\mathsf{op}\;{-}\;x_1\;1)\;\mathsf{in}\;
+            \mathsf{let}\;(\mathsf{app}\;x_3\;x_0)\;\mathsf{in}\;
+            \mathsf{op}\;{\times}\;x_0\;x_3\bigr) \\
+    &\qquad\quad (\mathsf{val}\;1)
+\end{align*}
+The de~Bruijn indices shift as each $\mathsf{let}$ extends the
+environment: inside the true branch, $x_0$ is the most recently bound
+variable, while $x_3$ reaches back through three binders to the
+self-reference.  This is the price of nameless syntax; the mechanised
+representation (\cref{ch:methods}) uses the same scheme.
+
+We can derive $\mathsf{app}\;\mathit{fact}\;2 \Downarrow 2$ using the
+big-step rules.  Writing $e_b$ for the body of $\mathit{fact}$, the
+derivation abbreviates the standard rules as follows:
+\begin{enumerate}
+  \item \textsc{E-App}: substitute $2$ for $x_0$ and $\mathit{fact}$ for
+    $x_1$ in~$e_b$, giving $[2/0,\,\mathit{fact}/1]\,e_b$.
+  \item \textsc{E-Let} + \textsc{E-Gt}: evaluate $\mathsf{gt}\;2\;0
+    \Downarrow \mathit{true}$, bind the result.
+  \item \textsc{E-IfTrue}: take the true branch.
+  \item \textsc{E-Let} + \textsc{E-Op}: evaluate $2 - 1 \Downarrow 1$,
+    bind the result.
+  \item \textsc{E-Let} + \textsc{E-App} (recursive call):
+    $\mathsf{app}\;\mathit{fact}\;1$ triggers a recursive evaluation.
+    Inside this call, $1 > 0$ is true, so we compute
+    $\mathsf{app}\;\mathit{fact}\;0$.  Now $0 > 0$ is false, so
+    \textsc{E-IfFalse} returns~$1$.  Unwinding:
+    $\mathsf{app}\;\mathit{fact}\;0 \Downarrow 1$, then
+    $\mathsf{op}\;{\times}\;1\;1 \Downarrow 1$, so
+    $\mathsf{app}\;\mathit{fact}\;1 \Downarrow 1$.
+  \item \textsc{E-Op}: $\mathsf{op}\;{\times}\;1\;2 \Downarrow 2$.
+\end{enumerate}
+Hence $\mathsf{app}\;\mathit{fact}\;2 \Downarrow 2$, which is correct
+since $2! = 2$.  We return to this example in
+\cref{sec:bg-adequacy} to trace its denotational semantics.
+
+
+% ── §2.3.2 Denotational semantics ────────────────────────────────
+\subsection{Denotational Semantics}
+\label{sec:bg-pcf-denotational}
+
+The denotational semantics interprets types as $\omega$-CPOs and terms as
+continuous functions, using the constructions from
+\cref{sec:bg-domain-theory}.  Before defining the type interpretation, we
+introduce the \emph{lift} construction, which models partiality.
+
+\subsubsection*{The lift construction}
+
+\begin{definition}[Lift]
+\label{def:lift}
+Given an $\omega$-CPO $D$, the \emph{lift} of~$D$ is the $\omega$-CPO
+\[
+  D_\bot \;=\; D \cup \{\bot\}
+\]
+ordered by $\bot \sqsubseteq x$ for all $x$, and $\lfloor d \rfloor
+\sqsubseteq \lfloor d' \rfloor$ iff $d \sqsubseteq d'$ in~$D$, where
+$\lfloor d \rfloor$ denotes the injection of $d \in D$ into $D_\bot$.
+Suprema of chains are computed pointwise: a chain that is eventually
+of the form $\lfloor d_n \rfloor$ has supremum
+$\lfloor \bigsqcup_n d_n \rfloor$; a chain that remains $\bot$ forever
+has supremum~$\bot$.  The element $\bot$ is the least element, so
+$D_\bot$ is always a \emph{pointed} CPO.
+\end{definition}
+
+When $D$ carries the discrete order (as for $\mathbb{N}$ or
+$\mathbb{B}$), $D_\bot$ coincides with the flat domain of
+\cref{ex:flat-domain}: every chain is eventually constant.
+
+The lift comes equipped with two canonical operations:
+\begin{itemize}
+  \item The \emph{unit} $\eta : D \to_c D_\bot$, defined by
+    $\eta(d) = \lfloor d \rfloor$, which injects a value into the
+    lifted domain.
+  \item The \emph{Kleisli extension}: given a continuous map
+    $f : D \to_c E_\bot$, define $f^\ast : D_\bot \to_c E_\bot$ by
+    \[
+      f^\ast(\bot) = \bot, \qquad
+      f^\ast(\lfloor d \rfloor) = f(d).
+    \]
+    The map $f^\ast$ is Scott-continuous because $f$ is: on a chain
+    of the form $(\lfloor d_n \rfloor)$, $f^\ast(\bigsqcup_n
+    \lfloor d_n \rfloor) = f(\bigsqcup_n d_n) = \bigsqcup_n f(d_n)
+    = \bigsqcup_n f^\ast(\lfloor d_n \rfloor)$; on a chain stuck
+    at~$\bot$, both sides are~$\bot$.
+\end{itemize}
+
+These operations satisfy the monad laws ($f^\ast \circ \eta = f$,
+$\eta^\ast = \mathrm{id}$, and $(g^\ast \circ f)^\ast = g^\ast \circ
+f^\ast$), making $(-)_\bot$ a monad on $\omega$-$\mathbf{CPO}$; we do
+not use the monad laws explicitly in this development, but they
+explain why the $\mathsf{let}$ construct of PCF$_v$ composes cleanly
+(see the expression denotation below).
+
+\subsubsection*{Type and environment interpretation}
+
+\begin{definition}[Type interpretation]
+\label{def:type-interpretation}
+Each PCF$_v$ type $\tau$ is assigned an $\omega$-CPO $\sem{\tau}$:
+\[
+\begin{array}{r@{\;\;=\;\;}l}
+  \sem{\Nat}               & \mathbb{N} \\[2pt]
+  \sem{\Bool}              & \mathbb{B} \\[2pt]
+  \sem{\tau_1 \to \tau_2}  & [\sem{\tau_1} \to_c \sem{\tau_2}_\bot] \\[2pt]
+  \sem{\tau_1 \times \tau_2} & \sem{\tau_1} \times \sem{\tau_2}
+\end{array}
+\]
+where $\mathbb{N}$ and $\mathbb{B}$ carry the discrete order, $D_\bot$
+is the lift of~$D$ (\cref{def:lift}), $[D \to_c E]$ is the
+continuous function space (\cref{prop:function-space}), and $D \times E$
+is the product CPO.
+\end{definition}
+
+The CBV design is visible in the arrow case: a function of type
+$\tau_1 \to \tau_2$ denotes a continuous map that \emph{takes a value and
+may diverge}, modelled by lifting the codomain.  Base types are not
+lifted because values of type $\Nat$ or $\Bool$ are always fully
+evaluated.
+
+\begin{definition}[Environment interpretation]
+\label{def:env-interpretation}
+A typing environment $\Gamma = [\tau_1, \ldots, \tau_n]$ is interpreted as
+a right-nested product:
+\[
+  \sem{\cdot} = \mathbf{1}, \qquad
+  \sem{\tau :: \Gamma} = \sem{\tau} \times \sem{\Gamma},
+\]
+where $\mathbf{1}$ is the terminal (one-point) CPO.  An element $\gamma
+\in \sem{\Gamma}$ is a \emph{semantic environment} assigning a denotation
+to each variable in $\Gamma$.  We write $\gamma|_\tau$ for the first
+component (the value of the most recently bound variable) and
+$\gamma \!\downarrow_\Gamma$ for the remaining environment.
+\end{definition}
+
+\subsubsection*{Value and expression denotation}
+
+The semantics is given by two mutually recursive functions: $\sem{v}_V :
+\sem{\Gamma} \to_c \sem{\tau}$ for values, and $\sem{e}_E : \sem{\Gamma}
+\to_c \sem{\tau}_\bot$ for expressions.  Values always denote; expressions
+may diverge (return $\bot$).
+
+\begin{definition}[Variable denotation]
+\label{def:sem-var}
+Each variable $x : \mathsf{Var}\;\Gamma\;\tau$ (a de~Bruijn index) is
+interpreted as an iterated projection:
+\[
+  \sem{x_0}_V = \pi_1, \qquad
+  \sem{x_{i+1}}_V = \sem{x_i}_V \circ \pi_2.
+\]
+\end{definition}
+
+\begin{definition}[Value and expression denotation]
+\label{def:sem-val-exp}
+The semantic functions are defined by mutual structural recursion on
+terms:
+
+\medskip\noindent
+\textbf{Values} $\sem{v}_V : \sem{\Gamma} \to_c \sem{\tau}$:
+\begin{align*}
+  \sem{n}_V &= \mathsf{const}(n), \\
+  \sem{b}_V &= \mathsf{const}(b), \\
+  \sem{x}_V &= \sem{x}_{\text{var}} \quad\text{(see \cref{def:sem-var})}, \\
+  \sem{(v_1, v_2)}_V &= \langle \sem{v_1}_V,\, \sem{v_2}_V \rangle, \\
+  \sem{\mathsf{fix}\;\tau_1\;\tau_2.\, e}_V(\gamma)
+    &= \fixp\bigl(h \mapsto \lambda a.\,
+       \sem{e}_E(a, h, \gamma)\bigr).
+\end{align*}
+
+\noindent
+\textbf{Expressions} $\sem{e}_E : \sem{\Gamma} \to_c \sem{\tau}_\bot$:
+\begin{align*}
+  \sem{\mathsf{val}\;v}_E &= \eta \circ \sem{v}_V, \\
+  \sem{\mathsf{app}\;v_1\;v_2}_E &= \mathsf{eval} \circ
+    \langle \sem{v_1}_V,\, \sem{v_2}_V \rangle, \\
+  \sem{\mathsf{let}\;e_1\;\mathsf{in}\;e_2}_E(\gamma)
+    &= \begin{cases}
+         \sem{e_2}_E(d_1, \gamma)
+           & \text{if } \sem{e_1}_E(\gamma) = \eta(d_1), \\
+         \bot & \text{if } \sem{e_1}_E(\gamma) = \bot,
+       \end{cases} \\
+  \sem{\mathsf{fst}\;v}_E &= \eta \circ \pi_1 \circ \sem{v}_V, \\
+  \sem{\mathsf{snd}\;v}_E &= \eta \circ \pi_2 \circ \sem{v}_V, \\
+  \sem{\mathsf{op}\;f\;v_1\;v_2}_E
+    &= \eta \circ \widetilde{f} \circ
+       \langle \sem{v_1}_V,\, \sem{v_2}_V \rangle, \\
+  \sem{\mathsf{gt}\;v_1\;v_2}_E
+    &= \eta \circ \widetilde{<_?} \circ
+       \langle \sem{v_1}_V,\, \sem{v_2}_V \rangle, \\
+  \sem{\mathsf{ifb}\;v\;e_1\;e_2}_E(\gamma)
+    &= \begin{cases}
+         \sem{e_1}_E(\gamma) & \text{if } \sem{v}_V(\gamma) = \mathit{true}, \\
+         \sem{e_2}_E(\gamma) & \text{if } \sem{v}_V(\gamma) = \mathit{false}.
+       \end{cases}
+\end{align*}
+Here $\eta : D \to D_\bot$ is the unit of the lift monad (the
+injection $d \mapsto \lfloor d \rfloor$), $\mathsf{eval} :
+[\sem{\tau_1} \to_c \sem{\tau_2}_\bot] \times \sem{\tau_1} \to_c
+\sem{\tau_2}_\bot$ is the evaluation map of the exponential, $\fixp$
+is the Kleene least fixed point (\cref{thm:kleene}),
+$\widetilde{f}$ lifts a function on discrete CPOs to a continuous map,
+and $\langle -, - \rangle$ denotes pairing.
+\end{definition}
+
+The $\mathsf{fix}$ case is the heart of the semantics: it interprets
+a recursive function by taking the \emph{least fixed point} of the
+functional that maps a candidate function~$h : \sem{\tau_1} \to_c
+\sem{\tau_2}_\bot$ to the map $a \mapsto \sem{e}_E(a, h, \gamma)$.
+By the Kleene fixed-point theorem (\cref{thm:kleene}), this
+is the supremum $\bigsqcup_{n} F^n(\bot)$ of the iterates of~$F$
+starting from the everywhere-divergent function.
+
+The $\mathsf{let}$ case is the Kleisli extension of the lift monad:
+if $e_1$ diverges, the whole expression diverges; if $e_1$ converges
+to a value~$d_1$, that value is bound in the continuation~$e_2$.
+
+\subsubsection*{Compositionality and substitution}
+
+The denotational semantics is compositional by construction: each clause
+defines $\sem{-}$ in terms of the denotations of immediate subterms.
+The key structural property linking the denotational semantics to the
+operational semantics is the \emph{substitution lemma}, which states that
+syntactic substitution corresponds to semantic composition.
+
+\begin{definition}[Semantic substitution]
+\label{def:sem-subst}
+A substitution $\sigma : \mathsf{Subst}\;\Gamma\;\Gamma'$ (a map from
+variables in $\Gamma$ to values in $\Gamma'$) is interpreted as a
+continuous function $\sem{\sigma} : \sem{\Gamma'} \to_c \sem{\Gamma}$
+by recursion on $\Gamma$:
+\[
+  \sem{\sigma}_{\cdot} = \mathsf{const}(\ast), \qquad
+  \sem{\sigma}_{\tau::\Delta}(\gamma') =
+  \bigl(\sem{\sigma(\mathsf{z})}_V(\gamma'),\;
+        \sem{\sigma \circ \mathsf{s}}_\Delta(\gamma')\bigr),
+\]
+where $\mathsf{z}$ and $\mathsf{s}$ are the zero and successor de~Bruijn
+index constructors.  In other words, $\sem{\sigma}$ pairs the denotation
+of the image of each variable.
+\end{definition}
+
+For a substitution $\sigma : \mathsf{Subst}\;\Gamma\;\Gamma'$ and a
+fresh variable of type~$\tau$, the \emph{lifted substitution}
+$\sigma^{\uparrow} : \mathsf{Subst}\;(\tau :: \Gamma)\;(\tau :: \Gamma')$
+maps $x_0 \mapsto x_0$ (the new variable) and $x_{i+1} \mapsto
+\sigma(x_i)$ shifted up.  The key property is
+\begin{equation}
+\label{eq:sem-subst-ext}
+  \sem{\sigma^{\uparrow}}(\gamma', d)
+  = (d,\; \sem{\sigma}(\gamma'))
+\end{equation}
+for any $d \in \sem{\tau}$ and $\gamma' \in \sem{\Gamma'}$.
+
+\begin{proposition}[Substitution lemma]
+\label{prop:substitution-lemma}
+For any substitution $\sigma : \mathsf{Subst}\;\Gamma\;\Gamma'$:
+\begin{enumerate}
+  \item $\sem{\sigma(v)}_V = \sem{v}_V \circ \sem{\sigma}$ for
+    every value $v$ in~$\Gamma$, and
+  \item $\sem{\sigma(e)}_E = \sem{e}_E \circ \sem{\sigma}$ for
+    every expression $e$ in~$\Gamma$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+By mutual structural induction on values and expressions.
+
+\medskip\noindent
+\textbf{Value cases.}
+\begin{itemize}
+  \item \emph{Variable} ($v = x$). By definition of $\sem{\sigma}$,
+    the $\tau$-component of $\sem{\sigma}(\gamma')$ is
+    $\sem{\sigma(x)}_V(\gamma')$, which is exactly $\sem{x}_V$ applied
+    to $\sem{\sigma}(\gamma')$.  Hence $\sem{\sigma(x)}_V =
+    \sem{x}_V \circ \sem{\sigma}$.
+
+  \item \emph{Literal} ($v = n$ or $v = b$).  Both sides equal the
+    constant function, since $\sigma(n) = n$ and
+    $\sem{n}_V = \mathsf{const}(n)$.
+
+  \item \emph{Pair} ($v = (v_1, v_2)$).  By the induction hypothesis
+    on $v_1$ and $v_2$:
+    \[
+      \sem{\sigma(v_1, v_2)}_V
+      = \langle \sem{\sigma(v_1)}_V, \sem{\sigma(v_2)}_V \rangle
+      = \langle \sem{v_1}_V \circ \sem{\sigma},\,
+               \sem{v_2}_V \circ \sem{\sigma} \rangle
+      = \langle \sem{v_1}_V, \sem{v_2}_V \rangle \circ \sem{\sigma}
+      = \sem{(v_1, v_2)}_V \circ \sem{\sigma}.
+    \]
+
+  \item \emph{Fix} ($v = \mathsf{fix}\;\tau_1\;\tau_2.\,e$).  The body
+    $e$ lives in environment $\tau_1 :: (\tau_1 \to \tau_2) :: \Gamma$,
+    and $\sigma$ is lifted twice to
+    $\sigma^{\uparrow\uparrow} :
+    \mathsf{Subst}\;(\tau_1 :: (\tau_1 \to \tau_2) :: \Gamma)\;
+                    (\tau_1 :: (\tau_1 \to \tau_2) :: \Gamma')$.
+    For any $\gamma' \in \sem{\Gamma'}$, $a \in \sem{\tau_1}$, and
+    $h \in [\sem{\tau_1} \to_c \sem{\tau_2}_\bot]$, the lifted
+    substitution property (\cref{eq:sem-subst-ext}, applied twice) gives
+    \[
+      \sem{\sigma^{\uparrow\uparrow}}(a, h, \gamma')
+      = (a,\, h,\, \sem{\sigma}(\gamma')).
+    \]
+    By the induction hypothesis on~$e$, we have
+    $\sem{\sigma^{\uparrow\uparrow}(e)}_E
+    = \sem{e}_E \circ \sem{\sigma^{\uparrow\uparrow}}$.
+    Define the functional $F_{\gamma'}(h) = \lambda a.\,
+    \sem{e}_E(a, h, \sem{\sigma}(\gamma'))$ and observe that
+    $F'_{\gamma'}(h) = \lambda a.\,
+    \sem{\sigma^{\uparrow\uparrow}(e)}_E(a, h, \gamma')$ satisfies
+    $F'_{\gamma'} = F_{\gamma'}$ by the calculation above.
+    Since $\fixp$ is applied to the same functional, both sides yield
+    $\fixp(F_{\gamma'})$.
+\end{itemize}
+
+\medskip\noindent
+\textbf{Expression cases.}  Each follows from the induction hypothesis
+and the structure of the semantic clause.
+\begin{itemize}
+  \item \emph{Val} ($e = \mathsf{val}\;v$).
+    $\sem{\sigma(\mathsf{val}\;v)}_E
+    = \eta \circ \sem{\sigma(v)}_V
+    = \eta \circ \sem{v}_V \circ \sem{\sigma}
+    = \sem{\mathsf{val}\;v}_E \circ \sem{\sigma}$.
+
+  \item \emph{App} ($e = \mathsf{app}\;v_1\;v_2$).
+    $\sem{\sigma(\mathsf{app}\;v_1\;v_2)}_E
+    = \mathsf{eval} \circ
+      \langle \sem{\sigma(v_1)}_V, \sem{\sigma(v_2)}_V \rangle
+    = \mathsf{eval} \circ
+      \langle \sem{v_1}_V, \sem{v_2}_V \rangle \circ \sem{\sigma}$.
+
+  \item \emph{Let} ($e = \mathsf{let}\;e_1\;\mathsf{in}\;e_2$).
+    By the IH on~$e_1$,
+    $\sem{\sigma(e_1)}_E(\gamma') = \sem{e_1}_E(\sem{\sigma}(\gamma'))$.
+    If this is~$\bot$, both sides give~$\bot$.  If it is
+    $\eta(d_1)$, the body $e_2$ is under substitution
+    $\sigma^{\uparrow}$, and by the IH on~$e_2$
+    and the lifted substitution property~(\ref{eq:sem-subst-ext}),
+    $\sem{\sigma^{\uparrow}(e_2)}_E(d_1, \gamma')
+    = \sem{e_2}_E(d_1, \sem{\sigma}(\gamma'))$.
+
+  \item \emph{Fst, Snd, Op, Gt}:  immediate from the IH on the
+    value sub-terms (same pattern as App).
+
+  \item \emph{IfB} ($e = \mathsf{ifb}\;v\;e_1\;e_2$).
+    $\sem{v}_V \circ \sem{\sigma}$ determines the branch; the IH
+    on~$e_1$ and~$e_2$ gives the result for each case.
+\end{itemize}
+\vspace{-0.5em}
+\end{proof}
+
+Two important special cases are used in the soundness proof:
+\begin{itemize}
+  \item \emph{Single substitution}: $\sem{[v/0]} = \langle \sem{v}_V,
+    \mathsf{id} \rangle$.
+  \item \emph{Double substitution}: $\sem{[v_{\mathit{arg}}/0,\;
+    v_{\mathit{fun}}/1]} = \langle \sem{v_{\mathit{arg}}}_V,\, \langle
+    \sem{v_{\mathit{fun}}}_V,\, \mathsf{id} \rangle \rangle$.
+\end{itemize}
+
+For closed terms ($\Gamma = \cdot$), we write $\sem{v}^c_V = \sem{v}_V
+(\ast)$ and $\sem{e}^c_E = \sem{e}_E(\ast)$ where $\ast$ is the unique
+element of $\mathbf{1}$.
+
+
+% ── §2.3.3 Soundness and Adequacy ────────────────────────────────
+\subsection{Soundness and Adequacy}
+\label{sec:bg-adequacy}
+
+The correctness of a denotational semantics is established by two
+theorems, relating the operational and denotational accounts of a
+language.  \emph{Soundness} says that operational execution preserves
+denotational meaning; \emph{adequacy} says that denotational definedness
+implies operational convergence.
+
+\subsubsection*{Soundness}
+
+\begin{theorem}[Soundness]
+\label{thm:soundness}
+If\/ $e \Downarrow v$ for closed terms $e$ and $v$, then
+\[
+  \sem{e}^c_E = \eta(\sem{v}^c_V).
+\]
+\end{theorem}
+
+Before proving soundness, we record a key identity that decomposes
+function application denotationally.
+
+\begin{lemma}[Fixed-point unfolding]
+\label{lem:fix-unfold}
+For any $\gamma \in \sem{\Gamma}$ and $a \in \sem{\tau_1}$,
+\[
+  \sem{\mathsf{fix}\;\tau_1\;\tau_2.\,e}_V(\gamma)(a)
+  = \sem{e}_E\bigl(a,\;
+    \sem{\mathsf{fix}\;\tau_1\;\tau_2.\,e}_V(\gamma),\;
+    \gamma\bigr).
+\]
+\end{lemma}
+\begin{proof}
+Let $F(h) = \lambda a.\, \sem{e}_E(a, h, \gamma)$.  Then
+$\sem{\mathsf{fix}\;\tau_1\;\tau_2.\,e}_V(\gamma) = \fixp(F)$.
+By the Kleene fixed-point theorem (\cref{thm:kleene}),
+$\fixp(F)$ is a fixed point of~$F$, so
+$\fixp(F) = F(\fixp(F))$.  Evaluating at~$a$ gives the result.
+\end{proof}
+
+\begin{proof}[Proof of soundness]
+By induction on the evaluation derivation $e \Downarrow v$.  We treat
+each rule.
+\begin{itemize}
+  \item \textsc{E-Val} ($\mathsf{val}\;v \Downarrow v$).  Immediate:
+    $\sem{\mathsf{val}\;v}^c_E = \eta(\sem{v}^c_V)$ by definition.
+
+  \item \textsc{E-Fst} ($\mathsf{fst}\;(v_1, v_2) \Downarrow v_1$).
+    $\sem{\mathsf{fst}\;(v_1, v_2)}^c_E
+    = \eta(\pi_1(\sem{v_1}^c_V, \sem{v_2}^c_V))
+    = \eta(\sem{v_1}^c_V)$.
+    Similarly for \textsc{E-Snd}.
+
+  \item \textsc{E-Op} ($\mathsf{op}\;f\;n_1\;n_2 \Downarrow
+    f(n_1,n_2)$).
+    $\sem{\mathsf{op}\;f\;n_1\;n_2}^c_E
+    = \eta(\widetilde{f}(n_1, n_2)) = \eta(f(n_1, n_2))$.
+    Similarly for \textsc{E-Gt}.
+
+  \item \textsc{E-IfTrue}
+    ($\mathsf{ifb}\;\mathit{true}\;e_1\;e_2 \Downarrow v$ where
+    $e_1 \Downarrow v$).
+    $\sem{\mathsf{ifb}\;\mathit{true}\;e_1\;e_2}^c_E
+    = \sem{e_1}^c_E = \eta(\sem{v}^c_V)$
+    by the IH.  Similarly for \textsc{E-IfFalse}.
+
+  \item \textsc{E-Let} ($\mathsf{let}\;e_1\;\mathsf{in}\;e_2
+    \Downarrow v_2$ where $e_1 \Downarrow v_1$ and
+    $[v_1/0]\,e_2 \Downarrow v_2$).
+    By the IH on the first premise,
+    $\sem{e_1}^c_E = \eta(\sem{v_1}^c_V)$.
+    Write $d_1 = \sem{v_1}^c_V$.  Unfolding the $\mathsf{let}$
+    denotation:
+    \[
+      \sem{\mathsf{let}\;e_1\;\mathsf{in}\;e_2}^c_E
+      = \sem{e_2}_E(d_1, \ast).
+    \]
+    The single substitution corollary gives
+    $\sem{[v_1/0]\,e_2}^c_E = \sem{e_2}_E(\sem{v_1}^c_V, \ast)
+    = \sem{e_2}_E(d_1, \ast)$, so the IH on the second premise yields
+    $\sem{e_2}_E(d_1, \ast) = \eta(\sem{v_2}^c_V)$.
+
+  \item \textsc{E-App}
+    ($\mathsf{app}\;(\mathsf{fix}\;\tau_1\;\tau_2.\,e')\;
+    v_{\mathit{arg}} \Downarrow v$ where
+    $[v_{\mathit{arg}}/0,\,
+    (\mathsf{fix}\;\tau_1\;\tau_2.\,e')/1]\,e' \Downarrow v$).
+    Let $h = \sem{\mathsf{fix}\;\tau_1\;\tau_2.\,e'}^c_V$ and
+    $a = \sem{v_{\mathit{arg}}}^c_V$.  Then:
+    \begin{align*}
+      \sem{\mathsf{app}\;(\mathsf{fix}\;\tau_1\;\tau_2.\,e')\;
+        v_{\mathit{arg}}}^c_E
+      &= h(a)
+       = \sem{e'}_E(a, h, \ast)
+         && \text{(\cref{lem:fix-unfold})} \\
+      &= \sem{[v_{\mathit{arg}}/0,\,
+              (\mathsf{fix}\;\tau_1\;\tau_2.\,e')/1]\,e'}^c_E
+         && \text{(double substitution)} \\
+      &= \eta(\sem{v}^c_V)
+         && \text{(IH).}
+    \end{align*}
+\end{itemize}
+\vspace{-0.5em}
+\end{proof}
+
+\subsubsection*{The logical relation}
+
+The adequacy proof uses a \emph{logical relation} between denotations
+and syntactic values, following the approach of Benton, Kennedy and
+Varming~\cite{BKV2009}.
+
+\begin{definition}[Logical relation]
+\label{def:logical-relation}
+The \emph{value relation} $\mathcal{R}^v_\tau \subseteq \sem{\tau}
+\times \mathsf{CValue}\;\tau$ and \emph{expression relation}
+$\mathcal{R}^e_\tau \subseteq \sem{\tau}_\bot \times
+\mathsf{CExp}\;\tau$ are defined by structural recursion on~$\tau$:
+
+\medskip\noindent
+\textbf{Value relation} $\mathcal{R}^v_\tau(d, v)$:
+\begin{align*}
+  \mathcal{R}^v_\Nat(n, v) &\iff v = n, \\
+  \mathcal{R}^v_\Bool(b, v) &\iff v = b, \\
+  \mathcal{R}^v_{\tau_1 \to \tau_2}(f, v) &\iff
+    \exists\, e.\; v = \mathsf{fix}\;\tau_1\;\tau_2.\,e \;\;\land \\
+    &\qquad\;\; \forall\, d_1\, v_1.\;
+      \mathcal{R}^v_{\tau_1}(d_1, v_1)
+      \implies \mathcal{R}^e_{\tau_2}\bigl(f(d_1),\;
+        [v_1/0,\, v/1]\,e\bigr), \\
+  \mathcal{R}^v_{\tau_1 \times \tau_2}\bigl((d_1, d_2), v\bigr) &\iff
+    \exists\, v_1\, v_2.\; v = (v_1, v_2) \;\land\;
+    \mathcal{R}^v_{\tau_1}(d_1, v_1) \;\land\;
+    \mathcal{R}^v_{\tau_2}(d_2, v_2).
+\end{align*}
+
+\noindent
+\textbf{Expression relation} $\mathcal{R}^e_\tau(d, e)$:
+\begin{align*}
+  \mathcal{R}^e_\tau(\bot, e) &\iff \top, \\
+  \mathcal{R}^e_\tau(\eta(d), e) &\iff
+    \exists\, v.\; e \Downarrow v \;\land\;
+    \mathcal{R}^v_\tau(d, v).
+\end{align*}
+\end{definition}
+
+The expression relation is the \emph{lift} of the value relation: if the
+denotation is~$\bot$ (divergence), the relation is trivially satisfied;
+if the denotation is defined, the expression must converge to a related
+value.  This formulation, due to BKV, simplifies the traditional
+approach of Plotkin~\cite{Plotkin1977}, which uses an implication
+$d \neq \bot \implies \ldots$ and requires more delicate reasoning about
+chains.  \Cref{fig:logical-relation-lift} illustrates the structure.
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}[column sep=4em, row sep=3.5em]
+\sem{\tau}
+  \arrow[r, "\mathcal{R}^v_\tau", dashed]
+  \arrow[d, "\eta"']
+& \mathsf{CValue}\;\tau
+  \arrow[d, "\mathsf{val}"]
+\\
+\sem{\tau}_\bot
+  \arrow[r, "\mathcal{R}^e_\tau"', dashed]
+& \mathsf{CExp}\;\tau
+\end{tikzcd}
+\caption{The logical relation as a lifted correspondence.  The value
+  relation~$\mathcal{R}^v_\tau$ connects semantic values to syntactic
+  values; the expression relation~$\mathcal{R}^e_\tau$ connects lifted
+  semantic values to closed expressions.  Applying $\eta$ on the left
+  and $\mathsf{val}$ on the right embeds the value level into the
+  expression level, and $\mathcal{R}^e_\tau$ extends
+  $\mathcal{R}^v_\tau$ by sending~$\bot$ to~$\top$.}
+\label{fig:logical-relation-lift}
+\end{figure}
+
+\begin{definition}[Environment relation]
+\label{def:rel-env}
+A semantic environment $\gamma \in \sem{\Gamma}$ and a closing
+substitution $\sigma : \mathsf{Subst}\;\Gamma\;\cdot$ are \emph{related},
+written $\mathcal{R}_\Gamma(\gamma, \sigma)$, if $\mathcal{R}^v_\tau
+(\sem{x}_V(\gamma),\, \sigma(x))$ for every variable $x :
+\mathsf{Var}\;\Gamma\;\tau$.
+\end{definition}
+
+\subsubsection*{Admissibility}
+
+The essential property that makes the logical relation compatible with
+fixed-point induction is \emph{admissibility}: the value relation is
+preserved by suprema of chains.
+
+\begin{lemma}[Admissibility of the value relation]
+\label{lem:rel-val-admissible}
+For every type $\tau$ and closed value $v$, the predicate $d \mapsto
+\mathcal{R}^v_\tau(d, v)$ is admissible: if $(d_n)_{n \in \omega}$ is a
+chain in $\sem{\tau}$ and $\mathcal{R}^v_\tau(d_n, v)$ for all $n$, then
+$\mathcal{R}^v_\tau(\bigsqcup_n d_n,\, v)$.
+\end{lemma}
+\begin{proof}
+By induction on the type~$\tau$.
+
+\medskip\noindent
+\emph{Case $\tau = \Nat$.}\;
+The discrete order on $\mathbb{N}$ has $n \sqsubseteq m$ iff $n = m$,
+so every chain $(d_n)$ in $\mathbb{N}$ is constant: $d_n = d_0$ for all
+$n$.  Therefore $\bigsqcup_n d_n = d_0$, and
+$\mathcal{R}^v_\Nat(d_0, v)$ holds by hypothesis.
+
+\medskip\noindent
+\emph{Case $\tau = \Bool$.}\;  Identical to $\Nat$.
+
+\medskip\noindent
+\emph{Case $\tau = \tau_1 \times \tau_2$.}\;
+By hypothesis, $v = (v_1, v_2)$ and each $d_n = (d_n^1, d_n^2)$ with
+$\mathcal{R}^v_{\tau_1}(d_n^1, v_1)$ and
+$\mathcal{R}^v_{\tau_2}(d_n^2, v_2)$.  Since the product order is
+componentwise, $\bigsqcup_n d_n = (\bigsqcup_n d_n^1, \bigsqcup_n
+d_n^2)$.  Applying the IH at $\tau_1$ to the chain $(d_n^1)$ gives
+$\mathcal{R}^v_{\tau_1}(\bigsqcup_n d_n^1, v_1)$, and similarly at
+$\tau_2$.
+
+\medskip\noindent
+\emph{Case $\tau = \tau_1 \to \tau_2$.}\;
+Let $(f_n)_{n \in \omega}$ be a chain in
+$[\sem{\tau_1} \to_c \sem{\tau_2}_\bot]$, and suppose
+$\mathcal{R}^v_{\tau_1 \to \tau_2}(f_n, v)$ for all~$n$.  From
+$n = 0$ we extract a body~$e$ with
+$v = \mathsf{fix}\;\tau_1\;\tau_2.\,e$; the same body works for all~$n$
+since $v$ is fixed.  We must show: for every $d_1 \in \sem{\tau_1}$
+and $v_1 \in \mathsf{CValue}\;\tau_1$ with
+$\mathcal{R}^v_{\tau_1}(d_1, v_1)$,
+\[
+  \mathcal{R}^e_{\tau_2}\!\bigl((\textstyle\bigsqcup_n f_n)(d_1),\;
+  [v_1/0,\, v/1]\,e\bigr).
+\]
+Write $\bar{e} = [v_1/0,\, v/1]\,e$.  By
+\cref{prop:function-space}, $(\bigsqcup_n f_n)(d_1) = \bigsqcup_n
+f_n(d_1)$.  The sequence $(f_n(d_1))$ is a chain in
+$\sem{\tau_2}_\bot$, and we know
+$\mathcal{R}^e_{\tau_2}(f_n(d_1), \bar{e})$ for each~$n$ (from
+the hypothesis on $f_n$, applied to $(d_1, v_1)$).
+
+We case-split on the structure of this chain in the lift:
+\begin{enumerate}
+  \item \emph{All $\bot$.}\;
+    If $f_n(d_1) = \bot$ for all~$n$, then $\bigsqcup_n f_n(d_1) =
+    \bot$, and $\mathcal{R}^e_{\tau_2}(\bot, \bar{e})$ holds trivially.
+
+  \item \emph{Eventually defined.}\;
+    Suppose $f_N(d_1) = \eta(d'_N)$ for some $N$.  Since the chain
+    is ascending in $\sem{\tau_2}_\bot$ and $\eta(d'_N) \neq \bot$,
+    we have $f_n(d_1) = \eta(d'_n)$ for all $n \geq N$, forming a
+    chain $(d'_n)_{n \geq N}$ in $\sem{\tau_2}$.
+
+    From $\mathcal{R}^e_{\tau_2}(\eta(d'_n), \bar{e})$
+    we obtain $w_n$ with $\bar{e} \Downarrow w_n$ and
+    $\mathcal{R}^v_{\tau_2}(d'_n, w_n)$.  By determinism
+    (\cref{prop:eval-deterministic}), all witnesses are the same
+    value: $w_n = w$ for a single closed value $w$.
+
+    Thus $(d'_n)_{n \geq N}$ is a chain with
+    $\mathcal{R}^v_{\tau_2}(d'_n, w)$ for all $n \geq N$.  The
+    supremum in $\sem{\tau_2}_\bot$ is
+    $\bigsqcup_n f_n(d_1) = \eta(\bigsqcup_{n \geq N} d'_n)$.
+    By the induction hypothesis at~$\tau_2$,
+    $\mathcal{R}^v_{\tau_2}(\bigsqcup_{n \geq N} d'_n,\, w)$, so
+    $\mathcal{R}^e_{\tau_2}(\eta(\bigsqcup_{n \geq N} d'_n),
+    \bar{e})$ holds with witness~$w$.
+\end{enumerate}
+\vspace{-0.5em}
+\end{proof}
+
+\subsubsection*{The fundamental lemma and adequacy}
+
+\begin{theorem}[Fundamental lemma]
+\label{thm:fundamental-lemma}
+For every related environment $\mathcal{R}_\Gamma(\gamma, \sigma)$:
+\begin{enumerate}
+  \item $\mathcal{R}^v_\tau(\sem{v}_V(\gamma),\, \sigma(v))$ for every
+    value $v : \mathsf{Value}\;\Gamma\;\tau$, and
+  \item $\mathcal{R}^e_\tau(\sem{e}_E(\gamma),\, \sigma(e))$ for every
+    expression $e : \mathsf{Exp}\;\Gamma\;\tau$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}[Proof sketch]
+By mutual structural induction on $v$ and $e$.
+
+\medskip\noindent
+\textbf{Value cases.}
+\begin{itemize}
+  \item \emph{Literal} ($v = n$ or $v = b$).  The denotation is
+    $\sem{n}_V(\gamma) = n$, and $\sigma(n) = n$, so
+    $\mathcal{R}^v_\Nat(n, n)$ holds directly (similarly for $\Bool$).
+
+  \item \emph{Variable} ($v = x$).  The environment relation gives
+    $\mathcal{R}^v_\tau(\sem{x}_V(\gamma), \sigma(x))$.
+
+  \item \emph{Pair} ($v = (v_1, v_2)$).  By the IH on each component,
+    $\mathcal{R}^v_{\tau_i}(\sem{v_i}_V(\gamma), \sigma(v_i))$.  Since
+    $\sigma(v_1, v_2) = (\sigma(v_1), \sigma(v_2))$ and the denotation
+    is $(\sem{v_1}_V(\gamma), \sem{v_2}_V(\gamma))$, the product clause
+    of $\mathcal{R}^v$ gives the result.
+
+  \item \emph{Fix} ($v = \mathsf{fix}\;\tau_1\;\tau_2.\,e$).  This is
+    the key case.  Write
+    $v' = \sigma(\mathsf{fix}\;\tau_1\;\tau_2.\,e)
+    = \mathsf{fix}\;\tau_1\;\tau_2.\,\sigma^{\uparrow\uparrow}(e)$
+    and $e' = \sigma^{\uparrow\uparrow}(e)$.  Define the functional
+    \[
+      F(h) = \lambda a.\, \sem{e}_E(a, h, \gamma)
+    \]
+    so that $\sem{v}_V(\gamma) = \fixp(F) = \bigsqcup_n F^n(\bot)$ by
+    the Kleene fixed-point theorem (\cref{thm:kleene}).
+
+    We must show $\mathcal{R}^v_{\tau_1 \to \tau_2}(\fixp(F), v')$,
+    which amounts to: for every related argument $(d_1, v_1)$
+    (i.e.\ $\mathcal{R}^v_{\tau_1}(d_1, v_1)$),
+    \[
+      \mathcal{R}^e_{\tau_2}\bigl(\fixp(F)(d_1),\;
+      [v_1/0,\, v'/1]\,e'\bigr).
+    \]
+    Since $\fixp(F)(d_1) = \bigsqcup_n F^n(\bot)(d_1)$
+    (\cref{prop:function-space}), and the expression relation is
+    admissible in its first argument---$\mathcal{R}^e_{\tau_2}(\bot, -)$
+    is trivially true, and at defined values admissibility follows from
+    \cref{lem:rel-val-admissible} plus determinism---it suffices to
+    show $\mathcal{R}^e_{\tau_2}(F^n(\bot)(d_1), [v_1/0,\, v'/1]\,e')$
+    for all~$n$.  We proceed by induction on~$n$:
+    \begin{itemize}
+      \item \emph{Base case} ($n = 0$): $F^0(\bot)(d_1) = \bot$, and
+        $\mathcal{R}^e_{\tau_2}(\bot, -)$ holds by definition.
+
+      \item \emph{Inductive step} ($n \to n{+}1$): we have
+        \[
+          F^{n+1}(\bot)(d_1) = \sem{e}_E(d_1,\, F^n(\bot),\, \gamma).
+        \]
+        Construct the extended environment
+        $\gamma' = (d_1,\, F^n(\bot),\, \gamma) \in
+        \sem{\tau_1 :: (\tau_1 \to \tau_2) :: \Gamma}$
+        and the extended substitution
+        $\sigma' = [v_1/0,\, v'/1,\, \sigma]$.  The inner IH (on~$n$)
+        provides
+        $\mathcal{R}^v_{\tau_1 \to \tau_2}(F^n(\bot), v')$, so
+        together with $(d_1, v_1)$ and the original
+        $\mathcal{R}_\Gamma(\gamma, \sigma)$, we have
+        $\mathcal{R}_{\tau_1 :: (\tau_1 \to \tau_2) :: \Gamma}
+        (\gamma', \sigma')$.
+        The outer IH on the body~$e$ (at the extended environment) then
+        yields
+        $\mathcal{R}^e_{\tau_2}(\sem{e}_E(\gamma'), \sigma'(e))$.
+        Since $\sigma'(e) = [v_1/0,\, v'/1]\,e'$ (by the substitution
+        lifting property), this is the desired conclusion.
+    \end{itemize}
+
+    By the admissibility argument, the relation holds at the supremum
+    $\fixp(F)(d_1)$, completing the fix case.
+\end{itemize}
+
+\medskip\noindent
+\textbf{Expression cases.}
+\begin{itemize}
+  \item \emph{Val} ($e = \mathsf{val}\;v$).
+    $\sem{\mathsf{val}\;v}_E(\gamma) = \eta(\sem{v}_V(\gamma))$.  The
+    IH on~$v$ gives $\mathcal{R}^v_\tau(\sem{v}_V(\gamma), \sigma(v))$,
+    so $\mathcal{R}^e_\tau(\eta(\sem{v}_V(\gamma)),
+    \sigma(\mathsf{val}\;v))$ holds by the expression relation with
+    witness $\sigma(v)$ and the evaluation $\mathsf{val}\;\sigma(v)
+    \Downarrow \sigma(v)$.
+
+  \item \emph{App} ($e = \mathsf{app}\;v_1\;v_2$ where
+    $v_1 : \tau_1 \to \tau_2$).  The IH on $v_1$ gives
+    $\mathcal{R}^v_{\tau_1 \to \tau_2}(\sem{v_1}_V(\gamma),
+    \sigma(v_1))$, extracting a body~$e'$ with
+    $\sigma(v_1) = \mathsf{fix}\;\tau_1\;\tau_2.\,e'$.  The IH on
+    $v_2$ gives
+    $\mathcal{R}^v_{\tau_1}(\sem{v_2}_V(\gamma), \sigma(v_2))$.
+    Specialising the arrow relation:
+    $\mathcal{R}^e_{\tau_2}(\sem{v_1}_V(\gamma)(\sem{v_2}_V(\gamma)),
+    [\sigma(v_2)/0,\, \sigma(v_1)/1]\,e')$.
+    The left side is exactly $\sem{\mathsf{app}\;v_1\;v_2}_E(\gamma)$;
+    an \textsc{E-App} step lifts this to the desired conclusion.
+
+  \item \emph{Let} ($e = \mathsf{let}\;e_1\;\mathsf{in}\;e_2$).
+    The IH on $e_1$ gives
+    $\mathcal{R}^e_{\tau_1}(\sem{e_1}_E(\gamma), \sigma(e_1))$.
+    If $\sem{e_1}_E(\gamma) = \bot$, the whole expression denotes
+    $\bot$ and we are done immediately.  Otherwise,
+    $\sem{e_1}_E(\gamma) = \eta(d_1)$, and the relation provides
+    $w_1$ with $\sigma(e_1) \Downarrow w_1$ and
+    $\mathcal{R}^v_{\tau_1}(d_1, w_1)$.  Extending the environment:
+    $(d_1, \gamma)$ relates to $[w_1/0] \circ \sigma$.  The IH on $e_2$
+    gives
+    $\mathcal{R}^e_{\tau_2}(\sem{e_2}_E(d_1, \gamma),
+    [w_1/0]\,\sigma(e_2))$, and an \textsc{E-Let} derivation assembles
+    the final result.
+
+  \item The remaining cases (\emph{Fst, Snd, Op, Gt, IfB}) follow the
+    same pattern: extract the value relation from the IH on the value
+    sub-terms, then apply the corresponding evaluation rule.  For
+    example, in \emph{IfB}, the IH on the guard gives
+    $\sigma(v) = \mathsf{BLIT}\;b$; the branch is selected by~$b$,
+    and the IH on the corresponding branch expression yields the result.
+\end{itemize}
+\vspace{-0.5em}
+\end{proof}
+
+\begin{corollary}[Adequacy]
+\label{cor:adequacy}
+For any closed expression $e : \mathsf{CExp}\;\tau$, if\/
+$\sem{e}^c_E \neq \bot$ then $e \Downarrow$.
+\end{corollary}
+\begin{proof}
+Instantiate the fundamental lemma with $\Gamma = \cdot$, $\gamma =
+\ast$, and $\sigma = \mathsf{id}$.  Then
+$\mathcal{R}^e_\tau(\sem{e}^c_E, e)$ holds.  Since $\sem{e}^c_E \neq
+\bot$, the definition of $\mathcal{R}^e_\tau$ gives a value $v$ with
+$e \Downarrow v$.
+\end{proof}
+
+\begin{theorem}[Full correspondence]
+\label{thm:full-correspondence}
+For any closed expression $e : \mathsf{CExp}\;\tau$,
+\[
+  e \Downarrow \quad\iff\quad \sem{e}^c_E \neq \bot.
+\]
+\end{theorem}
+\begin{proof}
+The forward direction is soundness (\cref{thm:soundness}): if
+$e \Downarrow v$ then $\sem{e}^c_E = \eta(\sem{v}^c_V) \neq \bot$.
+The converse is adequacy (\cref{cor:adequacy}).
+\end{proof}
+
+\subsubsection*{Worked example: factorial revisited}
+
+We now illustrate the full correspondence on the factorial function from
+\cref{sec:bg-pcf-syntax}.  Consider $\mathsf{app}\;\mathit{fact}\;2$,
+which we showed evaluates to~$2$ operationally.
+
+\medskip\noindent
+\textbf{Denotational computation.}\;
+The denotation of $\mathit{fact}$ is $\fixp(F)$, where
+\[
+  F(h) = \lambda a.\,
+  \begin{cases}
+    h(a - 1) \mathbin{>\!\!>\!\!=} (\lambda r.\, \eta(a \times r))
+      & \text{if } a > 0, \\
+    \eta(1) & \text{otherwise,}
+  \end{cases}
+\]
+and $d \mathbin{>\!\!>\!\!=} g$ is the Kleisli extension
+($g^\ast(d)$, i.e.\ $g(d')$ when $d = \eta(d')$, and $\bot$ when
+$d = \bot$).
+By the Kleene fixed-point theorem, $\fixp(F) = \bigsqcup_n F^n(\bot)$.
+We compute the first few iterates at argument~$2$:
+
+\begin{enumerate}
+  \item $F^0(\bot)$
+    is the everywhere-divergent function: $F^0(\bot)(2) = \bot$.
+
+  \item $F^1(\bot)(2)$: since $2 > 0$, evaluate
+    $F^0(\bot)(1) = \bot$.  The Kleisli extension propagates
+    divergence: $\bot \mathbin{>\!\!>\!\!=} g = \bot$.
+    Hence $F^1(\bot)(2) = \bot$.
+
+  \item $F^2(\bot)(2)$: since $2 > 0$, evaluate $F^1(\bot)(1)$.
+    Inside this call, $1 > 0$, so evaluate $F^0(\bot)(0) = \bot$.
+    Again $\bot$ propagates, so $F^1(\bot)(1) = \bot$, and
+    $F^2(\bot)(2) = \bot$.
+
+  \item $F^3(\bot)(2)$: since $2 > 0$, evaluate $F^2(\bot)(1)$.
+    Inside: $1 > 0$, evaluate $F^1(\bot)(0)$.  Now $0 \leq 0$, so
+    $F^1(\bot)(0) = \eta(1)$.  Back in the $1$-call:
+    $\eta(1) \mathbin{>\!\!>\!\!=} (\lambda r.\, \eta(1 \times r))
+    = \eta(1)$.  So $F^2(\bot)(1) = \eta(1)$.
+    Back in the $2$-call:
+    $\eta(1) \mathbin{>\!\!>\!\!=} (\lambda r.\, \eta(2 \times r))
+    = \eta(2)$.  Hence $F^3(\bot)(2) = \eta(2)$.
+\end{enumerate}
+
+\noindent
+The chain stabilises: $F^n(\bot)(2) = \eta(2)$ for all $n \geq 3$.
+Therefore $\sem{\mathsf{app}\;\mathit{fact}\;2}^c_E = \eta(2)$.
+
+\medskip\noindent
+\textbf{Applying soundness.}\;
+Since $\mathsf{app}\;\mathit{fact}\;2 \Downarrow 2$,
+\cref{thm:soundness} gives
+$\sem{\mathsf{app}\;\mathit{fact}\;2}^c_E = \eta(\sem{2}^c_V) = \eta(2)$,
+confirming the calculation above.
+
+\medskip\noindent
+\textbf{Applying adequacy.}\;
+Conversely, knowing $\sem{\mathsf{app}\;\mathit{fact}\;2}^c_E = \eta(2)
+\neq \bot$, \cref{cor:adequacy} guarantees that
+$\mathsf{app}\;\mathit{fact}\;2 \Downarrow$---the program must converge,
+even without constructing the evaluation derivation directly.  The full
+correspondence (\cref{thm:full-correspondence}) combines both directions:
+\[
+  \mathsf{app}\;\mathit{fact}\;2 \Downarrow
+  \quad\iff\quad
+  \sem{\mathsf{app}\;\mathit{fact}\;2}^c_E \neq \bot.
+\]
+
+\begin{remark}[Adequacy is not full abstraction]
+\label{rem:not-full-abstraction}
+Full abstraction requires that programs are denotationally equal if and
+only if they are observationally equivalent.  The full correspondence
+theorem is strictly weaker: it relates \emph{convergence} to
+\emph{definedness}, not general equivalence.  Indeed, the standard
+CPO model is \emph{not} fully abstract for PCF---the counterexample
+involves the ``parallel or'' function, which is continuous but not
+definable in the sequential language.  Achieving full abstraction
+requires more refined models such as game semantics.
+\end{remark}
+
+% ── Proof assistants ──────────────────────────────────────────────
+\section{Proof Assistants and \Rocq{}}
+\label{sec:bg-rocq}
+
+The preceding sections developed domain theory, enriched category theory,
+and the denotational semantics of PCF\textsubscript{v} as pen-and-paper
+mathematics.  The central contribution of this thesis is a
+\emph{mechanized} development of these results: every definition is
+formally specified and every proof is machine-checked.  This section
+introduces the proof assistant in which the library is built and the
+framework used to organize its algebraic hierarchy.
+
+\subsection{The \Rocq{} Proof Assistant}
+\label{sec:bg-rocq-assistant}
+
+A \emph{proof assistant} (also called an \emph{interactive theorem
+prover}) is a software system in which a user writes mathematical
+definitions and proofs in a formal language, and a small, trusted
+program---the \emph{kernel}---checks that every deductive step is valid.
+The kernel implements a fixed set of inference rules; it accepts a proof
+only when the entire argument can be reduced to a sequence of these
+rules.  Because the kernel is small (typically a few thousand lines of
+code) and performs no heuristic reasoning, its correctness can be
+audited independently of the much larger system that surrounds it.  The
+result is a strong guarantee: any theorem that \Rocq{} accepts has been
+verified against a well-understood logical foundation, regardless of how
+the proof was constructed.
+
+\Rocq{} (historically known as Coq) is a proof assistant whose logical
+foundation is the \emph{Calculus of Inductive Constructions}
+(CIC)~\cite{BertotCasteran2004}, a dependent type theory in the
+tradition of Martin-L\"{o}f.  CIC serves simultaneously as a programming
+language and a logic: the same formal language is used to define
+mathematical objects, state theorems about them, and construct proofs of
+those theorems.  We describe below the features of CIC and \Rocq{} that
+the reader will need in subsequent chapters; a comprehensive treatment
+can be found in~\cite{BertotCasteran2004}.
+
+\subsubsection*{Types, terms, and the Curry--Howard correspondence.}
+
+A constructive proof of an implication $A \Rightarrow B$ is, in
+essence, a method that transforms any proof of~$A$ into a proof
+of~$B$---it is a function from proofs of~$A$ to proofs of~$B$.
+Similarly, a constructive proof of a conjunction $A \land B$ is a pair:
+a proof of~$A$ together with a proof of~$B$.  The
+\emph{Curry--Howard correspondence} makes this analogy precise:
+propositions are identified with types, and proofs are identified with
+terms (programs) inhabiting those types.  Under this identification, the
+implication $A \Rightarrow B$ corresponds to the function type $A \to B$,
+the conjunction $A \land B$ corresponds to the product type $A \times B$,
+and the universal quantification $\forall x : A,\, P(x)$ corresponds to
+a dependent function type $\prod_{x : A} P(x)$---a function that, given
+any element~$x$ of~$A$, produces a proof of~$P(x)$.
+
+CIC is built on this correspondence: there is no separate logical
+language layered on top of a programming language.  Instead, every
+proposition is literally a type, and every proof is literally a
+term that the kernel type-checks.  This is why the same language
+used to define data (natural numbers, lists, trees) also serves to
+state and prove theorems about that data.
+
+\subsubsection*{Dependent types.}
+
+The key feature that distinguishes CIC from the simply-typed lambda
+calculus is \emph{dependent types}: types that are parameterised by
+values.  For instance, one can define the type $\mathrm{Vec}(A, n)$ of
+lists of exactly~$n$ elements drawn from~$A$.  The type itself records
+the length, so the type system statically tracks dimensional constraints
+that would otherwise require runtime checks or informal convention.  In
+the context of this thesis, dependent types are used pervasively: for
+example, the type of a well-typed PCF\textsubscript{v} value is indexed
+by both its typing context~$\Gamma$ and its type~$\tau$
+(\cref{sec:bg-pcf-syntax}), so that ill-typed terms are not merely
+rejected but are \emph{inexpressible}.
+
+\subsubsection*{Inductive types.}
+
+CIC provides \emph{inductive type} declarations as the primary mechanism
+for introducing new data types and propositions.  An inductive type is
+specified by a list of \emph{constructors}, each of which describes one
+way to build an element of the type.  For example, the natural numbers
+are defined by two constructors: a zero constructor and a successor
+constructor that takes an existing natural number.  Propositions are
+defined analogously: the proposition ``$n$ is even'' might have a
+constructor witnessing that $0$ is even and a constructor witnessing that
+if $n$ is even then $n + 2$ is even.  Each inductive type comes equipped
+with a \emph{recursion principle} and an \emph{induction principle},
+generated automatically, which allow one to define functions out of the
+type and prove properties about it.  The evaluation rules, typing
+judgements, and logical relations encountered in earlier sections
+(\cref{sec:bg-pcf-syntax,sec:bg-adequacy}) are all naturally expressed
+as inductive types in \Rocq{}.
+
+\subsubsection*{Gallina and Ltac.}
+
+\Rocq{} separates its \emph{specification language}, called
+\emph{Gallina}, from its \emph{tactic language}, called \emph{Ltac}.
+Gallina is the core functional programming language in which definitions,
+theorems, and proof terms are ultimately expressed---it is the language
+that the kernel checks.  Ltac is a meta-language for \emph{constructing}
+Gallina terms interactively: the user issues tactic commands (such as
+``apply this lemma,'' ``perform induction on this variable,'' or
+``simplify the goal'') and \Rocq{} incrementally builds the underlying
+proof term.  The final proof term produced by tactics is verified by the
+kernel in exactly the same way as a term written directly in Gallina.
+This separation is the source of \Rocq{}'s trustworthiness: the tactic
+language, the user interface, and any external automation may be
+arbitrarily complex or even buggy, but every proof term they produce must
+still pass the kernel's independent check.  The trusted computing base
+is therefore the kernel alone.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners=3pt, minimum width=2.4cm,
+                minimum height=0.9cm, align=center, font=\small},
+    arr/.style={-Stealth, thick}
+]
+    \node[box]               (user)   at (0,0)   {User\\(Ltac)};
+    \node[box]               (term)   at (4.5,0) {Proof term\\(Gallina)};
+    \node[box, fill=gray!15] (kernel) at (9,0)   {Kernel};
+
+    \draw[arr] (user)   -- node[above, font=\footnotesize]{constructs} (term);
+    \draw[arr] (term)   -- node[above, font=\footnotesize]{checked by} (kernel);
+\end{tikzpicture}
+\caption{The Ltac--Gallina--kernel pipeline in \Rocq{}.  Tactic commands
+  construct a proof term in Gallina; the kernel type-checks it
+  independently.  The trusted computing base is the kernel alone.}
+\label{fig:ltac-gallina}
+\end{figure}
+
+\subsubsection*{Constructivity and classical extensions.}
+
+CIC is \emph{constructive} by default: the law of excluded middle
+($P \lor \lnot P$ for every proposition~$P$) and the axiom of choice are
+not built into the logic.  This means that, for instance, proving the
+existence of an object requires exhibiting a witness, not merely deriving
+a contradiction from its non-existence.  However, classical axioms can be
+\emph{added} to \Rocq{} as consistent extensions of CIC without
+compromising soundness---one simply loses the computational content of
+the affected proofs.  The library developed in this thesis makes use of
+two such extensions, whose specific roles are discussed in
+\cref{ch:methods}: classical indefinite description (for constructing
+suprema in the lift monad) and functional extensionality (for reasoning
+about equality of continuous functions).
+
+\subsection{Hierarchy Builder}
+\label{sec:bg-hb}
+
+Mathematical practice organises concepts into hierarchies: a group is a
+monoid with inverses, a ring is an abelian group with a multiplication,
+and so on.  Formalizing such hierarchies in a dependently typed proof
+assistant is surprisingly difficult.  The core challenge is the
+\emph{diamond problem}: when a structure~$S$ inherits from two
+intermediate structures~$A$ and~$B$ that share a common
+ancestor~$C$, the system must ensure that the two copies of~$C$'s data
+agree.  In a proof assistant, this manifests as a coherence problem among
+coercions, canonical projections, and type-class instances that quickly
+becomes unmanageable as the hierarchy grows.
+
+Early approaches in \Rocq{} required the library author to hand-manage
+\emph{canonical structures} (a mechanism by which \Rocq{}'s unifier
+automatically infers algebraic data from the type of a term) or
+\emph{type classes} (a mechanism inspired by Haskell that uses
+backtracking proof search to resolve instances).  Both approaches work
+for small hierarchies but scale poorly: adding a new node to a hierarchy
+of~$n$ structures can require $O(n^2)$ boilerplate declarations, and a
+single misplaced coercion can silently break unification across the
+entire library.
+
+\emph{Hierarchy Builder} (\HB{})~\cite{HB2023} solves this problem by
+introducing a disciplined abstraction layer with three central concepts:
+%
+\begin{description}
+  \item[Mixin.] A \emph{mixin} is a bundle of operations and axioms that
+    describes one layer of algebraic structure.  For example, a mixin
+    might declare a binary relation~$\le$ and an axiom asserting
+    reflexivity.  Mixins are the only component the user writes
+    directly.
+
+  \item[Structure.] A \emph{structure} is a cumulative collection of
+    mixins.  \HB{} synthesises structure types automatically from the
+    mixin dependency graph: if mixin~$M_2$ depends on mixin~$M_1$, then
+    any structure containing~$M_2$ automatically includes~$M_1$.  \HB{}
+    also generates the coercions between structures, so that, for
+    example, every pointed $\omega$-CPO can be used wherever a partial
+    order is expected---without the user declaring any coercion.
+
+  \item[Instance.] An \emph{instance} is a proof that a particular type
+    satisfies the axioms of a structure.  The user provides mixin
+    instances (the operations and proofs for each layer), and \HB{}
+    assembles them into the appropriate structure, registers the result
+    with \Rocq{}'s canonical structure mechanism, and makes it available
+    for automatic inference.
+\end{description}
+%
+The benefit is that the user's responsibilities are local---write one
+mixin declaration per algebraic layer and one instance proof per concrete
+model---while \HB{} handles the global concerns of coercion coherence,
+subtyping paths, and canonical instance resolution.
+\Cref{fig:hb-workflow} illustrates this division of labour.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners=3pt, minimum width=2.6cm,
+                minimum height=0.9cm, align=center, font=\small},
+    gen/.style={box, fill=gray!15},
+    arr/.style={-Stealth, thick},
+    lbl/.style={font=\footnotesize, midway}
+]
+    % User-written
+    \node[box] (mixin)    at (0,0)    {Mixins};
+    \node[box] (instance) at (0,-1.8) {Instances};
+
+    % HB generates
+    \node[gen] (struct)   at (5,0)    {Structures};
+    \node[gen] (coerce)   at (5,-1.8) {Coercions};
+    \node[gen] (canon)    at (5,-3.6) {Canonical\\projections};
+
+    % Arrows
+    \draw[arr] (mixin)    -- node[lbl, above]{\HB{} generates} (struct);
+    \draw[arr] (mixin)    -- (coerce);
+    \draw[arr] (instance) -- (canon);
+    \draw[arr] (instance) -- (coerce);
+
+    % Annotations
+    \node[font=\footnotesize, above=6pt] at (0,0.45)   {\textit{user writes}};
+    \node[font=\footnotesize, above=6pt] at (5,0.45)   {\textit{\HB{} synthesises}};
+\end{tikzpicture}
+\caption{The Hierarchy Builder workflow.  The user declares mixins
+  (bundles of axioms) and instances (proofs that a concrete type
+  satisfies those axioms).  \HB{} automatically synthesises structure
+  types, coercions between structures, and canonical projections for
+  instance resolution.}
+\label{fig:hb-workflow}
+\end{figure}
+
+In this thesis, the entire algebraic hierarchy is declared via \HB{}: the
+chain of structures from preorders through partial orders, $\omega$-CPOs,
+pointed CPOs, and CPO-enriched categories, as well as all concrete
+instances (product CPOs, function spaces, the lift monad, discrete
+orders, and so on).  The practical consequence is that when a type is
+registered as, say, a pointed $\omega$-CPO, every theorem about partial
+orders, $\omega$-chains, and least upper bounds becomes automatically
+available for that type, with no additional declarations required by the
+library user.  The specific hierarchy and the design decisions behind it
+are described in \cref{ch:methods}.

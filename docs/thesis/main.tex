@@ -1,0 +1,197 @@
+% !TeX program = latexmk
+% main.tex — Thesis root document
+% Build: latexmk -pdf main.tex
+% Clean: latexmk -C
+
+\documentclass[12pt, letterpaper, oneside]{report}
+
+% ── Encoding & fonts ──────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{2080}{\textsubscript{0}}  % ₀ not in utf8.def
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[scaled=0.85]{inconsolata}   % Better monospace for code listings
+
+% ── Page geometry ─────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+
+% ── Math ──────────────────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{aliascnt}
+\usepackage{stmaryrd}          % ⟦ ⟧  semantic brackets
+\usepackage{mathtools}
+\usepackage{mathpartir}         % inference rules
+\usepackage{braket}              % Dirac notation: \ket, \bra, \braket
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}[chapter]
+\newaliascnt{lemma}{theorem}
+\newtheorem{lemma}[lemma]{Lemma}
+\aliascntresetthe{lemma}
+\newaliascnt{proposition}{theorem}
+\newtheorem{proposition}[proposition]{Proposition}
+\aliascntresetthe{proposition}
+\newaliascnt{corollary}{theorem}
+\newtheorem{corollary}[corollary]{Corollary}
+\aliascntresetthe{corollary}
+\theoremstyle{definition}
+\newaliascnt{definition}{theorem}
+\newtheorem{definition}[definition]{Definition}
+\aliascntresetthe{definition}
+\newaliascnt{example}{theorem}
+\newtheorem{example}[example]{Example}
+\aliascntresetthe{example}
+\theoremstyle{remark}
+\newaliascnt{remark}{theorem}
+\newtheorem{remark}[remark]{Remark}
+\aliascntresetthe{remark}
+
+% ── Code listings (Rocq / Coq) ───────────────────────────────────
+\usepackage{listings}
+\usepackage{listingsutf8}  % lets listings read UTF-8 before inputenc
+\usepackage{xcolor}
+
+\definecolor{rocqkw}{RGB}{0,100,0}       % vernacular: Definition, Record, …
+\definecolor{rocqtactic}{RGB}{0,50,160}   % tactics: apply, rewrite, …
+\definecolor{rocqtype}{RGB}{128,0,128}    % sorts/universes: Type, Prop, Set
+\definecolor{rocqcomment}{RGB}{128,128,128}
+\definecolor{rocqstring}{RGB}{163,21,21}
+
+\lstdefinelanguage{Rocq}{
+  % [1] Vernacular & term-level keywords (green)
+  morekeywords={[1]Definition, Lemma, Theorem, Corollary, Proof, Qed, Admitted, Defined,
+    Fixpoint, Inductive, CoInductive, Record, Structure, Class, Instance,
+    Section, End, Variable, Variables, Context, Hypothesis, Hypotheses,
+    Require, Import, Export, From, Open, Scope, Notation,
+    match, with, end, return, let, in, if, then, else,
+    forall, exists, fun, HB.mixin, HB.structure},
+  % [2] Tactics (blue)
+  morekeywords={[2]apply, exact, reflexivity, simpl, unfold, rewrite, intros,
+    destruct, induction, constructor, split, left, right,
+    move, case, elim, have, pose, set, enough, assert,
+    by, done, auto, eauto, omega, lia, trivial, assumption},
+  % [3] Sorts & universes (purple)
+  morekeywords={[3]Type, Prop, Set, nat, bool, True, False},
+  sensitive=true,
+  morecomment=[s]{(*}{*)},
+  morestring=[b]",
+  literate={→}{{$\to$}}1 {⊑}{{$\sqsubseteq$}}1 {⊔}{{$\bigsqcup$}}1
+           {⊥}{{$\bot$}}1 {⟦}{{$\llbracket$}}1 {⟧}{{$\rrbracket$}}1
+           {ω}{{$\omega$}}1 {λ}{{$\lambda$}}1 {∀}{{$\forall$}}1
+           {∃}{{$\exists$}}1 {≤}{{$\leq$}}1 {≥}{{$\geq$}}1
+           {∘}{{$\circ$}}1 {⇓}{{$\Downarrow$}}1
+           {⊚}{{$\circledcirc$}}1
+           {⊗}{{$\otimes$}}1 {⊓}{{$\sqcap$}}1
+           {†}{{$^\dagger$}}1 {δ}{{$\delta$}}1
+           {₀}{{$_0$}}1
+           {ₜ}{{$_t$}}1
+           {Γ}{{$\Gamma$}}1 {τ}{{$\tau$}}1 {σ}{{$\sigma$}}1
+           {γ}{{$\gamma$}}1,
+}
+
+\lstset{
+  language=Rocq,
+  inputencoding=utf8,
+  basicstyle=\ttfamily\small\linespread{1.0}\selectfont,
+  keywordstyle={[1]\color{rocqkw}\bfseries},
+  keywordstyle={[2]\color{rocqtactic}},
+  keywordstyle={[3]\color{rocqtype}\bfseries},
+  commentstyle=\color{rocqcomment}\itshape,
+  stringstyle=\color{rocqstring},
+  breaklines=true,
+  frame=tb,
+  framerule=0.4pt,
+  backgroundcolor=\color{gray!4},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  xleftmargin=1.5em,
+  captionpos=b,
+  aboveskip=1.2em,
+  belowskip=1.2em,
+  columns=flexible,
+  keepspaces=true,
+}
+
+% ── Hyperlinks & cross-references ─────────────────────────────────
+\usepackage[hidelinks]{hyperref}
+\usepackage[capitalise, noabbrev]{cleveref}
+\crefname{theorem}{theorem}{theorems}
+\Crefname{theorem}{Theorem}{Theorems}
+\crefname{lemma}{lemma}{lemmas}
+\Crefname{lemma}{Lemma}{Lemmas}
+\crefname{proposition}{proposition}{propositions}
+\Crefname{proposition}{Proposition}{Propositions}
+\crefname{corollary}{corollary}{corollaries}
+\Crefname{corollary}{Corollary}{Corollaries}
+\crefname{definition}{definition}{definitions}
+\Crefname{definition}{Definition}{Definitions}
+\crefname{example}{example}{examples}
+\Crefname{example}{Example}{Examples}
+\crefname{remark}{remark}{remarks}
+\Crefname{remark}{Remark}{Remarks}
+
+% ── Bibliography ──────────────────────────────────────────────────
+\usepackage[
+  backend=biber,
+  style=alphabetic,
+  sorting=nyt,
+  maxbibnames=99,
+]{biblatex}
+\addbibresource{references.bib}
+
+% ── Figures ───────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}           % \toprule, \midrule, \bottomrule
+\graphicspath{{figures/}}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, cd, shapes.geometric, calc}
+
+% ── Custom commands ───────────────────────────────────────────────
+% Semantic brackets
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+% CPO notation
+\newcommand{\chain}{\mathsf{chain}}
+\newcommand{\lub}{\bigsqcup}
+\newcommand{\cont}{\mathsf{cont}}
+\newcommand{\fixp}{\mathsf{fix}}
+\newcommand{\Nat}{\mathsf{Nat}}
+\newcommand{\Bool}{\mathsf{Bool}}
+% Category notation
+\newcommand{\Hom}{\mathsf{Hom}}
+\newcommand{\CPO}{\mathbf{CPO}}
+\newcommand{\qCPO}{\mathbf{qCPO}}
+% Operator notation
+\DeclareMathOperator{\tr}{tr}
+% Rocq / HB
+\newcommand{\Rocq}{\textsc{Rocq}}
+\newcommand{\HB}{\textsc{HB}}
+
+% ══════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Front matter ──────────────────────────────────────────────────
+\input{frontmatter}
+
+\tableofcontents
+\newpage
+
+% ── Chapters ──────────────────────────────────────────────────────
+\input{chapters/introduction}
+\input{chapters/background}
+\input{chapters/methods}
+\input{chapters/results}
+\input{chapters/discussion}
+\input{chapters/conclusion}
+
+% ── Back matter ───────────────────────────────────────────────────
+\printbibliography[heading=bibintoc]
+
+\appendix
+\input{appendices/design-decisions}
+\input{appendices/bkv-migration}
+
+\end{document}

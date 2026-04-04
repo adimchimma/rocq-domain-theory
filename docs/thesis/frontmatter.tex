@@ -1,0 +1,115 @@
+% frontmatter.tex — Title page and abstract
+% Layout follows the required school cover-page template.
+
+\begin{titlepage}
+\fontfamily{ptm}\selectfont  % Times New Roman for cover page
+\singlespacing               % Override document double-spacing
+\centering
+
+\vspace*{0.5in}
+
+% ── Title (Times New Roman 24pt, bold) ────────────────────────────
+{\fontsize{24}{28}\selectfont\bfseries
+  Modernizing Domain Theory Foundations\\[0.4em]
+  for Quantum Programming Languages
+  \par
+}
+
+\vspace{0.5in}
+
+% ── Author (18pt) ────────────────────────────────────────────────
+{\fontsize{18}{22}\selectfont
+  Adimchimma Odor
+  \par
+}
+
+\vspace{0.6in}
+
+% ── Degree ────────────────────────────────────────────────────────
+{\fontsize{14}{18}\selectfont
+  Candidate for the degree\par
+}
+\vspace{0.15in}
+{\fontsize{14}{18}\selectfont
+  Bachelor of Science
+  \par
+}
+
+\vspace{0.4in}
+
+% ── Fulfilment statement ──────────────────────────────────────────
+{\fontsize{12}{16}\selectfont
+  Submitted in partial fulfilment of the requirements for\par
+}
+\vspace{0.1in}
+{\fontsize{12}{16}\selectfont
+  College Honors\par
+}
+\vspace{0.05in}
+{\fontsize{12}{16}\selectfont
+  Departmental Distinction in Computer Science, Mathematics
+  \par
+}
+
+\vspace{1.5in}
+
+% ── Signature lines (left-aligned block) ──────────────────────────
+\begin{flushleft}
+\hspace{0.5in}
+\begin{minipage}{5in}
+
+    % Thesis Advisor
+    \rule{3.5in}{0.4pt}\\[2pt]
+    {\normalsize David Nawrocki, Ph.D., \textit{Thesis Advisor}}
+
+    \vspace{0.35in}
+
+    % Departmental Reader
+    \rule{3.5in}{0.4pt}\\[2pt]
+    {\normalsize David Kopec, MS MBA, \textit{Departmental Reader}}
+
+    \vspace{0.35in}
+
+    % College Reader
+    \rule{3.5in}{0.4pt}\\[2pt]
+    {\normalsize Brian Buerke, Ph.D, \textit{College Reader}}
+
+\end{minipage}
+\end{flushleft}
+
+\end{titlepage}
+
+% ── Abstract ──────────────────────────────────────────────────────
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This thesis develops modern, machine-verified foundations for
+programming language semantics using \Rocq{} (formerly Coq).
+We modernize and substantially extend the 2009 domain theory library
+of Benton, Kennedy, and Varming~\cite{BKV2009}, formalizing
+$\omega$-complete partial orders ($\omega$-CPOs), Scott-continuous
+functions, the Kleene fixed-point theorem, and a cartesian closed
+category structure for function spaces.
+Building on this foundation, we formalize CPO-enriched categories,
+locally continuous functors, enriched natural transformations, and a
+recursive domain equation framework.
+As validation, we implement PCF$_v$ ---a simply typed lambda calculus
+with general recursion---and prove both soundness and adequacy of its
+denotational semantics with respect to a big-step operational semantics.
+Finally, we build some extensions toward quantum programming language
+semantics via quantum CPOs based largely on the work of 
+Kornell, Lindenhovius, and Mislove~\cite{KLM2024}.
+The entire development comprises over 15{,}000 lines of verified
+\Rocq{} code using the Hierarchy Builder framework.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} domain theory, denotational semantics,
+proof assistant, Rocq, enriched categories, PCF, adequacy,
+quantum CPOs
+
+% ── Acknowledgments ───────────────────────────────────────────────
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+
+% TODO: Write acknowledgments.
+I dedicate this thesis to my mental health, you will forever be missed.

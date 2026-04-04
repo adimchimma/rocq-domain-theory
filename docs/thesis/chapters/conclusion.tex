@@ -1,0 +1,162 @@
+% !TeX root = ../main.tex
+% chapters/conclusion.tex
+
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+% ── Summary ───────────────────────────────────────────────────────
+\section{Summary}
+\label{sec:conc-summary}
+
+This thesis set out to modernize the domain-theoretic foundations
+laid by Benton, Kennedy, and Varming~\cite{BKV2009}, extend them
+with enriched-categorical and quantum structure, and demonstrate
+that $\CPO$-enrichment provides a formal bridge between classical
+and quantum domain theory.
+The result is a library of approximately 15{,}700 lines of
+\Rocq{}~9.0 code across 35~source files, with zero uses of
+\texttt{Admitted} in the core and a single explicitly declared axiom.
+
+\paragraph{Classical domain theory and PCF adequacy.}
+The classical layer reproduces every construction from
+BKV~\cite{BKV2009}---$\omega$-CPOs, products, sums, the lift monad,
+function spaces, and the Kleene fixed-point theorem---on a
+modernized Hierarchy Builder infrastructure
+(\cref{sec:meth-hierarchy,sec:meth-constructions}).
+The fixed-point operator is registered as a Scott-continuous map
+$\fixp : [D \to_c D] \to_c D$, and we formalize the Scott topology
+with an equivalence between computational and topological continuity
+(\cref{sec:bg-scott-topology}).
+Building on this infrastructure, we give a complete denotational
+semantics for PCF$_v$ with intrinsically typed de~Bruijn syntax and
+prove both soundness and computational adequacy via a logical
+relation (\cref{sec:res-soundness,sec:res-adequacy}).
+The adequacy proof establishes that a closed expression converges
+operationally if and only if its denotation is defined---a
+full convergence correspondence.
+
+\paragraph{Enriched categories and domain equations.}
+The enriched layer formalizes $\CPO$-enriched categories, locally
+continuous functors, and enriched natural transformations with
+vertical composition, whiskering, and pointwise suprema
+(\cref{sec:meth-enriched,sec:meth-nat-trans}).
+As a validation, we prove an enriched Yoneda lemma establishing a
+$\CPO$ isomorphism between natural transformations out of a
+representable functor and the representing object
+(\cref{sec:res-yoneda}).
+Building on the enriched layer, we formalize embedding-projection
+pairs, mixed-variance locally continuous bifunctors, and the
+approximation tower for recursive domain equations
+(\cref{sec:meth-domain-equations}).
+The bilimit specification packages a solution
+$D_\infty \cong F(D_\infty, D_\infty)$ with \texttt{ROLL}/\texttt{UNROLL}
+isomorphisms, isolating a single axiom (\texttt{bilimit\_exists})
+whose consequences are fully derived
+(\cref{sec:res-domain-equations}).
+
+\paragraph{Quantum domain theory and the enrichment correspondence.}
+Following Kornell, Lindenhovius, and Mislove~\cite{KLM2024}, we
+formalize involutive quantales, quantum posets, quantum CPOs, and the
+quantum Kleene fixed-point theorem
+(\cref{sec:disc-quantum,sec:disc-qcpo}).
+The thesis's central structural observation is that the hom-sets of
+quantum Scott-continuous maps form classical $\omega$-CPOs under a
+pointwise quantum order, making the category $\qCPO$
+satisfy the axioms of a $\CPO$-enriched category---just as the
+classical category $\CPO$ does
+(\cref{sec:disc-quantum-enrichment}).
+This means that locally continuous functors, enriched natural
+transformations, and the machinery for recursive domain equations all
+apply to quantum domains without modification.
+
+\paragraph{The coinductive lift monad.}
+As a complementary negative result, we develop the coinductive delay
+monad in a self-contained 490-line file and prove that it cannot
+carry a \texttt{CPO.type} structure under Leibniz equality
+(\cref{sec:disc-lift-monad}).
+The obstruction theorem (\texttt{delay\_CPO\_requires\_quotient}) is
+fully proved and makes the design rationale for the flat lift
+$D_\bot = \texttt{option}\;D$ precise and machine-checked.
+
+% ── Future work ───────────────────────────────────────────────────
+\section{Future Work}
+\label{sec:conc-future}
+
+Several concrete directions remain open, grouped below by
+the layer of the library they concern.
+
+\paragraph{Completing the classical layer.}
+The most immediate task is proving \texttt{bilimit\_exists}: the
+$\omega$-product CPO (a countable product of CPOs with componentwise
+order and componentwise suprema) is the missing ingredient, and the
+proof strategy is well understood (\cref{sec:disc-tradeoffs}).
+A second direction is replacing \texttt{ClassicalEpsilon} in the
+lift supremum construction with a decidability instance for finite
+or discrete types, which would make those instances extractable to
+OCaml or Haskell while leaving the general case classical.
+On the engineering side, the two-tier architecture
+(\cref{sec:disc-tradeoffs}) could be partially closed by registering
+\texttt{cont\_fun} and \texttt{mono\_fun} as \HB{} structures, if
+the single-carrier indexing constraint is relaxed in a future version
+of Hierarchy Builder.
+A related effort is a universe-polymorphism audit: the library
+currently avoids \texttt{Set Universe Polymorphism} entirely,
+foreclosing some generic constructions; enabling it would require
+pervasive annotations across the hierarchy for what is currently
+minimal practical gain, but would become worthwhile if the library
+scales to larger categorical constructions.
+
+\paragraph{Completing the quantum layer.}
+The quantum layer has five open fronts.
+First, the \HB{} instance registering $\qCPO$ as a
+\texttt{CPOEnrichedCat} requires packaging the \texttt{q\_cont\_fun}
+record as an \HB{}-compatible type; the mathematics is complete
+(\cref{sec:disc-quantum-enrichment}).
+Second, the library axiomatises the quantale~$Q$ abstractly but does
+not construct the concrete example $Q = B(H)$; doing so would
+require a Hilbert-space formalization not currently available in the
+\Rocq{} ecosystem.
+Third, Scott continuity for quantum maps---the quantum analogue of
+the equivalence between computational and topological continuity
+formalized in the classical layer---has not been developed.
+Fourth, the classical lift $D_\bot = \texttt{option}\;D$ has no
+direct quantum analogue; a quantum lift monad would need to interact
+with the quantale-valued order in a way that remains an open
+question.
+Fifth, full recursive domain equations for quantum types would
+require extending the bilimit machinery to the quantum setting,
+using the $\CPO$-enrichment of $\qCPO$ to instantiate the existing
+bilimit framework.
+
+\paragraph{Language extensions.}
+The stub files \texttt{QMiniCore\_Syntax.v} and
+\texttt{QMiniCore\_Semantics.v} are reserved for a quantum
+programming language whose types would be interpreted as quantum
+CPOs.
+A minimal viable language would include qubit allocation, unitary
+gates, measurement, and a quantum-control branching construct
+whose denotational semantics targets the quantum Kleene fixed-point
+theorem.
+Designing such a language and proving soundness and adequacy
+analogous to the PCF$_v$ development would be the natural
+culmination of the quantum layer.
+
+% ── Closing remarks ───────────────────────────────────────────────
+\section{Closing Remarks}
+\label{sec:conc-closing}
+
+The organizing principle of this thesis is that $\CPO$-enrichment is
+a minimal and powerful abstraction: it captures exactly the structure
+needed for fixed-point semantics, recursive domain equations, and
+enriched categorical reasoning, and it applies uniformly to both
+classical and quantum domains.
+By building the enriched layer as a generic framework and then
+demonstrating that both $\CPO$ and $\qCPO$ satisfy its axioms, the
+thesis shows that a single mechanized infrastructure can serve as a
+foundation for programming language semantics across the
+classical--quantum divide.
+The gaps that remain---a concrete Hilbert-space quantale, a quantum
+lift monad, a quantum programming language---are gaps in
+\emph{content}, not in \emph{architecture}: the framework is in
+place, and filling these gaps requires extending the library rather
+than redesigning it.
