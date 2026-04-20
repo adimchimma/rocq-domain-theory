@@ -182,4 +182,52 @@ The contributions of this thesis are as follows.
 \section{Thesis Outline}
 \label{sec:intro-outline}
 
-% TODO: Brief chapter-by-chapter summary
+\paragraph{\cref{ch:introduction}: Introduction.}
+This is where you are. We develop the motivations for the project.
+
+\paragraph{\cref{ch:background}: Background.}
+We develop the mathematical prerequisites for the thesis in four parts.
+\cref{sec:bg-domain-theory} introduces partial orders, $\omega$-chains, $\omega$-CPOs, the Kleene
+fixed-point theorem, and the Scott topology.
+\cref{sec:bg-enriched} presents CPO-enriched categories, enriched functors and natural transformations,
+and the bilimit framework for recursive domain equations.
+\cref{sec:bg-denotational} defines the syntax, operational semantics, and denotational semantics of PCF$_v$, and
+states the soundness and adequacy theorems that the later chapters prove mechanically.
+\cref{sec:bg-rocq} introduces the \Rocq{} proof assistant and the Hierarchy Builder framework that
+underpins our formalization.
+
+\paragraph{\cref{ch:methods}: Methods.}
+We describe the design and implementation of the library.
+\cref{sec:meth-architecture} presents the HB-based algebraic hierarchy and the key design decisions
+that shape it, including the two-tier architecture for morphisms and the choice of Leibniz equality.
+\cref{sec:meth-constructions} details the CPO constructions---products, sums, the flat lift, and
+function spaces---that populate the hierarchy with concrete instances.
+\cref{sec:meth-enriched} formalizes the CPO-enriched category structure, locally continuous functors,
+natural transformations, and the framework for recursive domain equations via embedding-projection
+pairs.
+\cref{sec:meth-pcf} covers the PCF$_v$ formalization: intrinsically typed syntax with the
+\texttt{var\_case} combinator, the big-step operational semantics, and the denotational interpretation.
+
+\paragraph{\cref{ch:results}: Results.}
+We present the library's verified theorems and metrics.
+\cref{sec:res-overview} gives a quantitative overview of the library.
+\cref{sec:res-soundness,sec:res-adequacy,sec:res-correspondence} develop the PCF$_v$ soundness proof,
+the adequacy proof via a logical relation, and the full convergence correspondence.
+\cref{sec:res-enriched} presents the enriched Yoneda lemma and the recursive domain equation
+framework, including the bilimit specification and the derived isomorphism.
+\cref{sec:res-examples} demonstrates the library through worked examples.
+
+\paragraph{\cref{ch:discussion}: Discussion.}
+We analyze the library's position in the literature and develop two extensions.
+\cref{sec:disc-bkv} compares our formalization with Benton--Kennedy--Varming~\cite{BKV2009},
+and \cref{sec:disc-tradeoffs} examines the design trade-offs that arise from the HB framework and
+from classical axioms.
+\cref{sec:disc-quantum} formalizes quantum CPOs and establishes the CPO-enrichment correspondence
+that connects the quantum and classical layers.
+\cref{sec:disc-lift-monad} develops the coinductive delay monad and proves that it cannot carry a
+CPO structure under Leibniz equality, justifying the flat lift used throughout the library.
+
+\paragraph{\cref{ch:conclusion}: Conclusion.}
+We summarize the contributions, identify directions for future work---including completing the
+bilimit proof, constructing concrete quantum instances, and designing a quantum programming
+language---and offer closing remarks on CPO-enrichment as a unifying abstraction.
