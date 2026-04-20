@@ -32,11 +32,10 @@ is the mathematical engine behind the denotational semantics of recursive progra
 
 Recursive programs, however, are only half of the story. Programming languages also admit recursive \textit{types}:
 equations such as $D \cong [D \to D]$, which ask for a mathematical domain isomorphic to its own \textit{continuous}
-function space. This equation is not exotic---it is exactly what is needed to model the untyped lambda calculus, where
-any term may be applied to any other. No set-theoretic model satisfies it
+function space. This equation is exactly what is needed to model the untyped lambda calculus, but no set-theoretic model satisfies it
 \footnote{For any set $S$ with more than one element, $\left|[S \to S]\right| = |S|^{|S|} > |S|$ by Cantor's theorem, 
-so no set $S$ can satisfy $S \cong [S \to S]$.},
-but domain theory does, through a more
+so no set $S$ can satisfy $S \cong [S \to S]$.}.
+Domain theory, however, can, through a more
 sophisticated construction: an inverse limit of an approximating sequence of 
 domains connected by structure-preserving maps. Where the Kleene theorem works \textit{inside} a single domain, solving
 recursive type equations requires working \textit{across families} of domains. This shift demands that the morphisms 
