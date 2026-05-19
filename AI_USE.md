@@ -2,7 +2,7 @@
 
 ## 1: Planning
 
-### Fromalization
+### Formalization
 
 Given my lack of familiarity with developing large-scale `Rocq` formalisations, I elected to converse with `Claude` about Project Structure and 
 Architecture. I already knew that the project would entail modernising **BKV** with `HB`, as that is in the Thesis Proposal, but I didn't want to fall into 
